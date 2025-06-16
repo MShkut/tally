@@ -5,6 +5,8 @@ import ThemeToggle from '../shared/ThemeToggle';
 import ProgressBar from '../shared/ProgressBar';
 import NavigationButtons from '../shared/NavigationButtons';
 import IncomeSource from './IncomeSource';
+import { Card } from '../styled/StyledComponents';
+import { Page } from '../styled/StyledComponents';
 
 const IncomeStep = ({ onNext, onBack }) => {
   const { isDarkMode, currentTheme } = useTheme();
@@ -63,7 +65,7 @@ const IncomeStep = ({ onNext, onBack }) => {
   };
 
   return (
-    <div className={`min-h-screen transition-colors bg-gradient-to-br ${isDarkMode ? currentTheme.darkGradient : currentTheme.lightGradient} p-6`}>
+    <Page className="p-6">
       <ThemeToggle />
       <div className="max-w-2xl mx-auto">
         <ProgressBar currentStep={1} />
@@ -73,8 +75,9 @@ const IncomeStep = ({ onNext, onBack }) => {
             Let's Start with Your Income
           </h1>
         </div>
+     
 
-        <div className={`rounded-xl p-8 shadow-lg ${isDarkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white'}`}>
+        <Card>
           <div className="space-y-4 mb-6">
             {incomeSources.map((source) => (
               <IncomeSource
@@ -132,9 +135,9 @@ const IncomeStep = ({ onNext, onBack }) => {
             showBack={false}
             useThemeColor={true}
           />
-        </div>
+        </Card>
       </div>
-    </div>
+    </Page>
   );
 };
 
