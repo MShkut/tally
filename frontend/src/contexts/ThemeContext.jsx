@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState } from 'react';
+// frontend/src/contexts/ThemeContext.jsx
+import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const ThemeContext = createContext();
 
@@ -10,6 +11,7 @@ export const useTheme = () => {
   return context;
 };
 
+// Your existing color themes - keeping them exactly as they were
 const availableThemes = {
   blue: {
     name: 'Ocean Blue',
@@ -71,20 +73,80 @@ export const ThemeProvider = ({ children }) => {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [colorTheme, setColorTheme] = useState('blue');
 
+  // Load saved preferences on mount
+  useEffect(() => {
+    const savedMode = localStorage.getItem('theme-mode');
+    const savedColorTheme = localStorage.getItem('color-theme');
+    
+    if (savedMode === 'dark') {
+      setIsDarkMode(true);
+    }
+    if (savedColorTheme && availableThemes[savedColorTheme]) {
+      setColorTheme(savedColorTheme);
+    }
+  }, []);
+
+  // Save preferences when they change
+  useEffect(() => {
+    localStorage.setItem('theme-mode', isDarkMode ? 'dark' : 'light');
+  }, [isDarkMode]);
+
+  useEffect(() => {
+    localStorage.setItem('color-theme', colorTheme);
+  }, [colorTheme]);
+
+  // Apply theme to document
+  useEffect(() => {
+    const root = document.documentElement;
+    
+    // Apply dark mode class
+    if (isDarkMode) {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+    
+    // Set CSS custom properties for the current theme
+    const theme = availableThemes[colorTheme];
+    const colorValues = {
+      blue: { primary: '#3b82f6', hover: '#2563eb', light: '#dbeafe', dark: '#1e40af' },
+      purple: { primary: '#8b5cf6', hover: '#7c3aed', light: '#ede9fe', dark: '#6d28d9' },
+      green: { primary: '#10b981', hover: '#059669', light: '#d1fae5', dark: '#047857' },
+      orange: { primary: '#f59e0b', hover: '#d97706', light: '#fef3c7', dark: '#b45309' },
+      rose: { primary: '#ec4899', hover: '#db2777', light: '#fce7f3', dark: '#be185d' },
+      indigo: { primary: '#6366f1', hover: '#5856eb', light: '#e0e7ff', dark: '#4f46e5' }
+    };
+    
+    const colors = colorValues[colorTheme] || colorValues.blue;
+    root.style.setProperty('--color-primary', colors.primary);
+    root.style.setProperty('--color-primary-hover', colors.hover);
+    root.style.setProperty('--color-primary-light', colors.light);
+    root.style.setProperty('--color-primary-dark', colors.dark);
+    
+  }, [isDarkMode, colorTheme]);
+
   const currentTheme = availableThemes[colorTheme];
 
   const toggleTheme = () => setIsDarkMode(!isDarkMode);
-  const changeColorTheme = (themeName) => setColorTheme(themeName);
+  const changeColorTheme = (themeName) => {
+    if (availableThemes[themeName]) {
+      setColorTheme(themeName);
+    }
+  };
 
   return (
     <ThemeContext.Provider value={{
+      // Mode state
       isDarkMode,
       toggleTheme,
+      
+      // Color theme state  
       colorTheme,
       changeColorTheme,
       currentTheme,
       availableThemes,
-      // Legacy support for old theme structure
+      
+      // Legacy support for existing components
       theme: {
         gradient: isDarkMode ? currentTheme.darkGradient : currentTheme.lightGradient,
         accent: isDarkMode ? 'text-white' : `text-${currentTheme.primary}-600`,
