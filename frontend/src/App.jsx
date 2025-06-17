@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { ThemeProvider } from './contexts/ThemeContext'
 import { useOnboarding } from './hooks/useOnboarding'
 import IncomeStep from './components/onboarding/IncomeStep'
@@ -6,8 +6,9 @@ import SavingsStep from './components/onboarding/SavingsStep'
 import SavingsAllocationStep from './components/onboarding/SavingsAllocationStep'
 import ExpensesStep from './components/onboarding/ExpensesStep'
 import NetWorthStep from './components/onboarding/NetWorthStep'
+import TransactionImport from './components/dashboard/TransactionImport'
 
-function OnboardingFlow() {
+function OnboardingFlow({ onComplete, onBack }) {
   const { currentStep, nextStep, prevStep, formData, updateFormData } = useOnboarding();
 
   const handleIncomeNext = (incomeData) => {
@@ -32,9 +33,10 @@ function OnboardingFlow() {
 
   const handleNetWorthNext = (netWorthData) => {
     updateFormData('netWorth', netWorthData);
-    // Complete the onboarding!
-    console.log('🎉 Onboarding Complete! Full data:', formData);
-    alert('Congratulations! Your financial profile is complete. 🎉\n\nCheck the console for your full data.');
+    // Complete the onboarding with full data
+    const completeData = { ...formData, netWorth: netWorthData };
+    console.log('🎉 Onboarding Complete! Full data:', completeData);
+    onComplete(completeData);
   };
 
   const handleBack = () => {
@@ -47,7 +49,7 @@ function OnboardingFlow() {
         return (
           <IncomeStep 
             onNext={handleIncomeNext}
-            onBack={handleBack}
+            onBack={onBack}
           />
         );
       case 2:
@@ -89,7 +91,7 @@ function OnboardingFlow() {
           />
         );
       default:
-        return <IncomeStep onNext={handleIncomeNext} onBack={handleBack} />;
+        return <IncomeStep onNext={handleIncomeNext} onBack={onBack} />;
     }
   };
 
@@ -97,9 +99,75 @@ function OnboardingFlow() {
 }
 
 function App() {
+  const [currentView, setCurrentView] = useState('onboarding'); // 'onboarding', 'import', 'dashboard'
+  const [onboardingData, setOnboardingData] = useState(null);
+
+  const handleOnboardingComplete = (data) => {
+    setOnboardingData(data);
+    setCurrentView('import');
+  };
+
+  const handleBackToOnboarding = () => {
+    setCurrentView('onboarding');
+  };
+
+  const handleImportComplete = () => {
+    setCurrentView('dashboard');
+  };
+
+  const renderCurrentView = () => {
+    switch (currentView) {
+      case 'onboarding':
+        return (
+          <OnboardingFlow 
+            onComplete={handleOnboardingComplete}
+            onBack={null}
+          />
+        );
+      case 'import':
+        return (
+          <TransactionImport 
+            onboardingData={onboardingData}
+            onBack={handleBackToOnboarding}
+            onComplete={handleImportComplete}
+          />
+        );
+      case 'dashboard':
+        return (
+          <div className="min-h-screen bg-gradient-to-br from-green-50 to-white flex items-center justify-center">
+            <div className="text-center">
+              <h1 className="text-4xl font-bold text-gray-900 mb-4">
+                🎉 Welcome to Your Financial Dashboard!
+              </h1>
+              <p className="text-xl text-gray-600 mb-8">
+                Your personal finance tracker is ready to use.
+              </p>
+              <div className="bg-white p-6 rounded-lg shadow-lg max-w-md mx-auto">
+                <h3 className="text-lg font-semibold mb-2">Coming Soon:</h3>
+                <ul className="text-left text-gray-600 space-y-1">
+                  <li>• Budget tracking</li>
+                  <li>• Expense categorization</li>
+                  <li>• Savings goal progress</li>
+                  <li>• Net worth monitoring</li>
+                  <li>• Financial projections</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        );
+      default:
+        return (
+          <OnboardingFlow 
+            onComplete={handleOnboardingComplete}
+            onBack={null}
+          />
+        );
+    }
+  };
+
   return (
     <ThemeProvider>
-      <OnboardingFlow />
+      {renderCurrentView()}
     </ThemeProvider>
   )
 }
