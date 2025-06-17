@@ -1,42 +1,42 @@
 import React from 'react';
-import { PiggyBank, Briefcase, Home, Target, Landmark, Car, CreditCard, Building } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
+import { IconButton, ICON_CATEGORIES } from './IconSystem';
 
 const IconSelector = ({ currentIcon, currentColor, onIconChange, type = 'asset' }) => {
   const { isDarkMode } = useTheme();
 
-  const iconSets = {
-    asset: {
-      icons: [PiggyBank, Briefcase, Home, Target, Landmark, Car],
-      colors: ['text-green-500', 'text-blue-500', 'text-orange-500', 'text-purple-500', 'text-gray-600', 'text-yellow-500']
-    },
-    liability: {
-      icons: [CreditCard, Home, Car, Building],
-      colors: ['text-red-500', 'text-orange-500', 'text-purple-500', 'text-gray-600']
+  // Map the legacy type prop to the new category system
+  const getIconCategory = (type) => {
+    switch (type) {
+      case 'asset':
+        return ICON_CATEGORIES.ASSETS;
+      case 'liability':
+        return ICON_CATEGORIES.LIABILITIES;
+      case 'expense':
+        return ICON_CATEGORIES.EXPENSES;
+      case 'goal':
+        return ICON_CATEGORIES.SAVINGS_GOALS;
+      default:
+        return ICON_CATEGORIES.GENERAL;
     }
   };
 
-  const handleIconClick = () => {
-    const { icons, colors } = iconSets[type];
-    const currentIndex = icons.findIndex(icon => icon === currentIcon);
-    const nextIndex = (currentIndex + 1) % icons.length;
-    
-    onIconChange(icons[nextIndex], colors[nextIndex]);
+  // Handle icon change - for backward compatibility, we'll just pass the icon name
+  // The color is now handled automatically by the icon system
+  const handleIconChange = (iconName) => {
+    // For backward compatibility with existing components that expect (icon, color)
+    if (onIconChange) {
+      onIconChange(iconName, null); // color is now automatic
+    }
   };
 
-  const IconComponent = currentIcon || iconSets[type].icons[0];
-  const iconColor = currentColor || iconSets[type].colors[0];
-
   return (
-    <button
-      onClick={handleIconClick}
-      className={`flex-shrink-0 p-2 rounded-lg transition-colors ${
-        isDarkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-100'
-      }`}
-      title="Click to change icon"
-    >
-      <IconComponent className={`w-5 h-5 ${iconColor}`} />
-    </button>
+    <IconButton
+      iconName={currentIcon || 'Target'}
+      category={getIconCategory(type)}
+      onIconChange={handleIconChange}
+      className="flex-shrink-0"
+    />
   );
 };
 

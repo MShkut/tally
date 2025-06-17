@@ -3,6 +3,7 @@ import { Calculator, ArrowRight, ArrowLeft, TrendingUp } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import ThemeToggle from '../shared/ThemeToggle';
 import ProgressBar from '../shared/ProgressBar';
+import { Page, Card, Heading, Description, PrimaryButton, SecondaryButton } from '../styled/StyledComponents';
 
 // Compound Chart Component (kept exactly the same)
 const CompoundChart = ({ monthlySavings, returnRate, isDarkMode, savingsRate }) => {
@@ -251,12 +252,12 @@ const getReturnRateDescription = (rate) => {
   if (rate <= 7) return "📊 Conservative stocks";
   if (rate <= 10) return "🎯 S&P 500 average";
   if (rate <= 19) return "🚀 Growth stocks";
-  if (rate <= 40) return "₿ Bitcoin HODL";
+  if (rate <= 40) return "High Risk - High Reward";
   return "🌙 To the moon!";
 };
 
 const SavingsStep = ({ onNext, onBack, incomeData }) => {
-  const { isDarkMode } = useTheme();
+  const { isDarkMode, currentTheme } = useTheme();
   const [formData, setFormData] = useState({
     savingsRate: 40,
     returnRate: 7
@@ -277,28 +278,22 @@ const SavingsStep = ({ onNext, onBack, incomeData }) => {
   };
 
   return (
-    <div className={`min-h-screen transition-colors ${isDarkMode ? 'bg-gradient-to-br from-gray-900 to-gray-800' : 'bg-gradient-to-br from-purple-50 to-white'} p-6`}>
+    <Page>
       <ThemeToggle />
-      <div className="max-w-4xl mx-auto">
-        <ProgressBar currentStep={2} isDarkMode={isDarkMode} />
+      <div className="max-w-4xl mx-auto p-6">
+        <ProgressBar currentStep={2} />
         
         <div className="text-center mb-8">
-          <h1 className={`text-3xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-            The Power of Compound Growth
-          </h1>
-          <p className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>
-            See how your savings can grow over time
-          </p>
+          <Heading level={1}>The Power of Compound Growth</Heading>
+          <Description>See how your savings can grow over time</Description>
         </div>
 
-        <div className={`rounded-xl p-8 shadow-lg ${isDarkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white'}`}>
+        <Card>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <div>
               <div className="flex items-center mb-6">
-                <Calculator className="w-6 h-6 text-purple-500 mr-3" />
-                <h2 className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                  Savings Settings
-                </h2>
+                <Calculator className={`w-6 h-6 mr-3 text-${currentTheme.primary}-500`} />
+                <Heading level={2}>Savings Settings</Heading>
               </div>
 
               <div className="space-y-6">
@@ -354,13 +349,13 @@ const SavingsStep = ({ onNext, onBack, incomeData }) => {
 
                 <div className={`p-4 rounded-lg border transition-colors ${
                   isDarkMode 
-                    ? 'bg-purple-900/20 border-purple-800' 
-                    : 'bg-purple-50 border-purple-200'
+                    ? currentTheme.accentDark
+                    : currentTheme.accentLight
                 }`}>
-                  <p className={`text-lg font-semibold ${isDarkMode ? 'text-purple-400' : 'text-purple-800'}`}>
+                  <p className={`text-lg font-semibold text-${currentTheme.primary}-${isDarkMode ? '400' : '800'}`}>
                     Monthly Savings: ${monthlySavings.toLocaleString()}
                   </p>
-                  <p className={`text-sm mt-1 ${isDarkMode ? 'text-purple-300' : 'text-purple-600'}`}>
+                  <p className={`text-sm mt-1 text-${currentTheme.primary}-${isDarkMode ? '300' : '600'}`}>
                     ${(totalIncome * formData.savingsRate / 100).toLocaleString()} per year
                   </p>
                 </div>
@@ -378,24 +373,16 @@ const SavingsStep = ({ onNext, onBack, incomeData }) => {
           </div>
 
           <div className="flex justify-between mt-8">
-            <button
-              onClick={onBack}
-              className={`flex items-center px-6 py-3 transition-colors ${
-                isDarkMode ? 'text-gray-400 hover:text-gray-200' : 'text-gray-600 hover:text-gray-800'
-              }`}
-            >
+            <SecondaryButton onClick={onBack}>
               <ArrowLeft className="w-4 h-4 mr-2" /> Back
-            </button>
-            <button
-              onClick={handleNext}
-              className="flex items-center px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-            >
+            </SecondaryButton>
+            <PrimaryButton onClick={handleNext}>
               Next <ArrowRight className="w-4 h-4 ml-2" />
-            </button>
+            </PrimaryButton>
           </div>
-        </div>
+        </Card>
       </div>
-    </div>
+    </Page>
   );
 };
 

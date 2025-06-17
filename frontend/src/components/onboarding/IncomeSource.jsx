@@ -2,6 +2,7 @@ import React from 'react';
 import { DollarSign, Trash2 } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import FrequencySelector from '../shared/FrequencySelector';
+import { Input, Description } from '../styled/StyledComponents';
 
 const IncomeSource = ({ source, onUpdate, onDelete }) => {
   const { isDarkMode } = useTheme();
@@ -49,36 +50,22 @@ const IncomeSource = ({ source, onUpdate, onDelete }) => {
         </div>
         
         <div className="flex-1">
-          <input
+          <Input
             type="text"
             placeholder={source.frequency === 'One-time' ? 'One-time income (bonus, gift, etc.)' : 'Income source name'}
             value={source.name}
             onChange={handleNameChange}
-            className={`w-full px-3 py-2 rounded-lg border transition-colors ${
-              isDarkMode 
-                ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' 
-                : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-            }`}
           />
         </div>
         
         <div className="flex-1">
-          <div className="relative">
-            <DollarSign className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 ${
-              isDarkMode ? 'text-gray-400' : 'text-gray-500'
-            }`} />
-            <input
-              type="text"
-              placeholder="0"
-              value={source.amount}
-              onChange={handleAmountChange}
-              className={`w-full pl-10 pr-3 py-2 rounded-lg border transition-colors ${
-                isDarkMode 
-                  ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' 
-                  : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-              }`}
-            />
-          </div>
+          <Input
+            type="text"
+            placeholder="0"
+            value={source.amount}
+            onChange={handleAmountChange}
+            icon={DollarSign}
+          />
         </div>
         
         <button
@@ -94,13 +81,13 @@ const IncomeSource = ({ source, onUpdate, onDelete }) => {
       </div>
       
       {source.amount && (
-        <div className={`mt-2 text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+        <div className="mt-2">
           {source.frequency === 'One-time' ? (
-            <span className={`font-medium ${isDarkMode ? 'text-yellow-400' : 'text-yellow-600'}`}>
+            <Description className="font-medium text-yellow-600">
               💡 One-time income (not included in recurring budget calculations)
-            </span>
+            </Description>
           ) : source.frequency !== 'Yearly' ? (
-            <span>≈ ${yearlyAmount.toLocaleString()} per year</span>
+            <Description>≈ ${yearlyAmount.toLocaleString()} per year</Description>
           ) : null}
         </div>
       )}
