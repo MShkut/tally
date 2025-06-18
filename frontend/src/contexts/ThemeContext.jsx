@@ -37,6 +37,13 @@ export const ThemeProvider = ({ children }) => {
       root.classList.add('light');
       root.classList.remove('dark');
     }
+    
+    // Set body background for editorial style
+    if (isDarkMode) {
+      document.body.style.backgroundColor = '#000000';
+    } else {
+      document.body.style.backgroundColor = '#fafafa';
+    }
   }, [isDarkMode]);
 
   const toggleTheme = () => setIsDarkMode(!isDarkMode);

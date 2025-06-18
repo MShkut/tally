@@ -1,0 +1,190 @@
+import React, { useState } from 'react'
+import ThemeProvider from './contexts/ThemeContext'
+import useOnboarding from './hooks/useOnboarding'
+import WelcomeStep from './components/onboarding/WelcomeStep'
+import IncomeStep from './components/onboarding/IncomeStep'
+import SavingsAllocationStep from './components/onboarding/SavingsAllocationStep'
+import ExpensesStep from './components/onboarding/ExpensesStep'
+import NetWorthStep from './components/onboarding/NetWorthStep'
+import TransactionImport from './components/dashboard/TransactionImport'
+
+function OnboardingFlow({ onComplete, onBack }) {
+  const { currentStep, nextStep, prevStep, formData, updateFormData, setHouseholdAndPeriod } = useOnboarding();
+
+  const handleWelcomeNext = (welcomeData) => {
+    setHouseholdAndPeriod(welcomeData);
+    nextStep();
+  };
+
+  const handleIncomeNext = (incomeData) => {
+    updateFormData('income', incomeData);
+    nextStep();
+  };
+
+  const handleSavingsNext = (savingsData) => {
+    updateFormData('savings', savingsData);
+    nextStep();
+  };
+
+  const handleAllocationNext = (allocationData) => {
+    updateFormData('allocation', allocationData);
+    nextStep();
+  };
+
+  const handleExpensesNext = (expensesData) => {
+    updateFormData('expenses', expensesData);
+    nextStep();
+  };
+
+  const handleNetWorthNext = (netWorthData) => {
+    updateFormData('netWorth', netWorthData);
+    // Complete the onboarding with full data
+    const completeData = { ...formData, netWorth: netWorthData };
+    console.log('🎉 Onboarding Complete! Full data:', completeData);
+    onComplete(completeData);
+  };
+
+  const handleBack = () => {
+    if (currentStep === 0) {
+      // From welcome step, we might go back to app selection or exit
+      if (onBack) onBack();
+    } else {
+      prevStep();
+    }
+  };
+
+  const renderStep = () => {
+    switch (currentStep) {
+      case 0:
+        return (
+          <WelcomeStep 
+            onNext={handleWelcomeNext}
+          />
+        );
+      case 1:
+        return (
+          <IncomeStep 
+            onNext={handleIncomeNext}
+            onBack={handleBack}
+          />
+        );
+      case 2:
+        return (
+          <SavingsStep
+            onNext={handleSavingsNext}
+            onBack={handleBack}
+            incomeData={formData.income}
+          />
+        );
+      case 3:
+        return (
+          <SavingsAllocationStep
+            onNext={handleAllocationNext}
+            onBack={handleBack}
+            incomeData={formData.income}
+            savingsData={formData.savings}
+          />
+        );
+      case 4:
+        return (
+          <ExpensesStep
+            onNext={handleExpensesNext}
+            onBack={handleBack}
+            incomeData={formData.income}
+            savingsData={formData.savings}
+            allocationData={formData.allocation}
+          />
+        );
+      case 5:
+        return (
+          <NetWorthStep
+            onNext={handleNetWorthNext}
+            onBack={handleBack}
+            incomeData={formData.income}
+            savingsData={formData.savings}
+            allocationData={formData.allocation}
+            expensesData={formData.expenses}
+          />
+        );
+      default:
+        return <WelcomeStep onNext={handleWelcomeNext} />;
+    }
+  };
+
+  return renderStep();
+}
+
+function App() {
+  const [currentView, setCurrentView] = useState('onboarding'); // 'onboarding', 'import', 'dashboard'
+  const [onboardingData, setOnboardingData] = useState(null);
+
+  const handleOnboardingComplete = (data) => {
+    setOnboardingData(data);
+    setCurrentView('import');
+  };
+
+  const handleBackToOnboarding = () => {
+    setCurrentView('onboarding');
+  };
+
+  const handleImportComplete = () => {
+    setCurrentView('dashboard');
+  };
+
+  const renderCurrentView = () => {
+    switch (currentView) {
+      case 'onboarding':
+        return (
+          <OnboardingFlow 
+            onComplete={handleOnboardingComplete}
+            onBack={null}
+          />
+        );
+      case 'import':
+        return (
+          <TransactionImport 
+            onboardingData={onboardingData}
+            onBack={handleBackToOnboarding}
+            onComplete={handleImportComplete}
+          />
+        );
+      case 'dashboard':
+        return (
+          <div className="min-h-screen bg-gradient-to-br from-green-50 to-white flex items-center justify-center">
+            <div className="text-center">
+              <h1 className="text-4xl font-bold text-gray-900 mb-4">
+                🎉 Welcome to Your Financial Dashboard!
+              </h1>
+              <p className="text-xl text-gray-600 mb-8">
+                Your personal finance tracker is ready to use.
+              </p>
+              <div className="bg-white p-6 rounded-lg shadow-lg max-w-md mx-auto">
+                <h3 className="text-lg font-semibold mb-2">Coming Soon:</h3>
+                <ul className="text-left text-gray-600 space-y-1">
+                  <li>• Budget tracking</li>
+                  <li>• Expense categorization</li>
+                  <li>• Savings goal progress</li>
+                  <li>• Net worth monitoring</li>
+                  <li>• Financial projections</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        );
+      default:
+        return (
+          <OnboardingFlow 
+            onComplete={handleOnboardingComplete}
+            onBack={null}
+          />
+        );
+    }
+  };
+
+  return (
+    <ThemeProvider>
+      {renderCurrentView()}
+    </ThemeProvider>
+  )
+}
+

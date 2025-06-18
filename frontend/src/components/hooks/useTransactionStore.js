@@ -1,6 +1,5 @@
-import { useState } from 'react';
 
-export const useTransactionStore = () => {
+const useTransactionStore = () => {
   const [transactions, setTransactions] = useState([]);
   const [categories, setCategories] = useState([
     { 
@@ -88,3 +87,5 @@ export const useTransactionStore = () => {
     setDuplicateStrategy
   };
 };
+
+export default useTransactionStore;
