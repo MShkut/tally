@@ -1,168 +1,146 @@
-Personal Finance Tracker
-A privacy-first, self-hosted personal finance application that helps you take control of your financial future. Built with modern web technologies and designed with an editorial-quality interface.
-🌟 Key Features
-Privacy-First Design
+# Personal Finance Tracker 🚧
 
-100% Local Data: All financial information stays on your device
-No Cloud Dependencies: Works entirely offline after initial setup
-Self-Hosted: Complete control over your financial data
-No Tracking: Zero analytics, telemetry, or data collection
+> **⚠️ Experimental Project**: This is a work-in-progress personal finance app that I'm building for fun and to learn new technologies. It's very much "vibe coded" - expect rough edges, incomplete features, and things that might break. Don't use this for your actual finances yet!
 
-Smart Financial Management
+A privacy-first personal finance app that keeps all your data local. Built with React, Rust, and a lot of caffeine.
 
-Intelligent Transaction Categorization: CSV import with machine learning-based auto-categorization
-Flexible Budget Periods: 1-12 month planning cycles that match your life
-Compound Growth Projections: Visualize your financial future with interactive charts
-Debt Management: Track payoff timelines and optimization strategies
-Net Worth Monitoring: Comprehensive asset and liability tracking
+## 🎯 What I'm Building
 
-Exceptional User Experience
+The idea is simple: a finance tracker that doesn't send your data anywhere. Everything stays on your device. No accounts, no cloud, no tracking.
 
-Editorial Design: Clean, typography-driven interface inspired by premium publications
-Dark/Light Themes: Seamless theme switching with system preference detection
-Responsive Design: Works beautifully on desktop, tablet, and mobile
-Minimal Setup: Complete onboarding in under 10 minutes
+**Current vibe:**
+- ✅ Basic onboarding flow (mostly works)
+- ✅ CSV import with auto-categorization (surprisingly decent)
+- ✅ Dark/light themes (because why not)
+- ✅ Transaction splitting (for when Amazon orders get weird)
+- 🚧 Dashboard (exists but needs love)
+- 🚧 Budget tracking (half-baked)
+- ❌ Mobile app (maybe someday)
+- ❌ Proper error handling (who needs that?)
 
-🚀 Quick Start
-Prerequisites
+## 🚀 Try It Out (If You're Brave)
 
-Node.js (v18 or higher)
-Rust (latest stable)
+### You'll Need
+- [Node.js](https://nodejs.org/) (v18+)
+- [Rust](https://rustup.rs/) (latest)
+- A sense of adventure
 
-Development Setup
-
-Clone the repository
-bashgit clone https://github.com/yourusername/personal-finance-tracker.git
+### Getting Started
+```bash
+# Clone this experiment
+git clone https://github.com/yourusername/personal-finance-tracker.git
 cd personal-finance-tracker
 
-Start the backend server
-bashcd backend
+# Start the Rust backend
+cd backend
 cargo run
-# Server runs on http://localhost:8080
+# Should start on http://localhost:8080
 
-Start the frontend development server
-bashcd frontend
+# Start the React frontend
+cd frontend
 npm install
 npm run dev
-# App runs on http://localhost:3000
+# Should start on http://localhost:3000
+```
 
-Open your browser and navigate to http://localhost:3000
+Cross your fingers and navigate to `http://localhost:3000`
 
-📊 Core Functionality
-Onboarding Flow
+## 🎨 Design Philosophy (Pretentious Section)
 
-Household Setup: Define who this budget is for and choose your planning timeframe
-Income Configuration: Add all income sources with flexible frequency options
-Savings Strategy: Set savings rate and allocate toward specific goals
-Budget Planning: Create monthly expense categories with smart suggestions
-Net Worth Assessment: Document assets and liabilities for complete financial picture
+I'm going for an "editorial" look - think fancy magazine rather than typical SaaS app:
+- Big, light typography
+- Lots of whitespace
+- No unnecessary colors or decorations
+- Clean, minimal interactions
 
-Transaction Management
+Basically trying to make budgeting feel less like a chore and more like reading a well-designed publication.
 
-CSV Import: Support for major banks and credit card providers
-Smart Categorization: Learn from your decisions to automatically categorize future transactions
-Transaction Splitting: Break down complex purchases (Amazon orders, restaurant bills, etc.)
-Duplicate Detection: Intelligent handling of transactions across multiple accounts
-Manual Entry: Clean interface for adding transactions by hand
+## 🛠️ Tech Stack
 
-Financial Insights
+**Frontend:**
+- React 19 (because I like living dangerously)
+- Tailwind CSS (for rapid prototyping)
+- Vite (fast refresh is addictive)
 
-Budget Health: Real-time tracking of spending vs. budget across categories
-Savings Progress: Visual progress toward financial goals with timeline projections
-Net Worth Trends: Track wealth accumulation over time
-Debt Payoff: Calculate optimal payment strategies and payoff timelines
+**Backend:**
+- Rust + Warp (learning Rust one compile error at a time)
+- Local file storage (keeping it simple)
 
-🎨 Design Philosophy
-This application follows an editorial design system that treats financial planning with the sophistication it deserves:
+## 📁 Project Structure
+```
+├── backend/           # Rust server (handles CSV processing)
+├── frontend/          # React app (where the magic happens)
+│   ├── src/components/    # UI components
+│   ├── src/hooks/         # Custom React hooks
+│   └── src/utils/         # Helper functions
+└── README.md          # You are here
+```
 
-Typography-Driven: Large, light headlines with generous spacing
-Minimal Color Palette: Clean blacks, whites, and grays for timeless elegance
-No Decoration: Focus on content, not interface chrome
-Clean Interactions: Subtle hover states and clear affordances
+## 🎯 Current Status
 
-🏗️ Architecture
-Frontend (/frontend)
+**What Actually Works:**
+- Onboarding flow (surprisingly smooth)
+- CSV import with decent auto-categorization
+- Transaction review and editing
+- Theme switching
+- Basic dashboard layout
 
-React 19: Modern React with concurrent features
-Tailwind CSS: Utility-first styling with custom editorial theme
-Vite: Fast development server and optimized builds
-Lucide Icons: Consistent, beautiful iconography
+**What's Broken/Missing:**
+- Proper error handling
+- Data persistence (reloads reset everything)
+- Mobile responsiveness (desktop first, oops)
+- Tests (I know, I know...)
+- Documentation (this README is it)
 
-Backend (/backend)
+**What I'm Working On:**
+- Making the dashboard actually useful
+- Better transaction categorization
+- Debt tracking features
+- Not breaking things when I add new features
 
-Rust: High-performance, memory-safe server
-Warp: Lightweight web framework
-Tokio: Async runtime for concurrent operations
-Local Storage: File-based data persistence
+## 🤷‍♂️ Why Build This?
 
-Project Structure
-├── backend/           # Rust API server
-│   ├── src/          # Server source code
-│   └── Cargo.toml    # Rust dependencies
-├── frontend/         # React application
-│   ├── src/
-│   │   ├── components/    # Reusable UI components
-│   │   ├── contexts/      # React context providers
-│   │   ├── hooks/         # Custom React hooks
-│   │   └── utils/         # Utility functions
-│   ├── public/       # Static assets
-│   └── package.json  # Node.js dependencies
-└── README.md
-🔧 Development Features
-Component Architecture
+Good question! Mostly because:
+1. I wanted to learn Rust
+2. Existing finance apps either suck or steal your data
+3. I enjoy the pain of building complex UIs
+4. Someone on Twitter said it couldn't be done (kidding)
 
-Onboarding Flow: Multi-step setup with progress tracking
-Dashboard: Editorial-style financial overview
-Transaction Import: Drag-and-drop CSV processing with column mapping
-Theme System: Comprehensive dark/light mode support
-Responsive Design: Mobile-first approach with desktop enhancements
+## 🚨 Disclaimers
 
-Key Hooks & Utilities
+- **Don't use this for real finances yet** - it's not ready
+- **Expect bugs** - there are definitely bugs
+- **Things will change** - I'm still figuring out what this should be
+- **No warranty** - if this breaks something, that's on you
+- **Local storage only** - clear your browser data and poof, it's gone
 
-useOnboarding: Manages multi-step setup flow
-useTransactionStore: Handles transaction data and categorization learning
-useTheme: Theme switching and persistence
-themeUtils: Editorial design system utilities
+## 🤝 Contributing
 
-🗺️ Roadmap
-✅ Completed
+If you want to help with this experiment:
+1. Fork it
+2. Make it better
+3. Send a PR
+4. Hope I don't break your changes
 
-Complete onboarding flow with flexible budget periods
-Transaction CSV import with intelligent categorization
-Editorial design system implementation
-Dark/light theme system
-Responsive dashboard layout
+No formal process yet - we're keeping it casual.
 
-🚧 In Progress
+## 📝 License
 
-Enhanced transaction categorization with machine learning
-Debt management tools and payoff calculators
-Advanced budget analytics and projections
-Multi-user support with account management
+MIT License - do whatever you want with this code. See [LICENSE](LICENSE) for the legal stuff.
 
-🔮 Planned
+## 🙏 Inspiration
 
-Mobile app (React Native)
-Start9 server integration
-Bitcoin/Lightning network support
-Advanced investment tracking
-Tax optimization tools
+- Built because existing finance apps are either terrible or invasive
+- Design inspired by good magazines and editorial layouts
+- Privacy approach inspired by the self-sovereign movement
+- Code quality inspired by "good enough to ship"
 
-🤝 Contributing
-We welcome contributions! Please see our Contributing Guide for details.
-Development Workflow
+---
 
-Fork the repository
-Create a feature branch (git checkout -b feature/amazing-feature)
-Make your changes with tests
-Commit your changes (git commit -m 'Add amazing feature')
-Push to the branch (git push origin feature/amazing-feature)
-Open a Pull Request
+**Current mood:** Cautiously optimistic that this might actually become useful someday.
 
-📝 License
-This project is licensed under the MIT License - see the LICENSE file for details.
-🙏 Acknowledgments
+**Last updated:** When I remembered to update this README (probably weeks ago).
 
-Inspired by the privacy-first movement and self-sovereign financial tools
-Design influenced by high-quality editorial publications
-Built with love for the open-source community
+---
+
+*Want to follow along with this experiment? Star the repo or something. No pressure though.*
