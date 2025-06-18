@@ -1,3 +1,4 @@
+// frontend/src/App.jsx
 import React, { useState } from 'react'
 import { ThemeProvider } from './contexts/ThemeContext'
 import { useOnboarding } from './hooks/useOnboarding'
@@ -7,6 +8,7 @@ import SavingsAllocationStep from './components/onboarding/SavingsAllocationStep
 import ExpensesStep from './components/onboarding/ExpensesStep'
 import NetWorthStep from './components/onboarding/NetWorthStep'
 import TransactionImport from './components/dashboard/TransactionImport'
+import Dashboard from './components/dashboard/Dashboard'
 
 function OnboardingFlow({ onComplete, onBack }) {
   const { currentStep, nextStep, prevStep, formData, updateFormData } = useOnboarding();
@@ -34,7 +36,13 @@ function OnboardingFlow({ onComplete, onBack }) {
   const handleNetWorthNext = (netWorthData) => {
     updateFormData('netWorth', netWorthData);
     // Complete the onboarding with full data
-    const completeData = { ...formData, netWorth: netWorthData };
+    const completeData = { 
+      ...formData, 
+      netWorth: netWorthData,
+      householdName: 'Smith Family', // This would come from a household setup step
+      periodStartDate: new Date('2024-03-01'),
+      periodDuration: 6
+    };
     console.log('🎉 Onboarding Complete! Full data:', completeData);
     onComplete(completeData);
   };
@@ -101,6 +109,7 @@ function OnboardingFlow({ onComplete, onBack }) {
 function App() {
   const [currentView, setCurrentView] = useState('onboarding'); // 'onboarding', 'import', 'dashboard'
   const [onboardingData, setOnboardingData] = useState(null);
+  const [transactions, setTransactions] = useState([]);
 
   const handleOnboardingComplete = (data) => {
     setOnboardingData(data);
@@ -111,8 +120,29 @@ function App() {
     setCurrentView('onboarding');
   };
 
-  const handleImportComplete = () => {
+  const handleImportComplete = (importedTransactions = []) => {
+    if (importedTransactions.length > 0) {
+      setTransactions(importedTransactions);
+    }
     setCurrentView('dashboard');
+  };
+
+  const handleNavigateFromDashboard = (destination) => {
+    switch (destination) {
+      case 'import':
+      case 'transactions':
+        setCurrentView('import');
+        break;
+      case 'onboarding':
+        setCurrentView('onboarding');
+        break;
+      case 'dashboard':
+        setCurrentView('dashboard');
+        break;
+      default:
+        console.log(`Navigation to ${destination} not yet implemented`);
+        break;
+    }
   };
 
   const renderCurrentView = () => {
@@ -134,26 +164,11 @@ function App() {
         );
       case 'dashboard':
         return (
-          <div className="min-h-screen bg-gradient-to-br from-green-50 to-white flex items-center justify-center">
-            <div className="text-center">
-              <h1 className="text-4xl font-bold text-gray-900 mb-4">
-                🎉 Welcome to Your Financial Dashboard!
-              </h1>
-              <p className="text-xl text-gray-600 mb-8">
-                Your personal finance tracker is ready to use.
-              </p>
-              <div className="bg-white p-6 rounded-lg shadow-lg max-w-md mx-auto">
-                <h3 className="text-lg font-semibold mb-2">Coming Soon:</h3>
-                <ul className="text-left text-gray-600 space-y-1">
-                  <li>• Budget tracking</li>
-                  <li>• Expense categorization</li>
-                  <li>• Savings goal progress</li>
-                  <li>• Net worth monitoring</li>
-                  <li>• Financial projections</li>
-                </ul>
-              </div>
-            </div>
-          </div>
+          <Dashboard 
+            onboardingData={onboardingData}
+            transactions={transactions}
+            onNavigate={handleNavigateFromDashboard}
+          />
         );
       default:
         return (
