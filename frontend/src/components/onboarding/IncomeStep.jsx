@@ -1,7 +1,5 @@
-import React, { useState } from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
 import ThemeToggle from '../shared/ThemeToggle';
-import ProgressBar from '../shared/ProgressBar';
 import NavigationButtons from '../shared/NavigationButtons';
 import IncomeSource from './IncomeSource';
 
@@ -133,12 +131,13 @@ const IncomeStep = ({ onNext, onBack }) => {
             onBack={onBack}
             onNext={handleNext}
             canGoNext={totalYearlyIncome > 0}
-            showBack={false}
+            showBack={true} // Changed from false to true since we now have a Welcome step before this
           />
         </div>
       </div>
     </div>
   );
 };
+
 
 export default IncomeStep;
