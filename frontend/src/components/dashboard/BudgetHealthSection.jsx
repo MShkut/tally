@@ -1,5 +1,8 @@
 // frontend/src/components/dashboard/BudgetHealthSection.jsx
-export const BudgetHealthSection = ({ 
+import React from 'react';
+import { useTheme } from '../../contexts/ThemeContext';
+
+const BudgetHealthSection = ({ 
   data, 
   selectedPeriod, 
   selectedMonth, 
@@ -7,7 +10,8 @@ export const BudgetHealthSection = ({
   onboardingData 
 }) => {
   const { isDarkMode } = useTheme();
-  const { budgetHealth, period } = data;
+  const { budget, period } = data;
+  const budgetHealth = budget?.categories || [];
 
   return (
     <section>
@@ -175,3 +179,5 @@ const BudgetItem = ({ category }) => {
     </div>
   );
 };
+
+export default BudgetHealthSection;

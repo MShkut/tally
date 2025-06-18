@@ -1,10 +1,12 @@
 // frontend/src/components/dashboard/RecentActivitySection.jsx
-export const RecentActivitySection = ({ transactions = [] }) => {
-  const { isDarkMode } = useTheme();
+import React from 'react';
+import { useTheme } from '../../contexts/ThemeContext';
 
+const RecentActivitySection = ({ transactions = [] }) => {
+  const { isDarkMode } = useTheme();
   // Get recent transactions (mock data for now)
   const recentTransactions = getRecentTransactions(transactions);
-
+  
   return (
     <section>
       <h2 className={`
@@ -27,7 +29,7 @@ const TransactionItem = ({ transaction }) => {
   const { isDarkMode } = useTheme();
   const isExpense = transaction.amount < 0;
   const isIncome = transaction.amount > 0;
-
+  
   return (
     <div className={`
       flex items-center justify-between py-3 border-b
@@ -59,7 +61,7 @@ function getRecentTransactions(transactions) {
   if (transactions && transactions.length > 0) {
     return transactions.slice(-5).reverse();
   }
-
+  
   return [
     { description: 'Grocery Store', amount: -67.43 },
     { description: 'Salary Deposit', amount: 2800.00 },
@@ -69,10 +71,4 @@ function getRecentTransactions(transactions) {
   ];
 }
 
-export default {
-  ThisMonthSection,
-  NetWorthSection,
-  BudgetHealthSection,
-  SavingsProgressSection,
-  RecentActivitySection
-};
+export default RecentActivitySection;

@@ -13,8 +13,8 @@ export const Page = ({ children, className = '' }) => {
   const { isDarkMode } = useTheme();
   
   const backgroundClass = isDarkMode 
-    ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900' 
-    : 'bg-gradient-to-br from-gray-50 via-white to-gray-50';
+    ? '  via-gray-800 ' 
+    : '  via-white ';
   
   return (
     <div className={`min-h-screen transition-colors duration-300 ${backgroundClass} ${className}`}>
@@ -37,7 +37,7 @@ export const Card = ({ children, className = '' }) => {
 export const CardSecondary = ({ children, className = '' }) => {
   const { isDarkMode } = useTheme();
   return (
-    <div className={`p-4 rounded-lg ${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'} ${className}`}>
+    <div className={`p-4  ${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'} ${className}`}>
       {children}
     </div>
   );
@@ -130,8 +130,8 @@ export const PrimaryButton = ({
     const hoverHandlers = createAccentHover(currentTheme, disabled || loading);
     
     const baseClasses = `
-      flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-medium 
-      transition-all duration-200 shadow-lg focus:outline-none focus:ring-2 
+      flex items-center justify-center gap-2 px-6 py-3  font-medium 
+      transition-all duration-200  focus:outline-none focus:ring-2 
       focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed
       ${isDarkMode ? 'focus:ring-offset-gray-900' : 'focus:ring-offset-white'}
       ${className}
@@ -148,7 +148,7 @@ export const PrimaryButton = ({
       >
         {loading ? (
           <>
-            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            <div className="w-5 h-5 border-2 border-white border-t-transparent  animate-spin" />
             Processing...
           </>
         ) : (
@@ -164,8 +164,8 @@ export const PrimaryButton = ({
       onClick={onClick}
       disabled={disabled || loading}
       className={`
-        flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-medium 
-        transition-all duration-200 shadow-lg focus:outline-none focus:ring-2 
+        flex items-center justify-center gap-2 px-6 py-3  font-medium 
+        transition-all duration-200  focus:outline-none focus:ring-2 
         focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed text-white
         ${disabled || loading 
           ? isDarkMode ? 'bg-gray-700' : 'bg-gray-400' 
@@ -178,7 +178,7 @@ export const PrimaryButton = ({
     >
       {loading ? (
         <>
-          <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+          <div className="w-5 h-5 border-2 border-white border-t-transparent  animate-spin" />
           Processing...
         </>
       ) : (
@@ -252,9 +252,9 @@ export const SectionHeader = ({
   const accentStyles = getAccentStyles(currentTheme, isDarkMode);
   
   return (
-    <div className={`flex items-center gap-3 mb-6 ${className}`}>
+    <div className={`flex items-center gap-3 mb-12 ${className}`}>
       {Icon && (
-        <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${accentStyles.backgroundLight(currentTheme, isDarkMode)}`}>
+        <div className={`w-12 h-12  flex items-center justify-center ${accentStyles.backgroundLight(currentTheme, isDarkMode)}`}>
           <Icon size={24} className={accentStyles.text(currentTheme)} />
         </div>
       )}
@@ -279,7 +279,7 @@ export const SummaryCard = ({
   const accentStyles = getAccentStyles(currentTheme, isDarkMode);
   
   return (
-    <div className={`p-4 rounded-lg border transition-colors ${
+    <div className={`p-4  border transition-colors ${
       accent 
         ? accentStyles.backgroundLight(currentTheme, isDarkMode)
         : isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
@@ -297,7 +297,7 @@ export const SummaryCard = ({
           {title}
         </div>
       )}
-      <div className={`text-2xl font-bold ${
+      <div className={`text-3xl font-light ${
         accent 
           ? accentStyles.text(currentTheme)
           : isDarkMode ? 'text-white' : 'text-gray-900'
@@ -321,7 +321,7 @@ export const SummaryGrid = ({ children, cols = 2, className = '' }) => {
                    'grid-cols-1 md:grid-cols-4';
   
   return (
-    <div className={`grid ${gridClass} gap-4 ${className}`}>
+    <div className={`grid ${gridClass} gap-8 ${className}`}>
       {children}
     </div>
   );
@@ -337,9 +337,9 @@ export const SummarySection = ({
   const { isDarkMode, currentTheme } = useTheme();
   
   return (
-    <div className={`mt-8 p-6 rounded-lg ${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'} ${className}`}>
+    <div className={`mt-8 p-6  ${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'} ${className}`}>
       {(title || Icon) && (
-        <div className="flex items-center gap-3 mb-4">
+        <div className="flex items-center gap-3 mb-8">
           {Icon && (
             <Icon 
               size={20} 
@@ -364,14 +364,14 @@ export const Alert = ({
   const { isDarkMode } = useTheme();
   
   const styles = {
-    info: isDarkMode ? 'bg-blue-900/20 border-blue-800 text-blue-300' : 'bg-blue-50 border-blue-200 text-blue-800',
-    success: isDarkMode ? 'bg-green-900/20 border-green-800 text-green-300' : 'bg-green-50 border-green-200 text-green-800',
+    info: isDarkMode ? 'bg-blue-900/20 border-gray-300 text-gray-500' : 'bg-blue-50 border-gray-300 text-gray-500',
+    success: isDarkMode ? 'bg-green-900/20 border-green-800 text-gray-500' : 'bg-green-50 border-green-200 text-gray-500',
     warning: isDarkMode ? 'bg-yellow-900/20 border-yellow-800 text-yellow-300' : 'bg-yellow-50 border-yellow-200 text-yellow-800',
     error: isDarkMode ? 'bg-red-900/20 border-red-800 text-red-300' : 'bg-red-50 border-red-200 text-red-800'
   };
   
   return (
-    <div className={`p-4 rounded-lg border ${styles[type]} ${className}`}>
+    <div className={`p-4  border ${styles[type]} ${className}`}>
       {title && (
         <h4 className="font-semibold mb-2">{title}</h4>
       )}

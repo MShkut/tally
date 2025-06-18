@@ -1,40 +1,38 @@
-// frontend/src/components/shared/ProgressBar.jsx
 import React from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
-import { text } from '../../utils/themeUtils';
 
 const ProgressBar = ({ currentStep, totalSteps = 5 }) => {
-  const { isDarkMode, currentTheme } = useTheme();
+  const { isDarkMode } = useTheme();
 
   return (
-    <div className="mb-8">
-      <div className="flex justify-center items-center space-x-4">
+    <div className="mb-16">
+      <div className="flex justify-center items-center space-x-4 mb-8">
         {Array.from({ length: totalSteps }, (_, i) => i + 1).map((stepNum) => (
-          <div key={stepNum} className="flex items-center">
+          <React.Fragment key={stepNum}>
             <div className={`
-              w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all
+              w-8 h-8 flex items-center justify-center text-sm font-light transition-all
               ${stepNum <= currentStep 
-                ? `bg-${currentTheme.primary}-600 text-white` 
-                : isDarkMode 
-                  ? 'bg-gray-700 text-gray-400' 
-                  : 'bg-gray-200 text-gray-600'
+                ? isDarkMode ? 'text-white' : 'text-black'
+                : isDarkMode ? 'text-gray-600' : 'text-gray-400'
               }
             `}>
               {stepNum}
             </div>
             {stepNum < totalSteps && (
               <div className={`
-                w-12 h-1 mx-2 transition-colors
+                w-12 h-px transition-colors
                 ${stepNum < currentStep 
-                  ? `bg-${currentTheme.primary}-600` 
-                  : isDarkMode ? 'bg-gray-700' : 'bg-gray-200'
+                  ? isDarkMode ? 'bg-white' : 'bg-black'
+                  : isDarkMode ? 'bg-gray-700' : 'bg-gray-300'
                 }
               `} />
             )}
-          </div>
+          </React.Fragment>
         ))}
       </div>
-      <div className={`text-center mt-4 text-sm ${text.secondary(isDarkMode)}`}>
+      <div className={`text-center text-sm font-light ${
+        isDarkMode ? 'text-gray-500' : 'text-gray-500'
+      }`}>
         Step {currentStep} of {totalSteps}
       </div>
     </div>

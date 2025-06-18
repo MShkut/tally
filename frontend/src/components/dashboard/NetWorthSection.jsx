@@ -1,5 +1,8 @@
 // frontend/src/components/dashboard/NetWorthSection.jsx
-export const NetWorthSection = ({ data }) => {
+import React from 'react';
+import { useTheme } from '../../contexts/ThemeContext';
+
+const NetWorthSection = ({ data }) => {
   const { isDarkMode } = useTheme();
   const { netWorth } = data;
 
@@ -31,3 +34,5 @@ export const NetWorthSection = ({ data }) => {
     </section>
   );
 };
+
+export default NetWorthSection;

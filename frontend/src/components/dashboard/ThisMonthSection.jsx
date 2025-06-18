@@ -2,7 +2,7 @@
 import React from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
 
-export const ThisMonthSection = ({ data }) => {
+const ThisMonthSection = ({ data }) => {
   const { isDarkMode } = useTheme();
   const { thisMonth } = data;
 
@@ -29,3 +29,5 @@ export const ThisMonthSection = ({ data }) => {
     </section>
   );
 };
+
+export default ThisMonthSection;
