@@ -113,7 +113,7 @@ function App() {
 
   const handleOnboardingComplete = (data) => {
     setOnboardingData(data);
-    setCurrentView('import');
+    setCurrentView('dashboard');
   };
 
   const handleBackToOnboarding = () => {

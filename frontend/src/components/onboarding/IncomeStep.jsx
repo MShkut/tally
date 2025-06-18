@@ -1,15 +1,12 @@
 import React, { useState } from 'react';
-import { Plus } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import ThemeToggle from '../shared/ThemeToggle';
 import ProgressBar from '../shared/ProgressBar';
 import NavigationButtons from '../shared/NavigationButtons';
 import IncomeSource from './IncomeSource';
-import { Card } from '../styled/StyledComponents';
-import { Page } from '../styled/StyledComponents';
 
 const IncomeStep = ({ onNext, onBack }) => {
-  const { isDarkMode, currentTheme } = useTheme();
+  const { isDarkMode } = useTheme();
   const [incomeSources, setIncomeSources] = useState([
     { 
       id: 1, 
@@ -65,20 +62,28 @@ const IncomeStep = ({ onNext, onBack }) => {
   };
 
   return (
-    <Page className="p-6">
+    <div className={`min-h-screen transition-colors duration-300 ${
+      isDarkMode ? 'bg-black text-white' : 'bg-gray-50 text-gray-900'
+    }`}>
       <ThemeToggle />
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-4xl mx-auto px-6 py-12">
         <ProgressBar currentStep={1} />
         
-        <div className="text-center mb-8">
-          <h1 className={`text-3xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+        <div className="mb-24">
+          <h1 className={`text-5xl font-light leading-tight mb-4 ${
+            isDarkMode ? 'text-white' : 'text-black'
+          }`}>
             Let's Start with Your Income
           </h1>
+          <p className={`text-xl font-light ${
+            isDarkMode ? 'text-gray-400' : 'text-gray-600'
+          }`}>
+            Enter all sources of regular income to build your financial foundation
+          </p>
         </div>
-     
 
-        <Card>
-          <div className="space-y-4 mb-6">
+        <div className="mb-16">
+          <div className="space-y-6 mb-12">
             {incomeSources.map((source) => (
               <IncomeSource
                 key={source.id}
@@ -91,40 +96,36 @@ const IncomeStep = ({ onNext, onBack }) => {
 
           <button
             onClick={addIncomeSource}
-            className={`w-full p-4 border-2 border-dashed rounded-lg transition-colors flex items-center justify-center space-x-2 ${
+            className={`w-full py-6 border-2 border-dashed transition-colors text-center ${
               isDarkMode 
                 ? 'border-gray-600 text-gray-400 hover:border-gray-500 hover:text-gray-300' 
                 : 'border-gray-300 text-gray-600 hover:border-gray-400 hover:text-gray-700'
             }`}
           >
-            <Plus className="w-5 h-5" />
-            <span>Add another income source</span>
+            <span className="text-lg font-light">Add another income source</span>
           </button>
 
           {totalYearlyIncome > 0 && (
-            <div className={`mt-6 p-4 rounded-lg border transition-colors ${
-              isDarkMode 
-                ? currentTheme.accentDark
-                : currentTheme.accentLight
+            <div className={`mt-16 py-8 border-t border-b ${
+              isDarkMode ? 'border-gray-800' : 'border-gray-200'
             }`}>
-              <p className={`text-lg font-semibold ${
-                isDarkMode 
-                  ? currentTheme.accentDark.includes('text-') 
-                    ? '' 
-                    : `text-${currentTheme.primary}-400`
-                  : currentTheme.accentLight.includes('text-')
-                    ? ''
-                    : `text-${currentTheme.primary}-800`
-              }`}>
-                Total Yearly Income: ${totalYearlyIncome.toLocaleString()}
-              </p>
-              <p className={`text-sm mt-1 ${
-                isDarkMode 
-                  ? `text-${currentTheme.primary}-300`
-                  : `text-${currentTheme.primary}-600`
-              }`}>
-                ≈ ${(totalYearlyIncome/12).toLocaleString()} per month
-              </p>
+              <div className="text-center">
+                <div className={`text-4xl font-light mb-2 ${
+                  isDarkMode ? 'text-white' : 'text-black'
+                }`}>
+                  ${totalYearlyIncome.toLocaleString()}
+                </div>
+                <div className={`text-lg font-light ${
+                  isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                }`}>
+                  Total yearly income
+                </div>
+                <div className={`text-base mt-2 ${
+                  isDarkMode ? 'text-gray-500' : 'text-gray-500'
+                }`}>
+                  ${(totalYearlyIncome/12).toLocaleString()} per month
+                </div>
+              </div>
             </div>
           )}
 
@@ -133,11 +134,10 @@ const IncomeStep = ({ onNext, onBack }) => {
             onNext={handleNext}
             canGoNext={totalYearlyIncome > 0}
             showBack={false}
-            useThemeColor={true}
           />
-        </Card>
+        </div>
       </div>
-    </Page>
+    </div>
   );
 };
 

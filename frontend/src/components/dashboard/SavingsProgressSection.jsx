@@ -1,7 +1,10 @@
 // frontend/src/components/dashboard/SavingsProgressSection.jsx
-export const SavingsProgressSection = ({ data }) => {
+import React from 'react';
+import { useTheme } from '../../contexts/ThemeContext';
+
+const SavingsProgressSection = ({ data }) => {
   const { isDarkMode } = useTheme();
-  const { savingsProgress } = data;
+  const savingsProgress = data?.savings || [];
 
   return (
     <section>
@@ -14,7 +17,7 @@ export const SavingsProgressSection = ({ data }) => {
       
       <div className="space-y-5">
         {savingsProgress.map((goal) => (
-          <SavingsGoalItem key={goal.name} goal={goal} />
+          <SavingsGoalItem key={goal.title} goal={goal} />
         ))}
       </div>
     </section>
@@ -58,3 +61,5 @@ const SavingsGoalItem = ({ goal }) => {
     </div>
   );
 };
+
+export default SavingsProgressSection;

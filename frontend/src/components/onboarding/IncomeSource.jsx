@@ -1,8 +1,6 @@
 import React from 'react';
-import { DollarSign, Trash2 } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import FrequencySelector from '../shared/FrequencySelector';
-import { Input, Description } from '../styled/StyledComponents';
 
 const IncomeSource = ({ source, onUpdate, onDelete }) => {
   const { isDarkMode } = useTheme();
@@ -35,59 +33,90 @@ const IncomeSource = ({ source, onUpdate, onDelete }) => {
   const yearlyAmount = convertToYearly(source.amount, source.frequency);
 
   return (
-    <div className={`p-4 rounded-lg border transition-colors ${
-      isDarkMode 
-        ? 'bg-gray-700 border-gray-600' 
-        : 'bg-white border-gray-200'
+    <div className={`py-8 border-b transition-colors ${
+      isDarkMode ? 'border-gray-800' : 'border-gray-200'
     }`}>
-      <div className="flex items-center space-x-4">
-        <div className="flex-shrink-0">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-end">
+        <div className="lg:col-span-2">
           <FrequencySelector 
             frequency={source.frequency}
             onChange={handleFrequencyChange}
-            width="w-32"
           />
         </div>
         
-        <div className="flex-1">
-          <Input
+        <div className="lg:col-span-6">
+          <label className={`block text-sm font-medium mb-2 ${
+            isDarkMode ? 'text-gray-400' : 'text-gray-600'
+          }`}>
+            Income source
+          </label>
+          <input
             type="text"
             placeholder={source.frequency === 'One-time' ? 'One-time income (bonus, gift, etc.)' : 'Income source name'}
             value={source.name}
             onChange={handleNameChange}
+            className={`w-full bg-transparent border-0 border-b-2 pb-2 text-lg focus:outline-none transition-colors ${
+              isDarkMode 
+                ? 'border-gray-700 text-white placeholder-gray-500 focus:border-gray-500' 
+                : 'border-gray-300 text-gray-900 placeholder-gray-400 focus:border-gray-500'
+            }`}
           />
         </div>
         
-        <div className="flex-1">
-          <Input
-            type="text"
-            placeholder="0"
-            value={source.amount}
-            onChange={handleAmountChange}
-            icon={DollarSign}
-          />
+        <div className="lg:col-span-3">
+          <label className={`block text-sm font-medium mb-2 ${
+            isDarkMode ? 'text-gray-400' : 'text-gray-600'
+          }`}>
+            Amount
+          </label>
+          <div className="relative">
+            <span className={`absolute left-0 top-2 text-lg ${
+              isDarkMode ? 'text-gray-400' : 'text-gray-500'
+            }`}>
+              $
+            </span>
+            <input
+              type="text"
+              placeholder="0"
+              value={source.amount}
+              onChange={handleAmountChange}
+              className={`w-full bg-transparent border-0 border-b-2 pb-2 pl-6 text-lg focus:outline-none transition-colors ${
+                isDarkMode 
+                  ? 'border-gray-700 text-white placeholder-gray-500 focus:border-gray-500' 
+                  : 'border-gray-300 text-gray-900 placeholder-gray-400 focus:border-gray-500'
+              }`}
+            />
+          </div>
         </div>
         
-        <button
-          onClick={onDelete}
-          className={`p-2 rounded-lg transition-colors ${
-            isDarkMode 
-              ? 'text-red-400 hover:bg-red-900/20' 
-              : 'text-red-600 hover:bg-red-50'
-          }`}
-        >
-          <Trash2 className="w-4 h-4" />
-        </button>
+        <div className="lg:col-span-1">
+          <button
+            onClick={onDelete}
+            className={`w-full py-2 text-sm transition-colors border-b ${
+              isDarkMode 
+                ? 'text-gray-500 hover:text-gray-300 border-transparent hover:border-gray-600' 
+                : 'text-gray-400 hover:text-gray-600 border-transparent hover:border-gray-400'
+            }`}
+          >
+            Remove
+          </button>
+        </div>
       </div>
       
       {source.amount && (
-        <div className="mt-2">
+        <div className="mt-6">
           {source.frequency === 'One-time' ? (
-            <Description className="font-medium text-yellow-600">
-              💡 One-time income (not included in recurring budget calculations)
-            </Description>
+            <div className={`text-sm font-light ${
+              isDarkMode ? 'text-yellow-400' : 'text-yellow-600'
+            }`}>
+              One-time income (not included in recurring budget calculations)
+            </div>
           ) : source.frequency !== 'Yearly' ? (
-            <Description>≈ ${yearlyAmount.toLocaleString()} per year</Description>
+            <div className={`text-sm font-light ${
+              isDarkMode ? 'text-gray-400' : 'text-gray-600'
+            }`}>
+              ${yearlyAmount.toLocaleString()} per year
+            </div>
           ) : null}
         </div>
       )}

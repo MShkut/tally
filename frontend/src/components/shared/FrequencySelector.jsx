@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
 
-const FrequencySelector = ({ frequency, onChange, width = 'auto' }) => {
+const FrequencySelector = ({ frequency, onChange }) => {
   const { isDarkMode } = useTheme();
   
   const frequencies = ['Weekly', 'Bi-weekly', 'Monthly', 'Yearly', 'One-time'];
@@ -12,35 +12,30 @@ const FrequencySelector = ({ frequency, onChange, width = 'auto' }) => {
     onChange(frequencies[nextIndex]);
   };
 
-  const getFrequencyIcon = (freq) => {
-    switch (freq) {
-      case 'Weekly': return '⚡';
-      case 'Bi-weekly': return '🔄';
-      case 'Monthly': return '📅';
-      case 'Yearly': return '🎯';
-      case 'One-time': return '💰';
-      default: return '📅';
-    }
-  };
-
-  const widthClass = width === 'auto' ? '' : width === 'fixed' ? 'w-36' : width;
-
   return (
-    <button
-      type="button"
-      onClick={cycleFrequency}
-      className={`
-        ${widthClass} h-10 px-4 py-2 rounded-lg border transition-all 
-        flex items-center justify-center space-x-2 hover:scale-105
-        ${isDarkMode 
-          ? 'bg-gray-700 border-gray-600 text-gray-200 hover:bg-gray-600' 
-          : 'bg-gray-50 border-gray-300 text-gray-700 hover:bg-gray-100'
-        }
-      `}
-    >
-      <span>{getFrequencyIcon(frequency)}</span>
-      <span className="font-medium text-center">{frequency}</span>
-    </button>
+    <div>
+      <label className={`block text-sm font-medium mb-2 ${
+        isDarkMode ? 'text-gray-400' : 'text-gray-600'
+      }`}>
+        Frequency
+      </label>
+      <button
+        type="button"
+        onClick={cycleFrequency}
+        className={`w-full px-4 py-3 text-left border-b-2 transition-colors focus:outline-none ${
+          isDarkMode 
+            ? 'border-gray-700 text-white hover:border-gray-500 focus:border-gray-500' 
+            : 'border-gray-300 text-gray-900 hover:border-gray-500 focus:border-gray-500'
+        }`}
+      >
+        <span className="text-lg font-light">{frequency}</span>
+        <div className={`text-xs mt-1 ${
+          isDarkMode ? 'text-gray-500' : 'text-gray-500'
+        }`}>
+          Click to change
+        </div>
+      </button>
+    </div>
   );
 };
 

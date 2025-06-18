@@ -41,13 +41,13 @@ const NavigationMenu = ({ isOpen, onClose, onNavigate, currentPage = 'transactio
       <div className="fixed inset-0 bg-black bg-opacity-50 z-40" onClick={onClose} />
       <div className={`fixed top-0 left-0 h-full w-64 z-50 transform transition-transform ${
         isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
-      } border-r shadow-lg`}>
+      } border-r `}>
         <div className="p-6">
           <div className="flex items-center justify-between mb-8">
-            <h2 className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+            <h2 className={`text-2xl font-light ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
               Finance Tracker
             </h2>
-            <button onClick={onClose} className={`p-2 rounded-lg ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}>
+            <button onClick={onClose} className={`p-2  ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}>
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -63,11 +63,11 @@ const NavigationMenu = ({ isOpen, onClose, onNavigate, currentPage = 'transactio
                   key={item.id}
                   onClick={() => !isSoon && onNavigate(item.id)}
                   disabled={isSoon}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                  className={`w-full flex items-center gap-3 px-4 py-3  transition-colors ${
                     isActive
                       ? isDarkMode 
-                        ? 'text-blue-400 bg-blue-900/20 border border-blue-700' 
-                        : 'text-blue-600 bg-blue-50 border border-blue-200'
+                        ? 'text-gray-500 bg-blue-900/20 border border-gray-300' 
+                        : 'text-gray-500 bg-blue-50 border border-gray-300'
                       : isSoon
                         ? isDarkMode
                           ? 'text-gray-500 cursor-not-allowed'
@@ -80,7 +80,7 @@ const NavigationMenu = ({ isOpen, onClose, onNavigate, currentPage = 'transactio
                   <Icon className="w-5 h-5" />
                   <span>{item.label}</span>
                   {isSoon && (
-                    <span className="ml-auto text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">
+                    <span className="ml-auto text-xs bg-yellow-100 text-yellow-800 px-2 py-1 ">
                       Soon
                     </span>
                   )}

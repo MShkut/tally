@@ -1,31 +1,8 @@
 import React, { useState } from 'react';
-import { 
-  ArrowLeft, 
-  ArrowRight, 
-  DollarSign,
-  AlertTriangle,
-  CheckCircle,
-  Plus,
-  Trash2
-} from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import ThemeToggle from '../shared/ThemeToggle';
 import ProgressBar from '../shared/ProgressBar';
-import { IconButton, ICON_CATEGORIES } from '../shared/IconSystem';
-import { 
-  Page, 
-  Card, 
-  Heading, 
-  Description, 
-  PrimaryButton, 
-  SecondaryButton,
-  SummaryCard,
-  SummaryGrid,
-  SummarySection,
-  AddButton,
-  Alert,
-  Input
-} from '../styled/StyledComponents';
+import NavigationButtons from '../shared/NavigationButtons';
 
 // Budget Category Component
 const BudgetCategory = ({ category, onUpdate, onDelete, isDarkMode, availableBudget }) => {
@@ -41,63 +18,79 @@ const BudgetCategory = ({ category, onUpdate, onDelete, isDarkMode, availableBud
     onUpdate({ ...category, amount: value });
   };
 
-  const handleIconChange = (iconName) => {
-    onUpdate({ ...category, icon: iconName });
-  };
-
   return (
-    <div className={`p-4 rounded-lg border transition-colors ${
+    <div className={`py-6 border-b transition-colors ${
       isOverBudget 
-        ? isDarkMode 
-          ? 'border-red-500 bg-red-900/20' 
-          : 'border-red-300 bg-red-50'
-        : isDarkMode 
-          ? 'bg-gray-700 border-gray-600' 
-          : 'bg-white border-gray-200'
+        ? 'border-red-500' + (isDarkMode ? ' bg-red-900/20' : ' bg-red-50')
+        : isDarkMode ? 'border-gray-800' : 'border-gray-200'
     }`}>
-      <div className="flex items-center space-x-4">
-        <IconButton
-          iconName={category.icon || 'Home'}
-          category={ICON_CATEGORIES.EXPENSES}
-          onIconChange={handleIconChange}
-        />
-        
-        <div className="flex-1">
-          <Input
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-end">
+        <div className="lg:col-span-8">
+          <label className={`block text-sm font-medium mb-2 ${
+            isDarkMode ? 'text-gray-400' : 'text-gray-600'
+          }`}>
+            Category
+          </label>
+          <input
             type="text"
             placeholder="Category name (e.g., Housing, Food, Transportation)"
             value={category.name}
             onChange={handleNameChange}
+            className={`w-full bg-transparent border-0 border-b-2 pb-2 text-lg focus:outline-none transition-colors ${
+              isOverBudget
+                ? 'border-red-500 text-red-500'
+                : isDarkMode 
+                  ? 'border-gray-700 text-white placeholder-gray-500 focus:border-gray-500' 
+                  : 'border-gray-300 text-gray-900 placeholder-gray-400 focus:border-gray-500'
+            }`}
           />
         </div>
         
-        <div className="w-32">
-          <Input
-            type="text"
-            placeholder="Monthly"
-            value={category.amount}
-            onChange={handleAmountChange}
-            icon={DollarSign}
-            className={isOverBudget ? 'border-red-500 bg-red-50' : ''}
-          />
+        <div className="lg:col-span-3">
+          <label className={`block text-sm font-medium mb-2 ${
+            isDarkMode ? 'text-gray-400' : 'text-gray-600'
+          }`}>
+            Monthly budget
+          </label>
+          <div className="relative">
+            <span className={`absolute left-0 top-2 text-lg ${
+              isDarkMode ? 'text-gray-400' : 'text-gray-500'
+            }`}>
+              $
+            </span>
+            <input
+              type="text"
+              placeholder="0"
+              value={category.amount}
+              onChange={handleAmountChange}
+              className={`w-full bg-transparent border-0 border-b-2 pb-2 pl-6 text-lg focus:outline-none transition-colors ${
+                isOverBudget
+                  ? 'border-red-500 text-red-500'
+                  : isDarkMode 
+                    ? 'border-gray-700 text-white placeholder-gray-500 focus:border-gray-500' 
+                    : 'border-gray-300 text-gray-900 placeholder-gray-400 focus:border-gray-500'
+              }`}
+            />
+          </div>
         </div>
         
-        <button
-          onClick={onDelete}
-          className={`p-2 rounded-lg transition-colors ${
-            isDarkMode 
-              ? 'text-red-400 hover:bg-red-900/20' 
-              : 'text-red-600 hover:bg-red-50'
-          }`}
-        >
-          <Trash2 className="w-4 h-4" />
-        </button>
+        <div className="lg:col-span-1">
+          <button
+            onClick={onDelete}
+            className={`w-full py-2 text-sm transition-colors border-b ${
+              isDarkMode 
+                ? 'text-gray-500 hover:text-gray-300 border-transparent hover:border-gray-600' 
+                : 'text-gray-400 hover:text-gray-600 border-transparent hover:border-gray-400'
+            }`}
+          >
+            Remove
+          </button>
+        </div>
       </div>
       
       {isOverBudget && (
-        <div className="mt-2 flex items-center text-red-600 text-sm">
-          <AlertTriangle className="w-4 h-4 mr-1" />
-          <span>Exceeds available budget by ${(categoryAmount - availableBudget).toLocaleString()}</span>
+        <div className="mt-4 text-red-500 text-sm font-light">
+          Exceeds available budget by ${(categoryAmount - availableBudget).toLocaleString()}
         </div>
       )}
     </div>
@@ -105,12 +98,12 @@ const BudgetCategory = ({ category, onUpdate, onDelete, isDarkMode, availableBud
 };
 
 const ExpensesStep = ({ onNext, onBack, incomeData, savingsData, allocationData }) => {
-  const { isDarkMode, currentTheme } = useTheme();
+  const { isDarkMode } = useTheme();
   const [expenseCategories, setExpenseCategories] = useState([
-    { id: 1, name: 'Housing', amount: '1500', icon: 'Home' },
-    { id: 2, name: 'Transportation', amount: '400', icon: 'Car' },
-    { id: 3, name: 'Food & Dining', amount: '600', icon: 'Utensils' },
-    { id: 4, name: 'Utilities', amount: '200', icon: 'Zap' }
+    { id: 1, name: 'Housing', amount: '1500' },
+    { id: 2, name: 'Transportation', amount: '400' },
+    { id: 3, name: 'Food & Dining', amount: '600' },
+    { id: 4, name: 'Utilities', amount: '200' }
   ]);
 
   // Calculate available budget for expenses
@@ -123,8 +116,7 @@ const ExpensesStep = ({ onNext, onBack, incomeData, savingsData, allocationData 
     setExpenseCategories([...expenseCategories, { 
       id: Date.now(),
       name: '', 
-      amount: '', 
-      icon: 'Home'
+      amount: ''
     }]);
   };
 
@@ -159,129 +151,173 @@ const ExpensesStep = ({ onNext, onBack, incomeData, savingsData, allocationData 
   };
 
   return (
-    <Page>
+    <div className={`min-h-screen transition-colors duration-300 ${
+      isDarkMode ? 'bg-black text-white' : 'bg-gray-50 text-gray-900'
+    }`}>
       <ThemeToggle />
-      <div className="max-w-4xl mx-auto p-6">
+      <div className="max-w-6xl mx-auto px-6 py-12">
         <ProgressBar currentStep={4} />
         
-        <div className="text-center mb-8">
-          <Heading level={1}>Budget Your Expenses</Heading>
-          <Description>
+        <div className="mb-24">
+          <h1 className={`text-5xl font-light leading-tight mb-4 ${
+            isDarkMode ? 'text-white' : 'text-black'
+          }`}>
+            Budget Your Expenses
+          </h1>
+          <p className={`text-xl font-light ${
+            isDarkMode ? 'text-gray-400' : 'text-gray-600'
+          }`}>
             You have ${availableForExpenses.toLocaleString()}/month for living expenses
-          </Description>
+          </p>
         </div>
 
-        <Card>
-          {/* Budget Summary */}
-          <SummarySection 
-            title="Expense Budget Overview" 
-            icon={isOverBudget ? AlertTriangle : CheckCircle}
-            className={`mb-8 ${
-              isOverBudget
-                ? isDarkMode 
-                  ? 'bg-red-900/20 border-red-800' 
-                  : 'bg-red-50 border-red-200'
-                : isDarkMode 
-                  ? 'bg-blue-900/20 border-blue-800' 
-                  : 'bg-blue-50 border-blue-200'
+        {/* Budget Summary */}
+        <div className={`py-12 mb-16 border-t border-b ${
+          isOverBudget
+            ? 'border-red-500' + (isDarkMode ? ' bg-red-900/20' : ' bg-red-50')
+            : isDarkMode ? 'border-gray-800' : 'border-gray-200'
+        }`}>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-12 text-center mb-8">
+            <div>
+              <div className={`text-3xl font-light mb-2 ${
+                isDarkMode ? 'text-white' : 'text-black'
+              }`}>
+                ${availableForExpenses.toLocaleString()}
+              </div>
+              <div className={`text-lg font-light ${
+                isDarkMode ? 'text-gray-400' : 'text-gray-600'
+              }`}>
+                Available Budget
+              </div>
+            </div>
+            
+            <div>
+              <div className={`text-3xl font-light mb-2 ${
+                isDarkMode ? 'text-white' : 'text-black'
+              }`}>
+                ${totalBudgeted.toLocaleString()}
+              </div>
+              <div className={`text-lg font-light ${
+                isDarkMode ? 'text-gray-400' : 'text-gray-600'
+              }`}>
+                Total Budgeted
+              </div>
+            </div>
+            
+            <div>
+              <div className={`text-3xl font-light mb-2 ${
+                isOverBudget ? 'text-red-500' : isDarkMode ? 'text-white' : 'text-black'
+              }`}>
+                ${Math.abs(remainingBudget).toLocaleString()}
+              </div>
+              <div className={`text-lg font-light ${
+                isDarkMode ? 'text-gray-400' : 'text-gray-600'
+              }`}>
+                {isOverBudget ? 'Over Budget' : 'Remaining'}
+              </div>
+            </div>
+            
+            <div>
+              <div className={`text-3xl font-light mb-2 ${
+                budgetPercentage > 100 ? 'text-red-500' : isDarkMode ? 'text-white' : 'text-black'
+              }`}>
+                {budgetPercentage.toFixed(0)}%
+              </div>
+              <div className={`text-lg font-light ${
+                isDarkMode ? 'text-gray-400' : 'text-gray-600'
+              }`}>
+                Budget Used
+              </div>
+            </div>
+          </div>
+          
+          {/* Progress Bar */}
+          <div className={`w-full h-2 rounded-full mb-6 ${
+            isDarkMode ? 'bg-gray-800' : 'bg-gray-200'
+          }`}>
+            <div 
+              className={`h-2 rounded-full transition-all ${
+                isOverBudget 
+                  ? 'bg-red-500' 
+                  : budgetPercentage > 80 
+                    ? 'bg-yellow-500' 
+                    : isDarkMode ? 'bg-white' : 'bg-black'
+              }`}
+              style={{ width: `${Math.min(budgetPercentage, 100)}%` }}
+            />
+          </div>
+
+          {isOverBudget && (
+            <div className="text-red-500 font-light text-center">
+              You're over budget by ${Math.abs(remainingBudget).toLocaleString()}. 
+              Consider reducing some categories or increasing your income.
+            </div>
+          )}
+        </div>
+
+        {/* Expense Categories */}
+        <div className="mb-16">
+          <h2 className={`text-2xl font-light mb-8 ${
+            isDarkMode ? 'text-white' : 'text-black'
+          }`}>
+            Monthly Expense Categories
+          </h2>
+          
+          <div className="mb-8">
+            {expenseCategories.map((category) => (
+              <BudgetCategory
+                key={category.id}
+                category={category}
+                onUpdate={(updatedCategory) => updateExpenseCategory(category.id, updatedCategory)}
+                onDelete={() => deleteExpenseCategory(category.id)}
+                isDarkMode={isDarkMode}
+                availableBudget={availableForExpenses}
+              />
+            ))}
+          </div>
+          
+          <button
+            onClick={addExpenseCategory}
+            className={`w-full py-6 border-2 border-dashed transition-colors text-center ${
+              isDarkMode 
+                ? 'border-gray-600 text-gray-400 hover:border-gray-500 hover:text-gray-300' 
+                : 'border-gray-300 text-gray-600 hover:border-gray-400 hover:text-gray-700'
             }`}
           >
-            <SummaryGrid cols={4}>
-              <SummaryCard
-                title="Available Budget"
-                value={availableForExpenses}
-                accent={true}
-              />
-              <SummaryCard
-                title="Total Budgeted"
-                value={totalBudgeted}
-              />
-              <SummaryCard
-                title={isOverBudget ? 'Over Budget' : 'Remaining'}
-                value={Math.abs(remainingBudget)}
-                className={isOverBudget ? 'text-red-500' : ''}
-              />
-              <SummaryCard
-                title="Budget Used"
-                value={`${budgetPercentage.toFixed(0)}%`}
-                className={budgetPercentage > 100 ? 'text-red-500' : ''}
-              />
-            </SummaryGrid>
-            
-            {/* Progress Bar */}
-            <div className="mt-4">
-              <div className={`w-full bg-gray-200 rounded-full h-3 ${isDarkMode ? 'bg-gray-600' : 'bg-gray-200'}`}>
-                <div 
-                  className={`h-3 rounded-full transition-all ${
-                    isOverBudget ? 'bg-red-500' : budgetPercentage > 80 ? 'bg-yellow-500' : `bg-${currentTheme.primary}-500`
-                  }`}
-                  style={{ width: `${Math.min(budgetPercentage, 100)}%` }}
-                />
-              </div>
-              <div className="flex justify-between text-xs mt-1">
-                <span className={isDarkMode ? 'text-gray-400' : 'text-gray-500'}>0%</span>
-                <span className={isDarkMode ? 'text-gray-400' : 'text-gray-500'}>100%</span>
-              </div>
-            </div>
+            <span className="text-lg font-light">Add expense category</span>
+          </button>
+        </div>
 
-            {isOverBudget && (
-              <Alert type="error" className="mt-4">
-                ⚠️ You're over budget by ${Math.abs(remainingBudget).toLocaleString()}. 
-                Consider reducing some categories or increasing your income.
-              </Alert>
-            )}
-          </SummarySection>
-
-          {/* Expense Categories */}
-          <div className="mb-8">
-            <Heading level={3} className="mb-6">Monthly Expense Categories</Heading>
-            
-            <div className="space-y-4">
-              {expenseCategories.map((category) => (
-                <BudgetCategory
-                  key={category.id}
-                  category={category}
-                  onUpdate={(updatedCategory) => updateExpenseCategory(category.id, updatedCategory)}
-                  onDelete={() => deleteExpenseCategory(category.id)}
-                  isDarkMode={isDarkMode}
-                  availableBudget={availableForExpenses}
-                />
-              ))}
-              
-              <AddButton onClick={addExpenseCategory}>
-                <Plus className="w-5 h-5" />
-                <span>Add expense category</span>
-              </AddButton>
-            </div>
+        {/* Budget Tips */}
+        <div className={`p-8 border-l-4 mb-16 ${
+          isDarkMode 
+            ? 'border-gray-700 bg-gray-900' 
+            : 'border-gray-300 bg-gray-100'
+        }`}>
+          <h3 className={`text-xl font-light mb-4 ${
+            isDarkMode ? 'text-white' : 'text-black'
+          }`}>
+            Budgeting Tips
+          </h3>
+          <div className={`space-y-2 text-base font-light ${
+            isDarkMode ? 'text-gray-400' : 'text-gray-600'
+          }`}>
+            <p>Start with fixed expenses (rent, utilities, insurance)</p>
+            <p>The 50/30/20 rule: 50% needs, 30% wants, 20% savings</p>
+            <p>Track actual spending to refine your budget over time</p>
+            <p>Leave some buffer for unexpected expenses</p>
           </div>
+        </div>
 
-          {/* Budget Tips */}
-          <Alert type="info" className="mb-8">
-            <h4 className="font-semibold mb-2">💡 Budgeting Tips</h4>
-            <ul className="text-sm space-y-1">
-              <li>• Start with fixed expenses (rent, utilities, insurance)</li>
-              <li>• The 50/30/20 rule: 50% needs, 30% wants, 20% savings</li>
-              <li>• Track actual spending to refine your budget over time</li>
-              <li>• Leave some buffer for unexpected expenses</li>
-            </ul>
-          </Alert>
-
-          {/* Navigation */}
-          <div className="flex justify-between">
-            <SecondaryButton onClick={onBack}>
-              <ArrowLeft className="w-4 h-4 mr-2" /> Back
-            </SecondaryButton>
-            <PrimaryButton
-              onClick={handleNext}
-              disabled={expenseCategories.length === 0}
-              className={isOverBudget ? 'bg-yellow-600 hover:bg-yellow-700' : ''}
-            >
-              {isOverBudget ? 'Continue Anyway' : 'Next'} <ArrowRight className="w-4 h-4 ml-2" />
-            </PrimaryButton>
-          </div>
-        </Card>
+        <NavigationButtons
+          onBack={onBack}
+          onNext={handleNext}
+          canGoNext={expenseCategories.length > 0}
+          nextLabel={isOverBudget ? 'Continue Anyway' : 'Next'}
+          className="mt-16"
+        />
       </div>
-    </Page>
+    </div>
   );
 };
 
