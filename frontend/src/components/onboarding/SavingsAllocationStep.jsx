@@ -1,81 +1,88 @@
 import React, { useState } from 'react';
-import { useTheme } from '../../contexts/ThemeContext';
 import ThemeToggle from '../shared/ThemeToggle';
-import NavigationButtons from '../shared/NavigationButtons';
+import { 
+  FormGrid, 
+  FormField, 
+  StandardInput,
+  RemoveButton,
+  AddItemButton,
+  FormSection,
+  StandardFormLayout,
+  SummaryCard,
+  SectionBorder,
+  useItemManager,
+  validation
+} from '../shared/FormComponents';
 
-// SavingsGoal component inline
-const SavingsGoal = ({ goal, onUpdate, onDelete, isDarkMode }) => {
-  const handleNameChange = (e) => {
-    onUpdate({ ...goal, name: e.target.value });
-  };
+// Clean savings goal component using 12-column grid
+const SavingsGoal = ({ goal, onUpdate, onDelete }) => {
+  return (
+    <FormGrid>
+      {/* Goal name: 8 columns */}
+      <FormField span={8}>
+        <StandardInput
+          label="Savings goal"
+          value={goal.name}
+          onChange={(value) => onUpdate({ ...goal, name: value })}
+          placeholder="Down payment, vacation, retirement"
+        />
+      </FormField>
+      
+      {/* Monthly amount: 3 columns */}
+      <FormField span={3}>
+        <StandardInput
+          label="Monthly amount"
+          type="currency"
+          value={goal.amount}
+          onChange={(value) => onUpdate({ ...goal, amount: value })}
+          prefix="$"
+        />
+      </FormField>
+      
+      {/* Remove button: 1 column */}
+      <RemoveButton 
+        onClick={onDelete}
+        children="Remove"
+      />
+    </FormGrid>
+  );
+};
 
-  const handleAmountChange = (e) => {
-    const value = e.target.value.replace(/[^0-9.]/g, '');
-    onUpdate({ ...goal, amount: value });
+// Custom savings rate input component
+const SavingsRateInput = ({ savingsRate, onChange, isDarkMode }) => {
+  const handleSavingsRateChange = (e) => {
+    const value = e.target.value.replace(/[^0-9]/g, ''); // Only allow numbers
+    const numValue = parseInt(value) || 0;
+    
+    // Clamp between 0 and 100
+    const clampedValue = Math.max(0, Math.min(100, numValue));
+    onChange(clampedValue);
   };
 
   return (
-    <div className={`py-6 border-b transition-colors ${
-      isDarkMode ? 'border-gray-800' : 'border-gray-200'
-    }`}>
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-end">
-        <div className="lg:col-span-8">
-          <label className={`block text-sm font-medium mb-2 ${
-            isDarkMode ? 'text-gray-400' : 'text-gray-600'
-          }`}>
-            Savings goal
-          </label>
-          <input
-            type="text"
-            placeholder="Goal name (e.g., Vacation, House Down Payment)"
-            value={goal.name}
-            onChange={handleNameChange}
-            className={`w-full bg-transparent border-0 border-b-2 pb-2 text-lg focus:outline-none transition-colors ${
-              isDarkMode 
-                ? 'border-gray-700 text-white placeholder-gray-500 focus:border-white' 
-                : 'border-gray-300 text-gray-900 placeholder-gray-400 focus:border-black'
-            }`}
-          />
-        </div>
-        
-        <div className="lg:col-span-3">
-          <label className={`block text-sm font-medium mb-2 ${
-            isDarkMode ? 'text-gray-400' : 'text-gray-600'
-          }`}>
-            Monthly amount
-          </label>
-          <div className="relative">
-            <span className={`absolute left-0 top-2 text-lg ${
-              isDarkMode ? 'text-gray-400' : 'text-gray-500'
-            }`}>
-              $
-            </span>
-            <input
-              type="text"
-              placeholder="0"
-              value={goal.amount}
-              onChange={handleAmountChange}
-              className={`w-full bg-transparent border-0 border-b-2 pb-2 pl-6 text-lg focus:outline-none transition-colors ${
-                isDarkMode 
-                  ? 'border-gray-700 text-white placeholder-gray-500 focus:border-white' 
-                  : 'border-gray-300 text-gray-900 placeholder-gray-400 focus:border-black'
-              }`}
-            />
-          </div>
-        </div>
-        
-        <div className="lg:col-span-1">
-          <button
-            onClick={onDelete}
-            className={`w-full py-2 text-sm transition-colors ${
-              isDarkMode 
-                ? 'text-gray-500 hover:text-gray-300' 
-                : 'text-gray-400 hover:text-gray-600'
-            }`}
-          >
-            Remove
-          </button>
-        </div>
+    <div className="flex items-center gap-6 mb-8">
+      <div className="relative">
+        <input
+          type="text"
+          value={savingsRate}
+          onChange={handleSavingsRateChange}
+          placeholder="20"
+          className={`w-24 bg-transparent border-0 border-b-2 pb-2 pr-8 text-4xl font-light focus:outline-none transition-colors ${
+            isDarkMode 
+              ? 'border-gray-700 text-white placeholder-gray-500 focus:border-white' 
+              : 'border-gray-300 text-gray-900 placeholder-gray-400 focus:border-black'
+          }`}
+        />
+        <span className={`absolute right-0 top-2 text-4xl font-light ${
+          isDarkMode ? 'text-gray-400' : 'text-gray-500'
+        }`}>
+          %
+        </span>
+      </div>
+      <div className={`text-base font-light ${
+        isDarkMode ? 'text-gray-400' : 'text-gray-600'
+      }`}>
+        of your income saved each month
       </div>
     </div>
   );
@@ -84,39 +91,36 @@ const SavingsGoal = ({ goal, onUpdate, onDelete, isDarkMode }) => {
 const SavingsAllocationStep = ({ onNext, onBack, incomeData }) => {
   const { isDarkMode } = useTheme();
   
-  // Savings rate state
-  const [savingsRate, setSavingsRate] = useState(40);
+  // Savings rate state - default to 20% as requested
+  const [savingsRate, setSavingsRate] = useState(20);
   
   const [emergencyFund, setEmergencyFund] = useState({
     hasExisting: false,
     monthlyAmount: ''
   });
-  const [savingsGoals, setSavingsGoals] = useState([]);
+
+  // Use professional item manager for savings goals
+  const { 
+    items: savingsGoals, 
+    addItem, 
+    updateItem, 
+    deleteItem,
+    hasItems 
+  } = useItemManager();
+
+  const addSavingsGoal = () => {
+    addItem({
+      name: '', 
+      amount: ''
+    });
+  };
 
   // Calculate derived values
-  const totalIncome = incomeData?.totalYearlyIncome || 90000;
+  const totalIncome = incomeData?.totalYearlyIncome || 0;
   const monthlySavings = (totalIncome * savingsRate / 100) / 12;
   const estimatedMonthlyExpenses = (totalIncome * 0.5) / 12;
   const emergencyFundMin = estimatedMonthlyExpenses * 3;
   const emergencyFundMax = estimatedMonthlyExpenses * 6;
-
-  const addSavingsGoal = () => {
-    setSavingsGoals([...savingsGoals, { 
-      id: Date.now(),
-      name: '', 
-      amount: ''
-    }]);
-  };
-
-  const updateSavingsGoal = (id, updatedGoal) => {
-    setSavingsGoals(savingsGoals.map(goal => 
-      goal.id === id ? updatedGoal : goal
-    ));
-  };
-
-  const deleteSavingsGoal = (id) => {
-    setSavingsGoals(savingsGoals.filter(goal => goal.id !== id));
-  };
 
   // Calculate totals
   const totalAllocatedSavings = () => {
@@ -128,7 +132,7 @@ const SavingsAllocationStep = ({ onNext, onBack, incomeData }) => {
   };
 
   const remainingAmount = monthlySavings - totalAllocatedSavings();
-  const allocationPercentage = (totalAllocatedSavings() / monthlySavings) * 100;
+  const allocationPercentage = monthlySavings > 0 ? (totalAllocatedSavings() / monthlySavings) * 100 : 0;
 
   const handleNext = () => {
     if (onNext) {
@@ -147,101 +151,63 @@ const SavingsAllocationStep = ({ onNext, onBack, incomeData }) => {
   };
 
   return (
-    <div className={`min-h-screen transition-colors duration-300 ${
-      isDarkMode ? 'bg-black text-white' : 'bg-gray-50 text-gray-900'
-    }`}>
+    <>
       <ThemeToggle />
-      <div className="max-w-4xl mx-auto px-6 py-12">
+      <StandardFormLayout
+        title="Set Your Savings Rate"
+        subtitle="How much of your income do you want to save? Then allocate those savings to specific goals."
+        onBack={onBack}
+        onNext={handleNext}
+        canGoNext={true}
+        showBack={true}
+      >
         
-        <div className="mb-24">
-          <h1 className={`text-5xl font-light leading-tight mb-4 ${
-            isDarkMode ? 'text-white' : 'text-black'
-          }`}>
-            Set Your Savings Rate
-          </h1>
-          <p className={`text-xl font-light ${
-            isDarkMode ? 'text-gray-400' : 'text-gray-600'
-          }`}>
-            How much of your income do you want to save? Then allocate those savings to specific goals.
-          </p>
-        </div>
-
-        {/* Savings Rate Slider */}
-        <div className="mb-16">
+        {/* Savings Rate Section */}
+        <FormSection title="">
           <label className={`block text-sm font-medium mb-6 uppercase tracking-wider ${
             isDarkMode ? 'text-gray-400' : 'text-gray-500'
           }`}>
             Savings Rate
           </label>
           
-          <div className="flex items-center gap-6 mb-8">
-            <input
-              type="range"
-              min="0"
-              max="80"
-              value={savingsRate}
-              onChange={(e) => setSavingsRate(parseInt(e.target.value))}
-              className="flex-1"
-            />
-            <div className={`text-4xl font-light min-w-20 ${
-              isDarkMode ? 'text-white' : 'text-black'
+          <SavingsRateInput 
+            savingsRate={savingsRate}
+            onChange={setSavingsRate}
+            isDarkMode={isDarkMode}
+          />
+
+          {/* Validation message */}
+          {savingsRate > 50 && (
+            <div className={`mb-6 text-sm ${
+              isDarkMode ? 'text-yellow-400' : 'text-yellow-600'
             }`}>
-              {savingsRate}%
+              That's an ambitious savings rate! Make sure you have enough left for essential expenses.
             </div>
-          </div>
+          )}
+        </FormSection>
 
-          <div className={`py-8 border-t border-b ${
-            isDarkMode ? 'border-gray-800' : 'border-gray-200'
-          }`}>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
-              <div>
-                <div className={`text-2xl font-light mb-2 ${
-                  isDarkMode ? 'text-white' : 'text-black'
-                }`}>
-                  ${monthlySavings.toLocaleString()}
-                </div>
-                <div className={`text-sm ${
-                  isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                }`}>
-                  Monthly Savings
-                </div>
-              </div>
-              <div>
-                <div className={`text-2xl font-light mb-2 ${
-                  isDarkMode ? 'text-white' : 'text-black'
-                }`}>
-                  ${((totalIncome * (100 - savingsRate) / 100) / 12).toLocaleString()}
-                </div>
-                <div className={`text-sm ${
-                  isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                }`}>
-                  Monthly Spending
-                </div>
-              </div>
-              <div>
-                <div className={`text-2xl font-light mb-2 ${
-                  isDarkMode ? 'text-white' : 'text-black'
-                }`}>
-                  ${(totalIncome * savingsRate / 100).toLocaleString()}
-                </div>
-                <div className={`text-sm ${
-                  isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                }`}>
-                  Yearly Savings
-                </div>
-              </div>
-            </div>
+        {/* Summary Section */}
+        <SectionBorder />
+        <FormSection>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+            <SummaryCard
+              title="Monthly Savings"
+              value={monthlySavings}
+              accent={true}
+            />
+            <SummaryCard
+              title="Monthly Spending"
+              value={((totalIncome * (100 - savingsRate) / 100) / 12)}
+            />
+            <SummaryCard
+              title="Yearly Savings"
+              value={(totalIncome * savingsRate / 100)}
+            />
           </div>
-        </div>
+        </FormSection>
 
-        {/* Emergency Fund */}
-        <div className="mb-16">
-          <h2 className={`text-2xl font-light mb-6 ${
-            isDarkMode ? 'text-white' : 'text-black'
-          }`}>
-            Emergency Fund
-          </h2>
-          
+        {/* Emergency Fund Section */}
+        <FormSection title="Emergency Fund">
           <div className="mb-6">
             <label className="flex items-center gap-3">
               <input
@@ -263,110 +229,73 @@ const SavingsAllocationStep = ({ onNext, onBack, incomeData }) => {
           </div>
 
           {!emergencyFund.hasExisting && (
-            <div>
-              <label className={`block text-sm font-medium mb-2 ${
-                isDarkMode ? 'text-gray-400' : 'text-gray-600'
-              }`}>
-                Monthly emergency fund contribution
-              </label>
-              <div className="relative max-w-xs">
-                <span className={`absolute left-0 top-3 ${
-                  isDarkMode ? 'text-gray-400' : 'text-gray-500'
-                }`}>
-                  $
-                </span>
-                <input
-                  type="text"
+            <FormGrid>
+              <FormField span={4}>
+                <StandardInput
+                  label="Monthly emergency fund contribution"
+                  type="currency"
                   value={emergencyFund.monthlyAmount}
-                  onChange={(e) => setEmergencyFund(prev => ({ 
+                  onChange={(value) => setEmergencyFund(prev => ({ 
                     ...prev, 
-                    monthlyAmount: e.target.value.replace(/[^0-9.]/g, '') 
+                    monthlyAmount: value 
                   }))}
-                  placeholder="500"
-                  className={`w-full pl-6 px-0 py-3 border-0 border-b-2 bg-transparent text-lg transition-colors focus:outline-none ${
-                    isDarkMode 
-                      ? 'border-gray-700 text-white placeholder-gray-500 focus:border-white' 
-                      : 'border-gray-300 text-black placeholder-gray-400 focus:border-black'
-                  }`}
+                  prefix="$"
                 />
-              </div>
-              <p className={`mt-4 text-sm ${
-                isDarkMode ? 'text-gray-400' : 'text-gray-600'
-              }`}>
-                Recommended: ${emergencyFundMin.toLocaleString()} - ${emergencyFundMax.toLocaleString()} 
-                (3-6 months of expenses)
-              </p>
+              </FormField>
+              <FormField span={8}>
+                <div className={`flex items-end h-full pb-3`}>
+                  <p className={`text-sm ${
+                    isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                  }`}>
+                    Recommended: ${emergencyFundMin.toLocaleString()} - ${emergencyFundMax.toLocaleString()} 
+                    (3-6 months of expenses)
+                  </p>
+                </div>
+              </FormField>
+            </FormGrid>
+          )}
+        </FormSection>
+
+        {/* Savings Goals Section */}
+        <FormSection title="Specific Savings Goals">
+          {hasItems && (
+            <div className="space-y-0 mb-8">
+              {savingsGoals.map((goal) => (
+                <SavingsGoal
+                  key={goal.id}
+                  goal={goal}
+                  onUpdate={(updatedGoal) => updateItem(goal.id, updatedGoal)}
+                  onDelete={() => deleteItem(goal.id)}
+                />
+              ))}
             </div>
           )}
-        </div>
 
-        {/* Savings Goals */}
-        <div className="mb-16">
-          <h2 className={`text-2xl font-light mb-6 ${
-            isDarkMode ? 'text-white' : 'text-black'
-          }`}>
-            Specific Savings Goals
-          </h2>
-
-          <div className="space-y-6 mb-8">
-            {savingsGoals.map((goal) => (
-              <SavingsGoal
-                key={goal.id}
-                goal={goal}
-                onUpdate={(updatedGoal) => updateSavingsGoal(goal.id, updatedGoal)}
-                onDelete={() => deleteSavingsGoal(goal.id)}
-                isDarkMode={isDarkMode}
-              />
-            ))}
-          </div>
-
-          <button
+          <AddItemButton 
             onClick={addSavingsGoal}
-            className={`w-full py-6 border-2 border-dashed transition-colors text-center ${
-              isDarkMode 
-                ? 'border-gray-600 text-gray-400 hover:border-gray-500 hover:text-gray-300' 
-                : 'border-gray-300 text-gray-600 hover:border-gray-400 hover:text-gray-700'
-            }`}
-          >
-            <span className="text-lg font-light">Add a savings goal</span>
-          </button>
-        </div>
+            children={!hasItems ? 'Add your first savings goal' : 'Add another savings goal'}
+          />
+        </FormSection>
 
         {/* Allocation Summary */}
         {totalAllocatedSavings() > 0 && (
-          <div className={`mb-16 py-8 border-t border-b ${
-            isDarkMode ? 'border-gray-800' : 'border-gray-200'
-          }`}>
-            <div className="text-center">
-              <div className={`text-3xl font-light mb-2 ${
-                isDarkMode ? 'text-white' : 'text-black'
-              }`}>
-                ${totalAllocatedSavings().toLocaleString()} / ${monthlySavings.toLocaleString()}
+          <>
+            <SectionBorder />
+            <FormSection>
+              <div className="text-center">
+                <SummaryCard
+                  title={`Monthly savings allocated (${allocationPercentage.toFixed(0)}%)`}
+                  value={`$${totalAllocatedSavings().toLocaleString()} / $${monthlySavings.toLocaleString()}`}
+                  subtitle={remainingAmount > 0 ? `$${remainingAmount.toLocaleString()} unallocated` : 'Fully allocated'}
+                  accent={true}
+                />
               </div>
-              <div className={`text-lg font-light ${
-                isDarkMode ? 'text-gray-400' : 'text-gray-600'
-              }`}>
-                Monthly savings allocated ({allocationPercentage.toFixed(0)}%)
-              </div>
-              {remainingAmount > 0 && (
-                <div className={`text-base mt-2 ${
-                  isDarkMode ? 'text-gray-500' : 'text-gray-500'
-                }`}>
-                  ${remainingAmount.toLocaleString()} unallocated
-                </div>
-              )}
-            </div>
-          </div>
+            </FormSection>
+          </>
         )}
 
-        <NavigationButtons
-          onBack={onBack}
-          onNext={handleNext}
-          canGoNext={true}
-          showBack={true}
-        />
-      </div>
-    </div>
+      </StandardFormLayout>
+    </>
   );
 };
 

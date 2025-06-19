@@ -1,147 +1,83 @@
-import React, { useState } from 'react';
-import { useTheme } from '../../contexts/ThemeContext';
+import React from 'react';
 import ThemeToggle from '../shared/ThemeToggle';
-import NavigationButtons from '../shared/NavigationButtons';
+import { 
+  FormGrid, 
+  FormField, 
+  StandardInput,
+  RemoveButton,
+  AddItemButton,
+  FormSection,
+  StandardFormLayout,
+  SummaryCard,
+  SectionBorder,
+  useItemManager,
+  validation
+} from '../shared/FormComponents';
 
-// NetWorthItem component inline
-const NetWorthItem = ({ item, onUpdate, onDelete, isDarkMode, type }) => {
-  const handleNameChange = (e) => {
-    onUpdate({ ...item, name: e.target.value });
-  };
-
-  const handleAmountChange = (e) => {
-    const value = e.target.value.replace(/[^0-9.]/g, '');
-    onUpdate({ ...item, amount: value });
-  };
-
-  const placeholder = type === 'asset' 
-    ? 'Asset name (e.g., Savings Account, 401k)' 
-    : 'Debt name (e.g., Credit Card, Student Loan)';
-
+// Clean net worth item component using 12-column grid
+const NetWorthItem = ({ item, onUpdate, onDelete, type, placeholder }) => {
   return (
-    <div className={`py-6 border-b transition-colors ${
-      isDarkMode ? 'border-gray-800' : 'border-gray-200'
-    }`}>
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-end">
-        <div className="lg:col-span-8">
-          <label className={`block text-sm font-medium mb-2 ${
-            isDarkMode ? 'text-gray-400' : 'text-gray-600'
-          }`}>
-            {type === 'asset' ? 'Asset' : 'Liability'}
-          </label>
-          <input
-            type="text"
-            placeholder={placeholder}
-            value={item.name}
-            onChange={handleNameChange}
-            className={`w-full bg-transparent border-0 border-b-2 pb-2 text-lg focus:outline-none transition-colors ${
-              isDarkMode 
-                ? 'border-gray-700 text-white placeholder-gray-500 focus:border-white' 
-                : 'border-gray-300 text-gray-900 placeholder-gray-400 focus:border-black'
-            }`}
-          />
-        </div>
-        
-        <div className="lg:col-span-3">
-          <label className={`block text-sm font-medium mb-2 ${
-            isDarkMode ? 'text-gray-400' : 'text-gray-600'
-          }`}>
-            {type === 'asset' ? 'Value' : 'Balance Owed'}
-          </label>
-          <div className="relative">
-            <span className={`absolute left-0 top-2 text-lg ${
-              isDarkMode ? 'text-gray-400' : 'text-gray-500'
-            }`}>
-              $
-            </span>
-            <input
-              type="text"
-              placeholder="0"
-              value={item.amount}
-              onChange={handleAmountChange}
-              className={`w-full bg-transparent border-0 border-b-2 pb-2 pl-6 text-lg focus:outline-none transition-colors ${
-                isDarkMode 
-                  ? 'border-gray-700 text-white placeholder-gray-500 focus:border-white' 
-                  : 'border-gray-300 text-gray-900 placeholder-gray-400 focus:border-black'
-              }`}
-            />
-          </div>
-        </div>
-        
-        <div className="lg:col-span-1">
-          <button
-            onClick={onDelete}
-            className={`w-full py-2 text-sm transition-colors ${
-              isDarkMode 
-                ? 'text-gray-500 hover:text-gray-300' 
-                : 'text-gray-400 hover:text-gray-600'
-            }`}
-          >
-            Remove
-          </button>
-        </div>
-      </div>
-    </div>
+    <FormGrid>
+      {/* Asset/Liability name: 8 columns */}
+      <FormField span={8}>
+        <StandardInput
+          label={type === 'asset' ? 'Asset' : 'Liability'}
+          value={item.name}
+          onChange={(value) => onUpdate({ ...item, name: value })}
+          placeholder={placeholder}
+        />
+      </FormField>
+      
+      {/* Amount: 3 columns */}
+      <FormField span={3}>
+        <StandardInput
+          label={type === 'asset' ? 'Value' : 'Balance Owed'}
+          type="currency"
+          value={item.amount}
+          onChange={(value) => onUpdate({ ...item, amount: value })}
+          prefix="$"
+        />
+      </FormField>
+      
+      {/* Remove button: 1 column */}
+      <RemoveButton 
+        onClick={onDelete}
+        children="Remove"
+      />
+    </FormGrid>
   );
 };
 
-const NetWorthStep = ({ onNext, onBack, incomeData, savingsData, allocationData, expensesData }) => {
-  const { isDarkMode } = useTheme();
-  
-  // Auto-populate assets from savings goals if available
-  const initialAssets = allocationData?.savingsGoals?.map((goal, index) => ({
-    id: `goal-${index}`,
-    name: goal.name || 'Savings Goal',
-    amount: goal.amount ? (parseFloat(goal.amount) * 12).toString() : '0',
-    fromGoal: true
-  })) || [];
+const NetWorthStep = ({ onNext, onBack, incomeData, savingsData, expensesData }) => {
+  // Use professional item managers for both assets and liabilities
+  const { 
+    items: assets, 
+    addItem: addAsset, 
+    updateItem: updateAsset, 
+    deleteItem: deleteAsset,
+    hasItems: hasAssets 
+  } = useItemManager();
 
-  const [assets, setAssets] = useState([
-    ...initialAssets,
-    { id: 1, name: 'Checking Account', amount: '5000', fromGoal: false },
-    { id: 2, name: '401(k)', amount: '25000', fromGoal: false }
-  ]);
-  
-  const [liabilities, setLiabilities] = useState([
-    { id: 1, name: 'Credit Card', amount: '2500' },
-    { id: 2, name: 'Student Loan', amount: '15000' }
-  ]);
+  const { 
+    items: liabilities, 
+    addItem: addLiability, 
+    updateItem: updateLiability, 
+    deleteItem: deleteLiability,
+    hasItems: hasLiabilities 
+  } = useItemManager();
 
-  const addAsset = () => {
-    setAssets([...assets, { 
-      id: Date.now(),
-      name: '', 
-      amount: '', 
-      fromGoal: false
-    }]);
-  };
-
-  const addLiability = () => {
-    setLiabilities([...liabilities, { 
-      id: Date.now(),
+  const addAssetItem = () => {
+    addAsset({
       name: '', 
       amount: ''
-    }]);
+    });
   };
 
-  const updateAsset = (id, updatedAsset) => {
-    setAssets(assets.map(asset => 
-      asset.id === id ? updatedAsset : asset
-    ));
-  };
-
-  const updateLiability = (id, updatedLiability) => {
-    setLiabilities(liabilities.map(liability => 
-      liability.id === id ? updatedLiability : liability
-    ));
-  };
-
-  const deleteAsset = (id) => {
-    setAssets(assets.filter(asset => asset.id !== id));
-  };
-
-  const deleteLiability = (id) => {
-    setLiabilities(liabilities.filter(liability => liability.id !== id));
+  const addLiabilityItem = () => {
+    addLiability({
+      name: '', 
+      amount: ''
+    });
   };
 
   // Calculate totals
@@ -168,166 +104,101 @@ const NetWorthStep = ({ onNext, onBack, incomeData, savingsData, allocationData,
   };
 
   return (
-    <div className={`min-h-screen transition-colors duration-300 ${
-      isDarkMode ? 'bg-black text-white' : 'bg-gray-50 text-gray-900'
-    }`}>
+    <>
       <ThemeToggle />
-      <div className="max-w-4xl mx-auto px-6 py-12">
+      <StandardFormLayout
+        title="Calculate Your Net Worth"
+        subtitle="Add up everything you own and subtract what you owe. This gives you your complete financial picture."
+        onBack={onBack}
+        onNext={handleNext}
+        nextLabel="Complete Setup"
+        canGoNext={true}
+        showBack={true}
+      >
         
-        <div className="mb-24">
-          <h1 className={`text-5xl font-light leading-tight mb-4 ${
-            isDarkMode ? 'text-white' : 'text-black'
-          }`}>
-            Calculate Your Net Worth
-          </h1>
-          <p className={`text-xl font-light ${
-            isDarkMode ? 'text-gray-400' : 'text-gray-600'
-          }`}>
-            Add up everything you own and subtract what you owe. This gives you your complete financial picture.
-          </p>
-        </div>
-
         {/* Net Worth Summary */}
-        <div className={`mb-16 py-8 border-t border-b ${
-          isDarkMode ? 'border-gray-800' : 'border-gray-200'
-        }`}>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
-            <div>
-              <div className={`text-2xl font-light mb-2 ${
-                isDarkMode ? 'text-white' : 'text-black'
-              }`}>
-                ${totalAssets.toLocaleString()}
+        {(totalAssets > 0 || totalLiabilities > 0) && (
+          <>
+            <SectionBorder />
+            <FormSection>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+                <SummaryCard
+                  title="Total Assets"
+                  value={totalAssets}
+                />
+                <SummaryCard
+                  title="Total Liabilities"
+                  value={totalLiabilities}
+                />
+                <SummaryCard
+                  title="Net Worth"
+                  value={`${netWorth >= 0 ? '' : '-'}$${Math.abs(netWorth).toLocaleString()}`}
+                  subtitle={netWorth >= 0 ? 'Positive net worth' : 'Room to grow'}
+                  accent={netWorth >= 0}
+                />
               </div>
-              <div className={`text-sm ${
-                isDarkMode ? 'text-gray-400' : 'text-gray-600'
-              }`}>
-                Total Assets
-              </div>
-            </div>
-            <div>
-              <div className={`text-2xl font-light mb-2 ${
-                isDarkMode ? 'text-white' : 'text-black'
-              }`}>
-                ${totalLiabilities.toLocaleString()}
-              </div>
-              <div className={`text-sm ${
-                isDarkMode ? 'text-gray-400' : 'text-gray-600'
-              }`}>
-                Total Liabilities
-              </div>
-            </div>
-            <div>
-              <div className={`text-3xl font-light mb-2 ${
-                netWorth >= 0 
-                  ? isDarkMode ? 'text-white' : 'text-black'
-                  : 'text-red-500'
-              }`}>
-                ${Math.abs(netWorth).toLocaleString()}
-              </div>
-              <div className={`text-sm ${
-                isDarkMode ? 'text-gray-400' : 'text-gray-600'
-              }`}>
-                Net Worth
-              </div>
-              <div className={`text-sm mt-2 ${
-                isDarkMode ? 'text-gray-500' : 'text-gray-500'
-              }`}>
-                {netWorth >= 0 ? 'Positive net worth' : 'Room to grow'}
-              </div>
-            </div>
-          </div>
-        </div>
+            </FormSection>
+          </>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
-          {/* Assets */}
+          {/* Assets Section */}
           <div>
-            <h2 className={`text-2xl font-light mb-8 ${
-              isDarkMode ? 'text-white' : 'text-black'
-            }`}>
-              Assets (What You Own)
-            </h2>
-            
-            <div className="mb-8">
-              {assets.map((asset) => (
-                <div key={asset.id}>
-                  <NetWorthItem
-                    item={asset}
-                    onUpdate={(updatedAsset) => updateAsset(asset.id, updatedAsset)}
-                    onDelete={() => deleteAsset(asset.id)}
-                    isDarkMode={isDarkMode}
-                    type="asset"
-                  />
-                  {asset.fromGoal && (
-                    <p className={`text-xs mt-2 ml-4 ${
-                      isDarkMode ? 'text-yellow-400' : 'text-yellow-600'
-                    }`}>
-                      From your savings goals - update as needed
-                    </p>
-                  )}
+            <FormSection title="Assets (What You Own)">
+              {hasAssets && (
+                <div className="space-y-0 mb-8">
+                  {assets.map((asset) => (
+                    <NetWorthItem
+                      key={asset.id}
+                      item={asset}
+                      onUpdate={(updatedAsset) => updateAsset(asset.id, updatedAsset)}
+                      onDelete={() => deleteAsset(asset.id)}
+                      type="asset"
+                      placeholder="Cash, bonds, equities, home value"
+                    />
+                  ))}
                 </div>
-              ))}
-            </div>
-            
-            <button
-              onClick={addAsset}
-              className={`w-full py-6 border-2 border-dashed transition-colors text-center ${
-                isDarkMode 
-                  ? 'border-gray-600 text-gray-400 hover:border-gray-500 hover:text-gray-300' 
-                  : 'border-gray-300 text-gray-600 hover:border-gray-400 hover:text-gray-700'
-              }`}
-            >
-              <span className="text-lg font-light">Add asset</span>
-            </button>
+              )}
+              
+              <AddItemButton 
+                onClick={addAssetItem}
+                children={!hasAssets ? 'Add your first asset' : 'Add another asset'}
+              />
+            </FormSection>
           </div>
 
-          {/* Liabilities */}
+          {/* Liabilities Section */}
           <div>
-            <h2 className={`text-2xl font-light mb-8 ${
-              isDarkMode ? 'text-white' : 'text-black'
-            }`}>
-              Liabilities (What You Owe)
-            </h2>
-            
-            <div className="mb-8">
-              {liabilities.map((liability) => (
-                <NetWorthItem
-                  key={liability.id}
-                  item={liability}
-                  onUpdate={(updatedLiability) => updateLiability(liability.id, updatedLiability)}
-                  onDelete={() => deleteLiability(liability.id)}
-                  isDarkMode={isDarkMode}
-                  type="liability"
-                />
-              ))}
-            </div>
-            
-            <button
-              onClick={addLiability}
-              className={`w-full py-6 border-2 border-dashed transition-colors text-center ${
-                isDarkMode 
-                  ? 'border-gray-600 text-gray-400 hover:border-gray-500 hover:text-gray-300' 
-                  : 'border-gray-300 text-gray-600 hover:border-gray-400 hover:text-gray-700'
-              }`}
-            >
-              <span className="text-lg font-light">Add liability</span>
-            </button>
+            <FormSection title="Liabilities (What You Owe)">
+              {hasLiabilities && (
+                <div className="space-y-0 mb-8">
+                  {liabilities.map((liability) => (
+                    <NetWorthItem
+                      key={liability.id}
+                      item={liability}
+                      onUpdate={(updatedLiability) => updateLiability(liability.id, updatedLiability)}
+                      onDelete={() => deleteLiability(liability.id)}
+                      type="liability"
+                      placeholder="Mortgage, auto loan, student loans"
+                    />
+                  ))}
+                </div>
+              )}
+              
+              <AddItemButton 
+                onClick={addLiabilityItem}
+                children={!hasLiabilities ? 'Add your first liability' : 'Add another liability'}
+              />
+            </FormSection>
           </div>
         </div>
 
         {/* Privacy & Next Steps */}
-        <div className={`mt-16 p-8 border-l-4 ${
-          isDarkMode 
-            ? 'border-gray-700 bg-gray-900' 
-            : 'border-gray-300 bg-gray-100'
-        }`}>
-          <h3 className={`text-xl font-light mb-4 ${
-            isDarkMode ? 'text-white' : 'text-black'
-          }`}>
+        <div className={`mt-16 p-8 border-l-4 border-gray-300 bg-gray-100`}>
+          <h3 className={`text-xl font-light mb-4 text-black`}>
             Your Privacy Matters
           </h3>
-          <div className={`space-y-3 text-base font-light ${
-            isDarkMode ? 'text-gray-400' : 'text-gray-600'
-          }`}>
+          <div className={`space-y-3 text-base font-light text-gray-600`}>
             <p>All your financial data stays on your device - we never see it</p>
             <p>Import bank transactions via CSV for automatic categorization</p>
             <p>Track progress toward your savings goals over time</p>
@@ -335,14 +206,8 @@ const NetWorthStep = ({ onNext, onBack, incomeData, savingsData, allocationData,
           </div>
         </div>
 
-        <NavigationButtons
-          onBack={onBack}
-          onNext={handleNext}
-          nextLabel="Complete Setup"
-          className="mt-16"
-        />
-      </div>
-    </div>
+      </StandardFormLayout>
+    </>
   );
 };
 

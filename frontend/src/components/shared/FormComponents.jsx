@@ -1,0 +1,462 @@
+// frontend/src/components/shared/FormComponents.jsx
+// Complete Form Standardization System with 12-Column Grid
+
+import React from 'react';
+import { useTheme } from '../../contexts/ThemeContext';
+
+// ==================== CORE GRID SYSTEM ====================
+
+// 12-Column CSS Grid container with consistent spacing
+export const FormGrid = ({ children, className = '' }) => {
+  return (
+    <div className={`grid grid-cols-12 gap-6 items-end py-6 ${className}`}>
+      {children}
+    </div>
+  );
+};
+
+// Form field wrapper with column span control
+export const FormField = ({ 
+  span = 4, 
+  children, 
+  className = '',
+  mobileSpan = 12 
+}) => {
+  return (
+    <div className={`col-span-${mobileSpan} lg:col-span-${span} ${className}`}>
+      {children}
+    </div>
+  );
+};
+
+// ==================== INPUT COMPONENTS ====================
+
+// Standardized input field with consistent styling
+export const StandardInput = ({ 
+  label, 
+  type = 'text', 
+  value, 
+  onChange, 
+  placeholder = '', 
+  prefix = null,
+  error = null,
+  required = false,
+  className = '',
+  ...props 
+}) => {
+  const { isDarkMode } = useTheme();
+
+  const handleChange = (e) => {
+    if (type === 'currency') {
+      const cleanValue = e.target.value.replace(/[^0-9.]/g, '');
+      onChange(cleanValue);
+    } else {
+      onChange(e.target.value);
+    }
+  };
+
+  return (
+    <div className={className}>
+      {label && (
+        <label className={`block text-sm font-medium mb-2 ${
+          isDarkMode ? 'text-gray-400' : 'text-gray-500'
+        }`}>
+          {label} {required && <span className="text-red-500">*</span>}
+        </label>
+      )}
+      <div className="relative">
+        {prefix && (
+          <span className={`absolute left-0 top-3 text-lg ${
+            isDarkMode ? 'text-gray-400' : 'text-gray-500'
+          }`}>
+            {prefix}
+          </span>
+        )}
+        <input
+          type={type === 'currency' ? 'text' : type}
+          value={value}
+          onChange={handleChange}
+          placeholder={placeholder}
+          className={`w-full bg-transparent border-0 border-b-2 pb-2 text-lg focus:outline-none transition-colors ${
+            prefix ? 'pl-6' : 'px-0'
+          } py-3 ${
+            error
+              ? 'border-red-500 text-red-500'
+              : isDarkMode 
+                ? 'border-gray-700 text-white placeholder-gray-500 focus:border-white' 
+                : 'border-gray-300 text-black placeholder-gray-400 focus:border-black'
+          }`}
+          {...props}
+        />
+      </div>
+      {error && (
+        <div className="mt-2 text-red-500 text-sm font-light">
+          {error}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Custom themed dropdown with perfect editorial integration
+export const StandardSelect = ({ 
+  label, 
+  value, 
+  onChange, 
+  options = [], 
+  required = false,
+  className = '',
+  ...props 
+}) => {
+  const { isDarkMode } = useTheme();
+  const [isOpen, setIsOpen] = React.useState(false);
+  
+  const selectedOption = options.find(opt => opt.value === value);
+  
+  const handleSelect = (optionValue) => {
+    onChange(optionValue);
+    setIsOpen(false);
+  };
+
+  // Close dropdown when clicking outside
+  React.useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (isOpen) {
+        setIsOpen(false);
+      }
+    };
+    
+    if (isOpen) {
+      document.addEventListener('click', handleClickOutside);
+    }
+    
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, [isOpen]);
+
+  return (
+    <div className={`relative ${className}`}>
+      {label && (
+        <label className={`block text-sm font-medium mb-2 ${
+          isDarkMode ? 'text-gray-400' : 'text-gray-500'
+        }`}>
+          {label} {required && <span className="text-red-500">*</span>}
+        </label>
+      )}
+      
+      {/* Custom Select Button */}
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          setIsOpen(!isOpen);
+        }}
+        className={`w-full px-0 py-3 border-0 border-b-2 bg-transparent transition-colors focus:outline-none text-left flex items-center justify-between ${
+          isDarkMode 
+            ? 'border-gray-700 text-white focus:border-white' 
+            : 'border-gray-300 text-black focus:border-black'
+        }`}
+        {...props}
+      >
+        <span className="text-lg font-light">
+          {selectedOption ? selectedOption.label : 'Select...'}
+        </span>
+        <span className={`ml-2 transition-transform duration-200 ${
+          isOpen ? 'rotate-180' : 'rotate-0'
+        } ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+          ▼
+        </span>
+      </button>
+      
+      {/* Custom Dropdown Menu */}
+      {isOpen && (
+        <div className={`absolute top-full left-0 right-0 mt-2 border shadow-lg z-50 ${
+          isDarkMode 
+            ? 'bg-black border-gray-700 shadow-gray-900' 
+            : 'bg-white border-gray-200 shadow-gray-300'
+        }`}>
+          {options.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => handleSelect(option.value)}
+              className={`w-full px-4 py-3 text-left text-lg font-light transition-colors duration-200 ${
+                value === option.value
+                  ? isDarkMode 
+                    ? 'bg-gray-800 text-white' 
+                    : 'bg-gray-100 text-black'
+                  : isDarkMode 
+                    ? 'text-gray-300 hover:bg-gray-900 hover:text-white' 
+                    : 'text-gray-700 hover:bg-gray-50 hover:text-black'
+              }`}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ==================== ACTION COMPONENTS ====================
+
+// Standardized remove button positioned in grid
+export const RemoveButton = ({ onClick, children = 'Remove', className = '' }) => {
+  const { isDarkMode } = useTheme();
+
+  return (
+    <div className={`col-span-12 lg:col-span-1 flex items-end ${className}`}>
+      <button
+        onClick={onClick}
+        className={`w-full py-3 text-sm transition-colors text-center ${
+          isDarkMode 
+            ? 'text-gray-500 hover:text-gray-300' 
+            : 'text-gray-400 hover:text-gray-600'
+        }`}
+      >
+        {children}
+      </button>
+    </div>
+  );
+};
+
+// Dashed border add button with consistent styling
+export const AddItemButton = ({ onClick, children, className = '' }) => {
+  const { isDarkMode } = useTheme();
+
+  return (
+    <button
+      onClick={onClick}
+      className={`w-full py-6 border-2 border-dashed transition-colors text-center mb-8 ${
+        isDarkMode 
+          ? 'border-gray-600 text-gray-400 hover:border-gray-500 hover:text-gray-300' 
+          : 'border-gray-300 text-gray-600 hover:border-gray-400 hover:text-gray-700'
+      } ${className}`}
+    >
+      <span className="text-lg font-light">{children}</span>
+    </button>
+  );
+};
+
+// ==================== LAYOUT COMPONENTS ====================
+
+// Section separator with editorial styling
+export const FormSection = ({ title, children, className = '' }) => {
+  const { isDarkMode } = useTheme();
+
+  return (
+    <div className={`mb-16 ${className}`}>
+      {title && (
+        <h2 className={`text-2xl font-light mb-6 ${
+          isDarkMode ? 'text-white' : 'text-black'
+        }`}>
+          {title}
+        </h2>
+      )}
+      {children}
+    </div>
+  );
+};
+
+// Complete form layout with navigation
+export const StandardFormLayout = ({ 
+  title, 
+  subtitle, 
+  children, 
+  onBack, 
+  onNext, 
+  canGoNext = true,
+  nextLabel = 'Continue',
+  backLabel = 'Back',
+  showBack = true,
+  nextLoading = false,
+  className = ''
+}) => {
+  const { isDarkMode } = useTheme();
+
+  return (
+    <div className={`min-h-screen transition-colors duration-300 ${
+      isDarkMode ? 'bg-black text-white' : 'bg-gray-50 text-gray-900'
+    } ${className}`}>
+      <div className="max-w-4xl mx-auto px-6 py-12">
+        
+        {/* Header */}
+        <div className="mb-24">
+          <h1 className={`text-5xl font-light leading-tight mb-4 ${
+            isDarkMode ? 'text-white' : 'text-black'
+          }`}>
+            {title}
+          </h1>
+          {subtitle && (
+            <p className={`text-xl font-light ${
+              isDarkMode ? 'text-gray-400' : 'text-gray-600'
+            }`}>
+              {subtitle}
+            </p>
+          )}
+        </div>
+
+        {/* Content */}
+        {children}
+
+        {/* Navigation */}
+        <div className="flex justify-between items-center mt-16">
+          {showBack ? (
+            <button
+              onClick={onBack}
+              className={`text-lg font-light transition-colors ${
+                isDarkMode 
+                  ? 'text-gray-400 hover:text-white border-b border-gray-700 hover:border-white pb-1' 
+                  : 'text-gray-600 hover:text-black border-b border-gray-300 hover:border-black pb-1'
+              }`}
+            >
+              {backLabel}
+            </button>
+          ) : (
+            <div />
+          )}
+          
+          <button
+            onClick={onNext}
+            disabled={!canGoNext || nextLoading}
+            className={`text-xl font-light transition-all ${
+              canGoNext && !nextLoading
+                ? isDarkMode
+                  ? 'text-white border-b-2 border-white hover:border-gray-400 pb-2'
+                  : 'text-black border-b-2 border-black hover:border-gray-600 pb-2'
+                : isDarkMode
+                  ? 'text-gray-600 cursor-not-allowed pb-2'
+                  : 'text-gray-400 cursor-not-allowed pb-2'
+            }`}
+          >
+            {nextLoading ? 'Processing...' : nextLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Summary card with consistent styling
+export const SummaryCard = ({ 
+  title, 
+  value, 
+  subtitle = null,
+  accent = false,
+  className = '' 
+}) => {
+  const { isDarkMode } = useTheme();
+  
+  return (
+    <div className={`text-center ${className}`}>
+      <div className={`text-2xl font-light mb-2 ${
+        accent
+          ? isDarkMode ? 'text-white' : 'text-black'
+          : isDarkMode ? 'text-white' : 'text-black'
+      }`}>
+        {typeof value === 'number' ? `$${value.toLocaleString()}` : value}
+      </div>
+      <div className={`text-sm ${
+        isDarkMode ? 'text-gray-400' : 'text-gray-600'
+      }`}>
+        {title}
+      </div>
+      {subtitle && (
+        <div className={`text-base mt-2 ${
+          isDarkMode ? 'text-gray-500' : 'text-gray-500'
+        }`}>
+          {subtitle}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ==================== STATE MANAGEMENT ====================
+
+// Universal item manager for add/remove/update patterns
+export const useItemManager = (initialItems = []) => {
+  const [items, setItems] = React.useState(initialItems);
+
+  const addItem = (newItem = {}) => {
+    const item = {
+      id: Date.now() + Math.random(),
+      ...newItem
+    };
+    setItems([...items, item]);
+    return item;
+  };
+
+  const updateItem = (id, updates) => {
+    setItems(items.map(item => 
+      item.id === id ? { ...item, ...updates } : item
+    ));
+  };
+
+  const deleteItem = (id) => {
+    setItems(items.filter(item => item.id !== id));
+  };
+
+  const clearItems = () => {
+    setItems([]);
+  };
+
+  return {
+    items,
+    setItems,
+    addItem,
+    updateItem,
+    deleteItem,
+    clearItems,
+    hasItems: items.length > 0,
+    itemCount: items.length
+  };
+};
+
+// ==================== UTILITY COMPONENTS ====================
+
+// Border separator for sections
+export const SectionBorder = ({ className = '' }) => {
+  const { isDarkMode } = useTheme();
+  
+  return (
+    <div className={`py-8 border-t border-b ${
+      isDarkMode ? 'border-gray-800' : 'border-gray-200'
+    } ${className}`} />
+  );
+};
+
+// Validation helpers
+export const validation = {
+  hasValidInput: (value, min = 0) => {
+    const num = parseFloat(value);
+    return value && value.toString().trim() && !isNaN(num) && num > min;
+  },
+  
+  hasValidString: (value, minLength = 1) => {
+    return value && value.toString().trim().length >= minLength;
+  },
+  
+  isPositiveNumber: (value) => {
+    const num = parseFloat(value);
+    return !isNaN(num) && num > 0;
+  }
+};
+
+// Currency formatting
+export const formatCurrency = (amount, options = {}) => {
+  const {
+    minimumFractionDigits = 0,
+    maximumFractionDigits = 0,
+    currency = 'USD'
+  } = options;
+  
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency,
+    minimumFractionDigits,
+    maximumFractionDigits
+  }).format(amount);
+};
