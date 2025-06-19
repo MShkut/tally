@@ -1,3 +1,4 @@
+import React, { useState, useCallback, useMemo } from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
 import ThemeToggle from '../shared/ThemeToggle';
 
