@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState } from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
 import ThemeToggle from '../shared/ThemeToggle';
 
@@ -9,47 +9,27 @@ const WelcomeStep = ({ onNext }) => {
     periodDuration: 6
   });
 
-  const handleNameChange = (e) => {
-    setFormData(prev => ({ ...prev, householdName: e.target.value }));
-  };
-
-  const handleDurationChange = (e) => {
-    const value = parseInt(e.target.value) || 1;
-    const clampedValue = Math.max(1, Math.min(12, value));
-    setFormData(prev => ({ ...prev, periodDuration: clampedValue }));
+  const handleInputChange = (field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
 
   const handleNext = () => {
-    if (formData.householdName.trim() && formData.periodDuration >= 1 && formData.periodDuration <= 12) {
-      onNext({
-        household: {
-          name: formData.householdName.trim(),
-          created_date: new Date().toISOString()
-        },
-        period: {
-          duration_months: formData.periodDuration,
-          start_date: new Date().toISOString().split('T')[0],
-          period_number: 1
-        }
-      });
+    if (canContinue) {
+      onNext(formData);
     }
   };
 
-  const canContinue = formData.householdName.trim().length > 0 && 
-                     formData.periodDuration >= 1 && 
-                     formData.periodDuration <= 12;
-
-  const getDurationText = (months) => {
-    if (months === 1) return '1 month';
-    if (months < 12) return `${months} months`;
-    return '1 year';
-  };
+  const canContinue = formData.householdName.trim() && formData.periodDuration;
 
   const getDurationDescription = (months) => {
-    if (months <= 3) return 'Short-term focus — great for testing or major life changes';
-    if (months <= 6) return 'Balanced approach — matches natural planning cycles';
-    if (months <= 9) return 'Extended planning — ideal for specific goals or projects';
-    return 'Annual planning — comprehensive long-term budgeting';
+    if (months === 1) return "Perfect for short-term planning and getting started";
+    if (months <= 3) return "Ideal for life transitions and focused goal periods";
+    if (months <= 6) return "The most natural planning cycle for most people";
+    if (months <= 9) return "Great for school years and longer projects";
+    return "Traditional annual budgeting for stable life phases";
   };
 
   return (
@@ -60,190 +40,116 @@ const WelcomeStep = ({ onNext }) => {
       <div className="max-w-4xl mx-auto px-6 py-12">
         
         <div className="mb-24">
-          <h1 className={`text-6xl font-light leading-tight mb-8 ${
+          <h1 className={`text-5xl font-light leading-tight mb-4 ${
             isDarkMode ? 'text-white' : 'text-black'
           }`}>
-            Welcome to Your Financial Tracker
+            Personal Finance Tracker
           </h1>
-          <div className="max-w-3xl">
-            <p className={`text-2xl font-light mb-6 ${
-              isDarkMode ? 'text-gray-400' : 'text-gray-600'
-            }`}>
-              A privacy-first budgeting tool that keeps all your financial data on your device.
-            </p>
-            <p className={`text-xl font-light ${
-              isDarkMode ? 'text-gray-500' : 'text-gray-500'
-            }`}>
-              No cloud uploads, no data sharing — complete control over your financial information.
-            </p>
-          </div>
+          <p className={`text-xl font-light ${
+            isDarkMode ? 'text-gray-400' : 'text-gray-600'
+          }`}>
+            A privacy-first approach to understanding your financial life. 
+            All data stays on your device, giving you complete control over your financial information.
+          </p>
         </div>
 
-        <div className="mb-24">
-          <div className="mb-16">
-            <h2 className={`text-3xl font-light mb-8 ${
-              isDarkMode ? 'text-white' : 'text-black'
-            }`}>
-              Who is this budget for?
-            </h2>
+        <div className="mb-16">
+          <label className={`block text-sm font-medium mb-6 uppercase tracking-wider ${
+            isDarkMode ? 'text-gray-400' : 'text-gray-500'
+          }`}>
+            Who is this budget for?
+          </label>
+          <input
+            type="text"
+            value={formData.householdName}
+            onChange={(e) => handleInputChange('householdName', e.target.value)}
+            placeholder="Jane & John, Smith Family, or just Sarah..."
+            className={`w-full max-w-md px-0 py-4 border-0 border-b-2 bg-transparent text-2xl font-light transition-colors focus:outline-none ${
+              isDarkMode 
+                ? 'border-gray-700 text-white placeholder-gray-500 focus:border-white' 
+                : 'border-gray-300 text-black placeholder-gray-400 focus:border-black'
+            }`}
+          />
+        </div>
+
+        <div className="mb-16">
+          <label className={`block text-sm font-medium mb-6 uppercase tracking-wider ${
+            isDarkMode ? 'text-gray-400' : 'text-gray-500'
+          }`}>
+            How many months should we plan for?
+          </label>
+          
+          <div className="flex items-center gap-4 mb-8">
             <input
-              type="text"
-              value={formData.householdName}
-              onChange={handleNameChange}
-              placeholder="Smith Family, Jane & John, Sarah..."
-              className={`w-full max-w-lg text-2xl font-light py-4 bg-transparent border-0 border-b-2 transition-colors focus:outline-none focus:ring-0 ${
+              type="number"
+              min="1"
+              max="12"
+              value={formData.periodDuration}
+              onChange={(e) => handleInputChange('periodDuration', parseInt(e.target.value) || 1)}
+              className={`w-20 px-0 py-4 border-0 border-b-2 bg-transparent text-3xl font-light transition-colors focus:outline-none ${
                 isDarkMode 
-                  ? 'border-gray-700 text-white placeholder-gray-600 focus:border-white' 
-                  : 'border-gray-300 text-black placeholder-gray-400 focus:border-black'
+                  ? 'border-gray-700 text-white focus:border-white' 
+                  : 'border-gray-300 text-black focus:border-black'
               }`}
             />
-            <p className={`mt-4 text-lg font-light ${
-              isDarkMode ? 'text-gray-500' : 'text-gray-500'
-            }`}>
-              This helps personalize your experience and organize your financial data
-            </p>
-          </div>
-
-          <div className="mb-16">
-            <h2 className={`text-3xl font-light mb-8 ${
-              isDarkMode ? 'text-white' : 'text-black'
-            }`}>
-              Let's set up your budget for the next{' '}
-              <span className="underline decoration-1 underline-offset-4">
-                {getDurationText(formData.periodDuration)}
-              </span>
-            </h2>
-
-            <div className="mb-8">
-              <div className="flex items-center space-x-6 mb-6">
-                <input
-                  type="number"
-                  min="1"
-                  max="12"
-                  value={formData.periodDuration}
-                  onChange={handleDurationChange}
-                  className={`w-20 text-2xl font-light py-2 text-center bg-transparent border-0 border-b-2 transition-colors focus:outline-none focus:ring-0 ${
-                    isDarkMode 
-                      ? 'border-gray-700 text-white focus:border-white' 
-                      : 'border-gray-300 text-black focus:border-black'
-                  }`}
-                />
-                <span className={`text-2xl font-light ${
-                  isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                }`}>
-                  {formData.periodDuration === 1 ? 'month' : 'months'}
-                </span>
-              </div>
-
-              <p className={`text-lg font-light mb-8 ${
-                isDarkMode ? 'text-gray-400' : 'text-gray-600'
-              }`}>
-                {getDurationDescription(formData.periodDuration)}
-              </p>
-
-              <div className={`py-8 border-t border-b ${
-                isDarkMode ? 'border-gray-800' : 'border-gray-200'
-              }`}>
-                <p className={`text-sm font-light mb-6 ${
-                  isDarkMode ? 'text-gray-500' : 'text-gray-500'
-                }`}>
-                  Common Planning Periods
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <span className={`font-medium ${isDarkMode ? 'text-white' : 'text-black'}`}>
-                      3–4 months
-                    </span>
-                    <span className={`ml-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                      Career transitions, seasonal work
-                    </span>
-                  </div>
-                  <div>
-                    <span className={`font-medium ${isDarkMode ? 'text-white' : 'text-black'}`}>
-                      6 months
-                    </span>
-                    <span className={`ml-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                      Most natural planning cycle
-                    </span>
-                  </div>
-                  <div>
-                    <span className={`font-medium ${isDarkMode ? 'text-white' : 'text-black'}`}>
-                      8–10 months
-                    </span>
-                    <span className={`ml-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                      School year, specific projects
-                    </span>
-                  </div>
-                  <div>
-                    <span className={`font-medium ${isDarkMode ? 'text-white' : 'text-black'}`}>
-                      12 months
-                    </span>
-                    <span className={`ml-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                      Traditional annual budgeting
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className={`py-8 border-l-2 pl-8 mb-16 ${
-            isDarkMode ? 'border-gray-700' : 'border-gray-300'
-          }`}>
-            <h3 className={`text-xl font-light mb-4 ${
-              isDarkMode ? 'text-white' : 'text-black'
-            }`}>
-              Your Data Stays Private
-            </h3>
-            <p className={`text-lg font-light leading-relaxed ${
+            <span className={`text-2xl font-light ${
               isDarkMode ? 'text-gray-400' : 'text-gray-600'
             }`}>
-              Everything you enter is stored locally on your device. We never see your financial data, 
-              and you can export or delete it anytime. Think of this as a sophisticated spreadsheet 
-              that happens to run in your browser.
-            </p>
+              {formData.periodDuration === 1 ? 'month' : 'months'}
+            </span>
           </div>
 
-          <div className="text-center">
-            <button
-              onClick={handleNext}
-              disabled={!canContinue}
-              className={`px-12 py-4 text-xl font-light transition-all ${
-                canContinue
-                  ? isDarkMode
-                    ? 'text-white border-b-2 border-white hover:border-gray-400'
-                    : 'text-black border-b-2 border-black hover:border-gray-600'
-                  : isDarkMode
-                    ? 'text-gray-600 cursor-not-allowed'
-                    : 'text-gray-400 cursor-not-allowed'
-              }`}
-            >
-              Begin Financial Setup
-            </button>
-            
-            {!canContinue && (
-              <p className={`mt-6 text-lg font-light ${
-                isDarkMode ? 'text-gray-500' : 'text-gray-500'
-              }`}>
-                Please enter a name and choose a planning period to continue
-              </p>
-            )}
-          </div>
+          <p className={`text-lg font-light mb-12 ${
+            isDarkMode ? 'text-gray-400' : 'text-gray-600'
+          }`}>
+            {getDurationDescription(formData.periodDuration)}
+          </p>
+        </div>
+
+        <div className={`mb-16 py-8 border-l-2 pl-8 ${
+          isDarkMode ? 'border-gray-700' : 'border-gray-300'
+        }`}>
+          <h3 className={`text-xl font-light mb-4 ${
+            isDarkMode ? 'text-white' : 'text-black'
+          }`}>
+            Your Data Stays Private
+          </h3>
+          <p className={`text-base font-light leading-relaxed ${
+            isDarkMode ? 'text-gray-400' : 'text-gray-600'
+          }`}>
+            Everything you enter is stored locally on your device. We never see your financial data, 
+            and you can export or delete it anytime.
+          </p>
         </div>
 
         <div className="text-center">
-          <p className={`text-lg font-light ${
-            isDarkMode ? 'text-gray-500' : 'text-gray-500'
-          }`}>
-            You can always start a new budget period later with a different timeframe.
-            <br />
-            This is just your starting point — not a permanent commitment.
-          </p>
+          <button
+            onClick={handleNext}
+            disabled={!canContinue}
+            className={`px-12 py-4 text-xl font-light transition-all border-b-2 ${
+              canContinue
+                ? isDarkMode
+                  ? 'text-white border-white hover:border-gray-400'
+                  : 'text-black border-black hover:border-gray-600'
+                : isDarkMode
+                  ? 'text-gray-600 border-gray-600 cursor-not-allowed'
+                  : 'text-gray-400 border-gray-400 cursor-not-allowed'
+            }`}
+          >
+            Begin Financial Setup
+          </button>
+          
+          {!canContinue && (
+            <p className={`text-base font-light mt-4 ${
+              isDarkMode ? 'text-gray-500' : 'text-gray-500'
+            }`}>
+              Please enter a name and choose a planning period to continue
+            </p>
+          )}
         </div>
       </div>
     </div>
   );
 };
-
 
 export default WelcomeStep;
