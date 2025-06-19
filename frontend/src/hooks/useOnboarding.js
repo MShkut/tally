@@ -1,3 +1,4 @@
+import { useState } from 'react';
 
 const useOnboarding = () => {
   const [currentStep, setCurrentStep] = useState(0); // Start at 0 for WelcomeStep
