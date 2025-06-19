@@ -1,23 +1,40 @@
 
 const useOnboarding = () => {
-  const [currentStep, setCurrentStep] = useState(1);
+  const [currentStep, setCurrentStep] = useState(0); // Start at 0 for WelcomeStep
   const [formData, setFormData] = useState({
+    // Household and Period data
+    household: {
+      name: '',
+      created_date: null
+    },
+    period: {
+      duration_months: 6,
+      start_date: null,
+      period_number: 1,
+      end_date: null // will be calculated
+    },
+    // Financial data
     income: [],
-    savings: { rate: 40, goals: [] },
+    savingsAllocation: { // Combined savings rate + allocation
+      savingsRate: 40, 
+      monthlySavings: 0,
+      emergencyFund: { hasExisting: false, monthlyAmount: '' },
+      savingsGoals: []
+    },
     expenses: [],
     netWorth: { assets: [], liabilities: [] }
   });
 
-  const totalSteps = 5;
+  const totalSteps = 5; // 0: Welcome, 1: Income, 2: Savings Allocation, 3: Expenses, 4: Net Worth
 
   const nextStep = () => {
-    if (currentStep < totalSteps) {
+    if (currentStep < totalSteps - 1) {
       setCurrentStep(currentStep + 1);
     }
   };
 
   const prevStep = () => {
-    if (currentStep > 1) {
+    if (currentStep > 0) {
       setCurrentStep(currentStep - 1);
     }
   };
@@ -29,6 +46,21 @@ const useOnboarding = () => {
     }));
   };
 
+  // Special handler for welcome step data
+  const setHouseholdAndPeriod = (welcomeData) => {
+    const endDate = new Date(welcomeData.period.start_date);
+    endDate.setMonth(endDate.getMonth() + welcomeData.period.duration_months);
+    
+    setFormData(prev => ({
+      ...prev,
+      household: welcomeData.household,
+      period: {
+        ...welcomeData.period,
+        end_date: endDate.toISOString().split('T')[0]
+      }
+    }));
+  };
+
   return {
     currentStep,
     totalSteps,
@@ -36,7 +68,8 @@ const useOnboarding = () => {
     nextStep,
     prevStep,
     updateFormData,
-    setCurrentStep
+    setCurrentStep,
+    setHouseholdAndPeriod
   };
 };
 
