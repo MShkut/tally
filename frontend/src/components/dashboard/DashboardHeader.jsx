@@ -1,12 +1,11 @@
-// frontend/src/components/dashboard/DashboardHeader.jsx
 import React from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
 
 const DashboardHeader = ({ onboardingData, onMenuToggle }) => {
   const { isDarkMode, toggleTheme } = useTheme();
 
-  // Extract period information
-  const householdName = onboardingData?.householdName || 'Your Budget';
+  // Extract period information from localStorage data
+  const householdName = onboardingData?.household?.name || 'Your Budget';
   const periodInfo = formatPeriodInfo(onboardingData);
 
   return (
@@ -70,17 +69,21 @@ const BurgerIcon = () => (
 );
 
 function formatPeriodInfo(onboardingData) {
-  if (!onboardingData) {
+  if (!onboardingData?.period) {
     return 'March 2024 to August 2024 • Month 3 of 6';
   }
 
-  // Extract period information from onboarding data
-  const startDate = new Date('2024-03-01'); // This would come from actual onboarding data
-  const durationMonths = 6; // This would come from actual onboarding data
-  const currentMonth = 3; // This would be calculated from current date
-
+  // Extract period information from localStorage data
+  const startDate = new Date(onboardingData.period.start_date);
+  const durationMonths = onboardingData.period.duration_months;
+  
   const endDate = new Date(startDate);
   endDate.setMonth(endDate.getMonth() + durationMonths - 1);
+
+  // Calculate current month in period
+  const now = new Date();
+  const monthsElapsed = Math.max(1, Math.floor((now - startDate) / (1000 * 60 * 60 * 24 * 30)) + 1);
+  const currentMonth = Math.min(monthsElapsed, durationMonths);
 
   const formatDate = (date) => {
     return date.toLocaleDateString('en-US', { 
@@ -91,6 +94,5 @@ function formatPeriodInfo(onboardingData) {
 
   return `${formatDate(startDate)} to ${formatDate(endDate)} • Month ${currentMonth} of ${durationMonths}`;
 }
-
 
 export default DashboardHeader;
