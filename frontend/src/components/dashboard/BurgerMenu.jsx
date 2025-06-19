@@ -1,5 +1,6 @@
 // frontend/src/components/dashboard/BurgerMenu.jsx
 import { useTheme } from '../../contexts/ThemeContext';
+import React, { useEffect } from 'react';
 
 const BurgerMenu = ({ isOpen, onClose, onAction, currentPage = 'dashboard' }) => {
   const { isDarkMode } = useTheme();

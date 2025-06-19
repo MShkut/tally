@@ -18,7 +18,21 @@ const WelcomeStep = ({ onNext }) => {
 
   const handleNext = () => {
     if (canContinue) {
-      onNext(formData);
+      // Format data to match what useOnboarding expects
+      const welcomeData = {
+        household: {
+          name: formData.householdName,
+          created_date: new Date().toISOString().split('T')[0]
+        },
+        period: {
+          duration_months: formData.periodDuration,
+          start_date: new Date().toISOString().split('T')[0],
+          period_number: 1
+        }
+      };
+      
+      console.log('WelcomeStep sending:', welcomeData);
+      onNext(welcomeData);
     }
   };
 

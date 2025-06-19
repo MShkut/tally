@@ -1,8 +1,9 @@
+import React, { useState } from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
 import ThemeToggle from '../shared/ThemeToggle';
 import NavigationButtons from '../shared/NavigationButtons';
 
-// Net Worth Item Component
+// NetWorthItem component inline
 const NetWorthItem = ({ item, onUpdate, onDelete, isDarkMode, type }) => {
   const handleNameChange = (e) => {
     onUpdate({ ...item, name: e.target.value });
@@ -35,8 +36,8 @@ const NetWorthItem = ({ item, onUpdate, onDelete, isDarkMode, type }) => {
             onChange={handleNameChange}
             className={`w-full bg-transparent border-0 border-b-2 pb-2 text-lg focus:outline-none transition-colors ${
               isDarkMode 
-                ? 'border-gray-700 text-white placeholder-gray-500 focus:border-gray-500' 
-                : 'border-gray-300 text-gray-900 placeholder-gray-400 focus:border-gray-500'
+                ? 'border-gray-700 text-white placeholder-gray-500 focus:border-white' 
+                : 'border-gray-300 text-gray-900 placeholder-gray-400 focus:border-black'
             }`}
           />
         </div>
@@ -60,8 +61,8 @@ const NetWorthItem = ({ item, onUpdate, onDelete, isDarkMode, type }) => {
               onChange={handleAmountChange}
               className={`w-full bg-transparent border-0 border-b-2 pb-2 pl-6 text-lg focus:outline-none transition-colors ${
                 isDarkMode 
-                  ? 'border-gray-700 text-white placeholder-gray-500 focus:border-gray-500' 
-                  : 'border-gray-300 text-gray-900 placeholder-gray-400 focus:border-gray-500'
+                  ? 'border-gray-700 text-white placeholder-gray-500 focus:border-white' 
+                  : 'border-gray-300 text-gray-900 placeholder-gray-400 focus:border-black'
               }`}
             />
           </div>
@@ -70,10 +71,10 @@ const NetWorthItem = ({ item, onUpdate, onDelete, isDarkMode, type }) => {
         <div className="lg:col-span-1">
           <button
             onClick={onDelete}
-            className={`w-full py-2 text-sm transition-colors border-b ${
+            className={`w-full py-2 text-sm transition-colors ${
               isDarkMode 
-                ? 'text-gray-500 hover:text-gray-300 border-transparent hover:border-gray-600' 
-                : 'text-gray-400 hover:text-gray-600 border-transparent hover:border-gray-400'
+                ? 'text-gray-500 hover:text-gray-300' 
+                : 'text-gray-400 hover:text-gray-600'
             }`}
           >
             Remove
@@ -171,62 +172,59 @@ const NetWorthStep = ({ onNext, onBack, incomeData, savingsData, allocationData,
       isDarkMode ? 'bg-black text-white' : 'bg-gray-50 text-gray-900'
     }`}>
       <ThemeToggle />
-      <div className="max-w-6xl mx-auto px-6 py-12">
-        <ProgressBar currentStep={5} />
+      <div className="max-w-4xl mx-auto px-6 py-12">
         
         <div className="mb-24">
           <h1 className={`text-5xl font-light leading-tight mb-4 ${
             isDarkMode ? 'text-white' : 'text-black'
           }`}>
-            What's Your Current Net Worth?
+            Calculate Your Net Worth
           </h1>
           <p className={`text-xl font-light ${
             isDarkMode ? 'text-gray-400' : 'text-gray-600'
           }`}>
-            Add your assets and debts to see where you stand financially
+            Add up everything you own and subtract what you owe. This gives you your complete financial picture.
           </p>
         </div>
 
         {/* Net Worth Summary */}
-        <div className={`py-12 mb-16 border-t border-b ${
+        <div className={`mb-16 py-8 border-t border-b ${
           isDarkMode ? 'border-gray-800' : 'border-gray-200'
         }`}>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-12 text-center">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
             <div>
-              <div className={`text-3xl font-light mb-2 ${
+              <div className={`text-2xl font-light mb-2 ${
                 isDarkMode ? 'text-white' : 'text-black'
               }`}>
                 ${totalAssets.toLocaleString()}
               </div>
-              <div className={`text-lg font-light ${
+              <div className={`text-sm ${
                 isDarkMode ? 'text-gray-400' : 'text-gray-600'
               }`}>
                 Total Assets
               </div>
             </div>
-            
             <div>
-              <div className={`text-3xl font-light mb-2 ${
+              <div className={`text-2xl font-light mb-2 ${
                 isDarkMode ? 'text-white' : 'text-black'
               }`}>
                 ${totalLiabilities.toLocaleString()}
               </div>
-              <div className={`text-lg font-light ${
+              <div className={`text-sm ${
                 isDarkMode ? 'text-gray-400' : 'text-gray-600'
               }`}>
                 Total Liabilities
               </div>
             </div>
-            
             <div>
-              <div className={`text-4xl font-light mb-2 ${
+              <div className={`text-3xl font-light mb-2 ${
                 netWorth >= 0 
                   ? isDarkMode ? 'text-white' : 'text-black'
-                  : 'text-gray-500'
+                  : 'text-red-500'
               }`}>
-                ${netWorth.toLocaleString()}
+                ${Math.abs(netWorth).toLocaleString()}
               </div>
-              <div className={`text-lg font-light ${
+              <div className={`text-sm ${
                 isDarkMode ? 'text-gray-400' : 'text-gray-600'
               }`}>
                 Net Worth
@@ -347,6 +345,5 @@ const NetWorthStep = ({ onNext, onBack, incomeData, savingsData, allocationData,
     </div>
   );
 };
-
 
 export default NetWorthStep;

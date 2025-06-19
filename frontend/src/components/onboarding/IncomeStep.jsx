@@ -1,7 +1,109 @@
+import React, { useState } from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
 import ThemeToggle from '../shared/ThemeToggle';
 import NavigationButtons from '../shared/NavigationButtons';
-import IncomeSource from './IncomeSource';
+
+// Simple IncomeSource component inline for now
+const IncomeSource = ({ source, onUpdate, onDelete }) => {
+  const { isDarkMode } = useTheme();
+
+  const handleNameChange = (e) => {
+    onUpdate({ ...source, name: e.target.value });
+  };
+
+  const handleAmountChange = (e) => {
+    onUpdate({ ...source, amount: e.target.value });
+  };
+
+  const handleFrequencyChange = (e) => {
+    onUpdate({ ...source, frequency: e.target.value });
+  };
+
+  return (
+    <div className={`py-6 border-b ${isDarkMode ? 'border-gray-800' : 'border-gray-200'}`}>
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="lg:col-span-2">
+          <label className={`block text-sm font-medium mb-2 ${
+            isDarkMode ? 'text-gray-400' : 'text-gray-500'
+          }`}>
+            Source Name
+          </label>
+          <input
+            type="text"
+            value={source.name}
+            onChange={handleNameChange}
+            placeholder="Salary, Freelance, etc."
+            className={`w-full px-0 py-3 border-0 border-b-2 bg-transparent transition-colors focus:outline-none ${
+              isDarkMode 
+                ? 'border-gray-700 text-white placeholder-gray-500 focus:border-white' 
+                : 'border-gray-300 text-black placeholder-gray-400 focus:border-black'
+            }`}
+          />
+        </div>
+        
+        <div>
+          <label className={`block text-sm font-medium mb-2 ${
+            isDarkMode ? 'text-gray-400' : 'text-gray-500'
+          }`}>
+            Amount
+          </label>
+          <div className="relative">
+            <span className={`absolute left-0 top-3 ${
+              isDarkMode ? 'text-gray-400' : 'text-gray-500'
+            }`}>
+              $
+            </span>
+            <input
+              type="text"
+              value={source.amount}
+              onChange={handleAmountChange}
+              placeholder="75000"
+              className={`w-full pl-6 px-0 py-3 border-0 border-b-2 bg-transparent transition-colors focus:outline-none ${
+                isDarkMode 
+                  ? 'border-gray-700 text-white placeholder-gray-500 focus:border-white' 
+                  : 'border-gray-300 text-black placeholder-gray-400 focus:border-black'
+              }`}
+            />
+          </div>
+        </div>
+        
+        <div>
+          <label className={`block text-sm font-medium mb-2 ${
+            isDarkMode ? 'text-gray-400' : 'text-gray-500'
+          }`}>
+            Frequency
+          </label>
+          <select
+            value={source.frequency}
+            onChange={handleFrequencyChange}
+            className={`w-full px-0 py-3 border-0 border-b-2 bg-transparent transition-colors focus:outline-none ${
+              isDarkMode 
+                ? 'border-gray-700 text-white focus:border-white' 
+                : 'border-gray-300 text-black focus:border-black'
+            }`}
+          >
+            <option value="Yearly">Yearly</option>
+            <option value="Monthly">Monthly</option>
+            <option value="Bi-weekly">Bi-weekly</option>
+            <option value="Weekly">Weekly</option>
+          </select>
+        </div>
+      </div>
+      
+      {/* Remove button */}
+      <button
+        onClick={onDelete}
+        className={`mt-4 text-sm transition-colors ${
+          isDarkMode 
+            ? 'text-gray-500 hover:text-gray-300' 
+            : 'text-gray-400 hover:text-gray-600'
+        }`}
+      >
+        Remove this income source
+      </button>
+    </div>
+  );
+};
 
 const IncomeStep = ({ onNext, onBack }) => {
   const { isDarkMode } = useTheme();
@@ -65,7 +167,6 @@ const IncomeStep = ({ onNext, onBack }) => {
     }`}>
       <ThemeToggle />
       <div className="max-w-4xl mx-auto px-6 py-12">
-        <ProgressBar currentStep={1} />
         
         <div className="mb-24">
           <h1 className={`text-5xl font-light leading-tight mb-4 ${
@@ -131,13 +232,12 @@ const IncomeStep = ({ onNext, onBack }) => {
             onBack={onBack}
             onNext={handleNext}
             canGoNext={totalYearlyIncome > 0}
-            showBack={true} // Changed from false to true since we now have a Welcome step before this
+            showBack={true}
           />
         </div>
       </div>
     </div>
   );
 };
-
 
 export default IncomeStep;
