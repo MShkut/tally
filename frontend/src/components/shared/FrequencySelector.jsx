@@ -1,8 +1,8 @@
 import React from 'react';
 
-import { useTheme } from '../../contexts/ThemeContext';
+import { useTheme } from 'contexts/ThemeContext';
 
-const FrequencySelector = ({ frequency, onChange }) => {
+export const FrequencySelector = ({ frequency, onChange }) => {
   const { isDarkMode } = useTheme();
   
   const frequencies = ['Weekly', 'Bi-weekly', 'Monthly', 'Yearly', 'One-time'];
@@ -38,7 +38,4 @@ const FrequencySelector = ({ frequency, onChange }) => {
       </button>
     </div>
   );
-};
-
-
-export default FrequencySelector;
+}

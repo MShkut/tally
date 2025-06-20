@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 
-import { useTheme } from '../../contexts/ThemeContext';
-import ThemeToggle from '../shared/ThemeToggle';
+import { useTheme } from 'contexts/ThemeContext';
+import { ThemeToggle } from 'components/shared/ThemeToggle';
 import { 
   FormGrid, 
   FormField, 
@@ -15,7 +15,7 @@ import {
 } from '../shared/FormComponents';
 
 // Custom duration selector component using FormComponents patterns
-const DurationSelector = ({ value, onChange }) => {
+export const DurationSelector = ({ value, onChange }) => {
   const { isDarkMode } = useTheme();
 
   const handleChange = (e) => {
@@ -66,7 +66,7 @@ const DurationSelector = ({ value, onChange }) => {
   );
 };
 
-const WelcomeStep = ({ onNext }) => {
+export const WelcomeStep = ({ onNext }) => {
   const { isDarkMode } = useTheme();
   const [formData, setFormData] = useState({
     householdName: '',
@@ -167,6 +167,4 @@ const WelcomeStep = ({ onNext }) => {
       </StandardFormLayout>
     </>
   );
-};
-
-export default WelcomeStep;
+}

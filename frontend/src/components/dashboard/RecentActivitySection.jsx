@@ -7,7 +7,7 @@ import {
   TransactionListItem 
 } from '../shared/FormComponents';
 
-const RecentActivitySection = ({ transactions = [] }) => {
+export const RecentActivitySection = ({ transactions = [] }) => {
   // Get only real transactions - no mock data fallback
   const recentTransactions = transactions.slice(-5).reverse();
   
@@ -38,6 +38,4 @@ const RecentActivitySection = ({ transactions = [] }) => {
       emptyState={emptyState}
     />
   );
-};
-
-export default RecentActivitySection;
+}

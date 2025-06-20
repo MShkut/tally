@@ -50,4 +50,4 @@ export const calculateConfidence = (description, category) => {
   return Math.min(matches * 0.3, 0.9);
 };
 
-export default transactionHelper;
+export const TransactionHelpers = transactionHelper;

@@ -1,8 +1,8 @@
 // frontend/src/components/dashboard/TransactionImport.jsx
 import React, { useState, useEffect } from 'react';
 
-import useTheme from '../../contexts/ThemeContext';
-import ThemeToggle from '../shared/ThemeToggle';
+import { useTheme } from 'contexts/ThemeContext';
+import { ThemeToggle } from 'components/shared/ThemeToggle';
 import { 
   FormGrid, 
   FormField, 
@@ -16,12 +16,12 @@ import {
   TransactionListItem,
   EmptyState
 } from '../shared/FormComponents';
-import dataManager from '../../utils/dataManager';
+import { dataManager } from "utils/dataManager";
 
-import CSVUpload from './CSVUpload';
+import { CSVUpload } from 'components/dashboard/CSVUpload';
 
 // Simplified manual transaction entry
-const ManualTransactionEntry = ({ onAddTransaction, budgetCategories }) => {
+export const ManualTransactionEntry = ({ onAddTransaction, budgetCategories }) => {
   const [data, setData] = useState({ description: '', amount: '', category: 'Uncategorized' });
   
   const categoryOptions = [
@@ -90,7 +90,7 @@ const ManualTransactionEntry = ({ onAddTransaction, budgetCategories }) => {
 };
 
 // Simplified transaction categorization
-const TransactionCategorization = ({ transactions, budgetCategories, onCategoryChange }) => {
+export const TransactionCategorization = ({ transactions, budgetCategories, onCategoryChange }) => {
   const [filter, setFilter] = useState('all');
   
   const categoryOptions = [
@@ -177,7 +177,7 @@ const TransactionCategorization = ({ transactions, budgetCategories, onCategoryC
 };
 
 // Main component
-const TransactionImport = ({ onNavigate }) => {
+export const TransactionImport = ({ onNavigate }) => {
   const [view, setView] = useState('main'); // 'main', 'csv-import'
   const [transactions, setTransactions] = useState([]);
   const [budgetCategories, setBudgetCategories] = useState([]);
@@ -295,6 +295,4 @@ const TransactionImport = ({ onNavigate }) => {
       </StandardFormLayout>
     </>
   );
-};
-
-export default TransactionImport;
+}

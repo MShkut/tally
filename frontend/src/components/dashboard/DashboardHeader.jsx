@@ -1,8 +1,8 @@
 import React from 'react';
 
-import useTheme from '../../contexts/ThemeContext';
+import { useTheme } from 'contexts/ThemeContext';
 
-const DashboardHeader = ({ onboardingData, onMenuToggle }) => {
+export const DashboardHeader = ({ onboardingData, onMenuToggle }) => {
   const { isDarkMode, toggleTheme } = useTheme();
 
   // Extract period information from localStorage data
@@ -95,5 +95,3 @@ function formatPeriodInfo(onboardingData) {
 
   return `${formatDate(startDate)} to ${formatDate(endDate)} • Month ${currentMonth} of ${durationMonths}`;
 }
-
-export default DashboardHeader;

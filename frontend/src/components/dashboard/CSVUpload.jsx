@@ -1,11 +1,10 @@
 // frontend/src/components/dashboard/CSVUpload.jsx
 import React, { useState, useEffect } from 'react';
 
-import ThemeProvider from '../../contexts/ThemeContext'
-import { useTheme } from '../../contexts/ThemeContext';
+import { ThemeContext as ThemeProvider } from 'contexts/ThemeContext'
+import { useTheme } from 'contexts/ThemeContext';
 
-// Simplified file upload with drag and drop
-const FileUploadStep = ({ onFileUploaded, isProcessing }) => {
+export const FileUploadStep = ({ onFileUploaded, isProcessing }) => {
   const { isDarkMode } = useTheme();
   const [dragActive, setDragActive] = useState(false);
 
@@ -137,7 +136,7 @@ const FileUploadStep = ({ onFileUploaded, isProcessing }) => {
 };
 
 // Streamlined column mapping - Clean Editorial Style
-const ColumnMappingStep = ({ csvData, onNext, onCancel }) => {
+export const ColumnMappingStep = ({ csvData, onNext, onCancel }) => {
   const { isDarkMode } = useTheme();
   const [mapping, setMapping] = useState({});
   const [profileName, setProfileName] = useState('');
@@ -398,7 +397,7 @@ const ColumnMappingStep = ({ csvData, onNext, onCancel }) => {
 };
 
 // Main component
-const CSVUpload = ({ onImportComplete, onCancel }) => {
+export const CSVUpload = ({ onImportComplete, onCancel }) => {
   const [step, setStep] = useState('upload');
   const [csvData, setCsvData] = useState([]);
   const [fileName, setFileName] = useState('');
@@ -433,6 +432,4 @@ const CSVUpload = ({ onImportComplete, onCancel }) => {
       onCancel={() => setStep('upload')}
     />
   );
-};
-
-export default CSVUpload;
+}

@@ -1,10 +1,10 @@
 // frontend/src/components/dashboard/BurgerMenu.jsx
 import React, { useEffect, useState } from 'react';
 
-import useTheme from '../../contexts/ThemeContext';
-import ConfirmationModal from '../shared/FormComponents';
+import { useTheme } from 'contexts/ThemeContext';
+import { ConfirmationModal } from 'components/shared/FormComponents';
 
-const BurgerMenu = ({ isOpen, onClose, onAction, currentPage = 'dashboard' }) => {
+export const BurgerMenu = ({ isOpen, onClose, onAction, currentPage = 'dashboard' }) => {
   const { isDarkMode } = useTheme();
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
@@ -202,6 +202,4 @@ const MenuSection = ({ title, items, onAction, isDarkMode, currentPage }) => (
       })}
     </div>
   </div>
-);
-
-export default BurgerMenu;
+)

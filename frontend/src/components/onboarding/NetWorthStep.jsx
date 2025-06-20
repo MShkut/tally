@@ -1,6 +1,6 @@
 import React from 'react';
 
-import ThemeToggle from '../shared/ThemeToggle';
+import { ThemeToggle } from 'components/shared/ThemeToggle';
 import { 
   FormGrid, 
   FormField, 
@@ -16,7 +16,7 @@ import {
 } from '../shared/FormComponents';
 
 // Clean net worth item component using 12-column grid
-const NetWorthItem = ({ item, onUpdate, onDelete, type, placeholder }) => {
+export const NetWorthItem = ({ item, onUpdate, onDelete, type, placeholder }) => {
   return (
     <FormGrid>
       {/* Asset/Liability name: 8 columns */}
@@ -49,7 +49,7 @@ const NetWorthItem = ({ item, onUpdate, onDelete, type, placeholder }) => {
   );
 };
 
-const NetWorthStep = ({ onNext, onBack, incomeData, savingsData, expensesData }) => {
+export const NetWorthStep = ({ onNext, onBack, incomeData, savingsData, expensesData }) => {
   // Use professional item managers for both assets and liabilities
   const { 
     items: assets, 
@@ -210,6 +210,4 @@ const NetWorthStep = ({ onNext, onBack, incomeData, savingsData, expensesData })
       </StandardFormLayout>
     </>
   );
-};
-
-export default NetWorthStep;
+}

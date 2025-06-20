@@ -1,9 +1,9 @@
 // frontend/src/components/dashboard/ThisMonthSection.jsx
 import React from 'react';
 
-import useTheme from '../../contexts/ThemeContext';
+import { useTheme } from 'contexts/ThemeContext';
 
-const ThisMonthSection = ({ data }) => {
+export const ThisMonthSection = ({ data }) => {
   const { isDarkMode } = useTheme();
   const { thisMonth } = data;
 
@@ -29,7 +29,4 @@ const ThisMonthSection = ({ data }) => {
       </div>
     </section>
   );
-};
-
-
-export default ThisMonthSection;
+}

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-const useTransactionStore = () => {
+export const useTransactionStore = () => {
   const [transactions, setTransactions] = useState([]);
   const [categories, setCategories] = useState([
     { 
@@ -89,4 +89,4 @@ const useTransactionStore = () => {
   };
 };
 
-export default useTransactionStore;
+export const UseTransactionStore = useTransactionStore;

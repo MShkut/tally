@@ -1,6 +1,6 @@
 import React from 'react';
 
-import ThemeToggle from '../shared/ThemeToggle';
+import { ThemeToggle } from 'components/shared/ThemeToggle';
 import { 
   FormGrid, 
   FormField, 
@@ -16,7 +16,7 @@ import {
 } from '../shared/FormComponents';
 
 // Clean expense category component using 12-column grid
-const ExpenseCategory = ({ category, onUpdate, onDelete, availableBudget }) => {
+export const ExpenseCategory = ({ category, onUpdate, onDelete, availableBudget }) => {
   const categoryAmount = parseFloat(category.amount) || 0;
   const isOverBudget = categoryAmount > availableBudget;
   
@@ -53,7 +53,7 @@ const ExpenseCategory = ({ category, onUpdate, onDelete, availableBudget }) => {
   );
 };
 
-const ExpensesStep = ({ onNext, onBack, incomeData, savingsData }) => {
+export const ExpensesStep = ({ onNext, onBack, incomeData, savingsData }) => {
   // Use professional item manager
   const { 
     items: expenseCategories, 
@@ -200,6 +200,4 @@ const ExpensesStep = ({ onNext, onBack, incomeData, savingsData }) => {
       </StandardFormLayout>
     </>
   );
-};
-
-export default ExpensesStep;
+}

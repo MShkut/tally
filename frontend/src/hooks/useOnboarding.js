@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-const useOnboarding = () => {
+export const useOnboarding = () => {
   const [currentStep, setCurrentStep] = useState(0); // Start at 0 for WelcomeStep
   const [formData, setFormData] = useState({
     // Household and Period data
@@ -74,4 +74,4 @@ const useOnboarding = () => {
   };
 };
 
-export default useOnboarding;
+export const UseOnboarding = useOnboarding;

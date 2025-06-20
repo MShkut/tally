@@ -1,8 +1,8 @@
 import React from 'react';
 
-import { useTheme } from '../../contexts/ThemeContext';
+import { useTheme } from 'contexts/ThemeContext';
 
-const NavigationButtons = ({ 
+export const NavigationButtons = ({ 
   onBack, 
   onNext, 
   canGoNext = true, 
@@ -48,7 +48,4 @@ const NavigationButtons = ({
       </button>
     </div>
   );
-};
-
-
-export default NavigationButtons;
+}

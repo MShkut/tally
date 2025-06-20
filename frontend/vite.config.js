@@ -11,6 +11,7 @@ export default defineConfig({
       hooks: path.resolve(__dirname, 'src/hooks'),
       utils: path.resolve(__dirname, 'src/utils'),
       pages: path.resolve(__dirname, 'src/pages'),
+      contexts: path.resolve(__dirname, 'src/contexts'),
       // add more as needed
     }
   }

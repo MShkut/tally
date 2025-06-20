@@ -1,15 +1,15 @@
 import { useState, useEffect } from 'react';
 
-import ThemeProvider from './contexts/ThemeContext'
-import useOnboarding from './hooks/useOnboarding'
-import WelcomeStep from './components/onboarding/WelcomeStep'
-import IncomeStep from './components/onboarding/IncomeStep'
-import SavingsAllocationStep from './components/onboarding/SavingsAllocationStep'
-import ExpensesStep from './components/onboarding/ExpensesStep'
-import NetWorthStep from './components/onboarding/NetWorthStep'
-import Dashboard from './components/dashboard/Dashboard'
-import TransactionImport from './components/dashboard/TransactionImport'
-import dataManager from './utils/dataManager'
+import { ThemeProvider } from 'contexts/ThemeContext'
+import { useOnboarding } from 'hooks/useOnboarding'
+import { WelcomeStep } from 'components/onboarding/WelcomeStep'
+import { IncomeStep } from 'components/onboarding/IncomeStep'
+import { SavingsAllocationStep } from 'components/onboarding/SavingsAllocationStep'
+import { ExpensesStep } from 'components/onboarding/ExpensesStep'
+import { NetWorthStep } from 'components/onboarding/NetWorthStep'
+import { Dashboard } from 'components/dashboard/Dashboard'
+import { TransactionImport } from 'components/dashboard/TransactionImport'
+import {dataManager } from 'utils/dataManager'
 
 function OnboardingFlow({ onComplete, onBack }) {
   const { currentStep, nextStep, prevStep, formData, updateFormData, setHouseholdAndPeriod } = useOnboarding();
@@ -134,6 +134,8 @@ function OnboardingFlow({ onComplete, onBack }) {
   return renderStep();
 }
 
+export { OnboardingFlow };
+
 function App() {
   const [currentView, setCurrentView] = useState('loading');
   const [onboardingData, setOnboardingData] = useState(null);
@@ -209,4 +211,4 @@ function App() {
   )
 }
 
-export default App;
+export { App };

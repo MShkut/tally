@@ -1,7 +1,7 @@
 // frontend/src/contexts/ThemeContext.jsx
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-const ThemeContext = createContext();
+export const ThemeContext = createContext();
 
 // Named export for the hook
 export const useTheme = () => {
@@ -13,7 +13,7 @@ export const useTheme = () => {
 };
 
 // Default export for the provider (following your import policy)
-const ThemeProvider = ({ children }) => {
+export const ThemeProvider = ({ children }) => {
   const [isDarkMode, setIsDarkMode] = useState(true); // Default to dark mode
 
   // Load saved preference on mount
@@ -59,6 +59,4 @@ const ThemeProvider = ({ children }) => {
       {children}
     </ThemeContext.Provider>
   );
-};
-
-export default ThemeContext;
+}
