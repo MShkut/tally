@@ -1,5 +1,5 @@
 // Helper Functions for Transaction Processing
-export const normalizeMerchantName = (description) => {
+export normalizeMerchantName = (description) => {
   return description
     .replace(/\s+\d{4,}.*$/, '')
     .replace(/\s+#\d+/, '')
@@ -49,3 +49,5 @@ export const calculateConfidence = (description, category) => {
   ).length;
   return Math.min(matches * 0.3, 0.9);
 };
+
+export default transactionHelper;

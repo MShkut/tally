@@ -1,6 +1,6 @@
 // frontend/src/components/dashboard/NetWorthSection.jsx
 import React from 'react';
-import { useTheme } from '../../contexts/ThemeContext';
+import useTheme from '../../contexts/ThemeContext';
 
 const NetWorthSection = ({ data }) => {
   const { isDarkMode } = useTheme();

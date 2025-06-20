@@ -1,8 +1,10 @@
+import React, { useState } from 'react';
+import isSplitWorthy from '../../utils/transactionHelpers';
 import { 
   CheckCircle, AlertCircle, TrendingUp, TrendingDown, Wallet,
   Calendar, Building2, DollarSign, Tag, Split
 } from 'lucide-react';
-import { useTheme } from '../../contexts/ThemeContext';
+import useTheme from '../../contexts/ThemeContext';
 
 const TransactionReview = ({ 
   transactions, 
