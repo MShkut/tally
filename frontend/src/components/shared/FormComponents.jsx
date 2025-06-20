@@ -468,3 +468,251 @@ export const formatCurrency = (amount, options = {}) => {
     maximumFractionDigits
   }).format(amount);
 };
+
+// Additional components to add to FormComponents.jsx
+
+// ==================== EMPTY STATE COMPONENTS ====================
+
+// Generic empty state with icon, title, and description
+export const EmptyState = ({ 
+  icon = '📄',
+  title,
+  description,
+  className = ''
+}) => {
+  const { isDarkMode } = useTheme();
+  
+  return (
+    <div className={`text-center py-8 ${
+      isDarkMode ? 'text-gray-500' : 'text-gray-400'
+    } ${className}`}>
+      <div className="mb-4 text-4xl opacity-50">{icon}</div>
+      <div className="text-base font-light mb-2">{title}</div>
+      {description && (
+        <div className="text-sm font-light">
+          {description}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ==================== MODAL COMPONENTS ====================
+
+// Modal overlay wrapper with consistent styling
+export const ModalOverlay = ({ children, onClose, zIndex = 50 }) => {
+  return (
+    <div 
+      className={`fixed inset-0 bg-black bg-opacity-50 z-${zIndex} transition-opacity duration-300`}
+      onClick={onClose}
+    >
+      {children}
+    </div>
+  );
+};
+
+// Modal content container with editorial styling
+export const ModalContent = ({ 
+  children, 
+  maxWidth = 'max-w-md',
+  className = '' 
+}) => {
+  const { isDarkMode } = useTheme();
+  
+  return (
+    <div className={`${maxWidth} w-full p-8 transition-colors duration-300 ${
+      isDarkMode ? 'bg-black text-white' : 'bg-gray-50 text-gray-900'
+    } ${className}`}>
+      {children}
+    </div>
+  );
+};
+
+// Complete confirmation modal
+export const ConfirmationModal = ({
+  isOpen,
+  title,
+  description,
+  details = [],
+  warningText,
+  confirmText = 'Confirm',
+  cancelText = 'Cancel',
+  onConfirm,
+  onCancel,
+  confirmDanger = false
+}) => {
+  const { isDarkMode } = useTheme();
+  
+  if (!isOpen) return null;
+
+  return (
+    <ModalOverlay onClose={onCancel}>
+      <div className="flex items-center justify-center min-h-screen p-4">
+        <ModalContent maxWidth="max-w-md">
+          <h1 className={`
+            text-3xl font-light leading-tight mb-6
+            ${isDarkMode ? 'text-white' : 'text-black'}
+          `}>
+            {title}
+          </h1>
+          
+          {description && (
+            <p className={`
+              text-base font-light leading-relaxed mb-6
+              ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}
+            `}>
+              {description}
+            </p>
+          )}
+          
+          {details.length > 0 && (
+            <ul className={`
+              text-base font-light mb-8 space-y-2 leading-relaxed
+              ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}
+            `}>
+              {details.map((detail, index) => (
+                <li key={index}>{detail}</li>
+              ))}
+            </ul>
+          )}
+          
+          {warningText && (
+            <p className="text-base font-light mb-8 text-red-500 leading-relaxed">
+              {warningText}
+            </p>
+          )}
+          
+          <div className="flex justify-between items-center">
+            <button
+              onClick={onCancel}
+              className={`
+                text-lg font-light transition-colors border-b border-transparent hover:border-current pb-1
+                ${isDarkMode 
+                  ? 'text-gray-400 hover:text-white' 
+                  : 'text-gray-600 hover:text-black'
+                }
+              `}
+            >
+              {cancelText}
+            </button>
+            <button
+              onClick={onConfirm}
+              className={`
+                text-xl font-light border-b-2 pb-2 transition-all
+                ${confirmDanger
+                  ? 'text-red-500 border-red-500 hover:border-red-400 hover:text-red-400'
+                  : isDarkMode
+                    ? 'text-white border-white hover:border-gray-400'
+                    : 'text-black border-black hover:border-gray-600'
+                }
+              `}
+            >
+              {confirmText}
+            </button>
+          </div>
+        </ModalContent>
+      </div>
+    </ModalOverlay>
+  );
+};
+
+// ==================== LIST ITEM COMPONENTS ====================
+
+// Generic list item with consistent styling
+export const ListItem = ({ 
+  children, 
+  className = '',
+  noBorder = false 
+}) => {
+  const { isDarkMode } = useTheme();
+  
+  return (
+    <div className={`
+      py-3 transition-colors
+      ${noBorder ? '' : `border-b ${isDarkMode ? 'border-gray-800' : 'border-gray-200'}`}
+      ${className}
+    `}>
+      {children}
+    </div>
+  );
+};
+
+// Transaction-style list item
+export const TransactionListItem = ({ 
+  title,
+  subtitle,
+  amount,
+  category,
+  isIncome = false,
+  isExpense = false,
+  className = ''
+}) => {
+  const { isDarkMode } = useTheme();
+  
+  const amountColor = isIncome 
+    ? 'text-green-500' 
+    : isExpense 
+      ? 'text-red-500' 
+      : isDarkMode ? 'text-white' : 'text-black';
+  
+  return (
+    <ListItem className={`flex items-center justify-between ${className}`}>
+      <div className="flex-1 min-w-0">
+        <div className={`text-sm truncate ${
+          isDarkMode ? 'text-gray-400' : 'text-gray-600'
+        }`}>
+          {title}
+        </div>
+        {subtitle && (
+          <div className={`text-xs mt-1 ${
+            isDarkMode ? 'text-gray-500' : 'text-gray-500'
+          }`}>
+            {subtitle}
+          </div>
+        )}
+        {category && (
+          <div className={`text-xs mt-1 ${
+            isDarkMode ? 'text-gray-500' : 'text-gray-500'
+          }`}>
+            {category}
+          </div>
+        )}
+      </div>
+      <div className={`text-sm font-mono ml-4 ${amountColor}`}>
+        {isIncome ? '+' : ''}${Math.abs(amount || 0).toFixed(2)}
+      </div>
+    </ListItem>
+  );
+};
+
+// ==================== SECTION COMPONENTS ====================
+
+// Section with title and optional empty state
+export const DataSection = ({ 
+  title,
+  data = [],
+  renderItem,
+  emptyState,
+  className = ''
+}) => {
+  const { isDarkMode } = useTheme();
+  
+  return (
+    <section className={className}>
+      <h2 className={`
+        text-sm font-medium uppercase tracking-wider mb-6
+        ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}
+      `}>
+        {title}
+      </h2>
+      
+      {data.length === 0 ? (
+        emptyState
+      ) : (
+        <div className="space-y-3">
+          {data.map((item, index) => renderItem(item, index))}
+        </div>
+      )}
+    </section>
+  );
+};
