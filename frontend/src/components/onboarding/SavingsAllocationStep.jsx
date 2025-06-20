@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTheme } from '../../contexts/ThemeContext';
 import ThemeToggle from '../shared/ThemeToggle';
 import { 
   FormGrid, 
@@ -21,21 +22,23 @@ const SavingsGoal = ({ goal, onUpdate, onDelete }) => {
       {/* Goal name: 8 columns */}
       <FormField span={8}>
         <StandardInput
-          label="Savings goal"
+          label="Savings Goal"
           value={goal.name}
           onChange={(value) => onUpdate({ ...goal, name: value })}
           placeholder="Down payment, vacation, retirement"
+          required
         />
       </FormField>
       
       {/* Monthly amount: 3 columns */}
       <FormField span={3}>
         <StandardInput
-          label="Monthly amount"
+          label="Monthly Amount"
           type="currency"
           value={goal.amount}
           onChange={(value) => onUpdate({ ...goal, amount: value })}
           prefix="$"
+          required
         />
       </FormField>
       
@@ -48,11 +51,13 @@ const SavingsGoal = ({ goal, onUpdate, onDelete }) => {
   );
 };
 
-// Custom savings rate input component
-const SavingsRateInput = ({ savingsRate, onChange, isDarkMode }) => {
-  const handleSavingsRateChange = (e) => {
-    const value = e.target.value.replace(/[^0-9]/g, ''); // Only allow numbers
-    const numValue = parseInt(value) || 0;
+// Standardized savings rate input using FormComponents
+const SavingsRateSection = ({ savingsRate, onChange }) => {
+  const { isDarkMode } = useTheme();
+
+  const handleSavingsRateChange = (value) => {
+    const cleanValue = value.replace(/[^0-9]/g, ''); // Only allow numbers
+    const numValue = parseInt(cleanValue) || 0;
     
     // Clamp between 0 and 100
     const clampedValue = Math.max(0, Math.min(100, numValue));
@@ -60,31 +65,96 @@ const SavingsRateInput = ({ savingsRate, onChange, isDarkMode }) => {
   };
 
   return (
-    <div className="flex items-center gap-6 mb-8">
-      <div className="relative">
-        <input
-          type="text"
+    <FormGrid>
+      <FormField span={3}>
+        <StandardInput
+          label="Savings Rate"
           value={savingsRate}
           onChange={handleSavingsRateChange}
           placeholder="20"
-          className={`w-24 bg-transparent border-0 border-b-2 pb-2 pr-8 text-4xl font-light focus:outline-none transition-colors ${
-            isDarkMode 
-              ? 'border-gray-700 text-white placeholder-gray-500 focus:border-white' 
-              : 'border-gray-300 text-gray-900 placeholder-gray-400 focus:border-black'
-          }`}
+          suffix="%"
         />
-        <span className={`absolute right-0 top-2 text-4xl font-light ${
-          isDarkMode ? 'text-gray-400' : 'text-gray-500'
-        }`}>
-          %
-        </span>
-      </div>
-      <div className={`text-base font-light ${
-        isDarkMode ? 'text-gray-400' : 'text-gray-600'
-      }`}>
-        of your income saved each month
-      </div>
-    </div>
+      </FormField>
+      <FormField span={9}>
+        <div className={`flex items-end h-full pb-3`}>
+          <div>
+            <p className={`text-lg font-light ${
+              isDarkMode ? 'text-gray-400' : 'text-gray-600'
+            }`}>
+              of your income saved each month
+            </p>
+            {savingsRate > 50 && (
+              <p className={`text-sm mt-2 ${
+                isDarkMode ? 'text-yellow-400' : 'text-yellow-600'
+              }`}>
+                That's an ambitious savings rate! Make sure you have enough left for essential expenses.
+              </p>
+            )}
+          </div>
+        </div>
+      </FormField>
+    </FormGrid>
+  );
+};
+
+// Emergency fund section using FormComponents
+const EmergencyFundSection = ({ emergencyFund, setEmergencyFund, estimatedMonthlyExpenses }) => {
+  const { isDarkMode } = useTheme();
+  
+  const emergencyFundMin = estimatedMonthlyExpenses * 3;
+  const emergencyFundMax = estimatedMonthlyExpenses * 6;
+
+  return (
+    <FormSection title="Emergency Fund">
+      <FormGrid>
+        <FormField span={12}>
+          <label className="flex items-center gap-3 mb-6">
+            <input
+              type="checkbox"
+              checked={emergencyFund.hasExisting}
+              onChange={(e) => setEmergencyFund(prev => ({ 
+                ...prev, 
+                hasExisting: e.target.checked,
+                monthlyAmount: e.target.checked ? '' : prev.monthlyAmount
+              }))}
+              className={`w-5 h-5 ${isDarkMode ? 'text-white' : 'text-black'}`}
+            />
+            <span className={`text-lg font-light ${
+              isDarkMode ? 'text-white' : 'text-black'
+            }`}>
+              I already have a sufficient emergency fund
+            </span>
+          </label>
+        </FormField>
+      </FormGrid>
+
+      {!emergencyFund.hasExisting && (
+        <FormGrid>
+          <FormField span={4}>
+            <StandardInput
+              label="Monthly Emergency Fund Contribution"
+              type="currency"
+              value={emergencyFund.monthlyAmount}
+              onChange={(value) => setEmergencyFund(prev => ({ 
+                ...prev, 
+                monthlyAmount: value 
+              }))}
+              prefix="$"
+            />
+          </FormField>
+          <FormField span={8}>
+            <div className={`flex items-end h-full pb-3`}>
+              <p className={`text-sm ${
+                isDarkMode ? 'text-gray-400' : 'text-gray-600'
+              }`}>
+                Recommended: ${emergencyFundMin.toLocaleString()} - ${emergencyFundMax.toLocaleString()} 
+                (3-6 months of expenses)
+              </p>
+            </div>
+          </FormField>
+        </FormGrid>
+      )}
+    </FormSection>
   );
 };
 
@@ -119,8 +189,6 @@ const SavingsAllocationStep = ({ onNext, onBack, incomeData }) => {
   const totalIncome = incomeData?.totalYearlyIncome || 0;
   const monthlySavings = (totalIncome * savingsRate / 100) / 12;
   const estimatedMonthlyExpenses = (totalIncome * 0.5) / 12;
-  const emergencyFundMin = estimatedMonthlyExpenses * 3;
-  const emergencyFundMax = estimatedMonthlyExpenses * 6;
 
   // Calculate totals
   const totalAllocatedSavings = () => {
@@ -163,27 +231,11 @@ const SavingsAllocationStep = ({ onNext, onBack, incomeData }) => {
       >
         
         {/* Savings Rate Section */}
-        <FormSection title="">
-          <label className={`block text-sm font-medium mb-6 uppercase tracking-wider ${
-            isDarkMode ? 'text-gray-400' : 'text-gray-500'
-          }`}>
-            Savings Rate
-          </label>
-          
-          <SavingsRateInput 
+        <FormSection>
+          <SavingsRateSection 
             savingsRate={savingsRate}
             onChange={setSavingsRate}
-            isDarkMode={isDarkMode}
           />
-
-          {/* Validation message */}
-          {savingsRate > 50 && (
-            <div className={`mb-6 text-sm ${
-              isDarkMode ? 'text-yellow-400' : 'text-yellow-600'
-            }`}>
-              That's an ambitious savings rate! Make sure you have enough left for essential expenses.
-            </div>
-          )}
         </FormSection>
 
         {/* Summary Section */}
@@ -207,54 +259,11 @@ const SavingsAllocationStep = ({ onNext, onBack, incomeData }) => {
         </FormSection>
 
         {/* Emergency Fund Section */}
-        <FormSection title="Emergency Fund">
-          <div className="mb-6">
-            <label className="flex items-center gap-3">
-              <input
-                type="checkbox"
-                checked={emergencyFund.hasExisting}
-                onChange={(e) => setEmergencyFund(prev => ({ 
-                  ...prev, 
-                  hasExisting: e.target.checked,
-                  monthlyAmount: e.target.checked ? '' : prev.monthlyAmount
-                }))}
-                className={isDarkMode ? 'text-white' : 'text-black'}
-              />
-              <span className={`text-lg font-light ${
-                isDarkMode ? 'text-white' : 'text-black'
-              }`}>
-                I already have a sufficient emergency fund
-              </span>
-            </label>
-          </div>
-
-          {!emergencyFund.hasExisting && (
-            <FormGrid>
-              <FormField span={4}>
-                <StandardInput
-                  label="Monthly emergency fund contribution"
-                  type="currency"
-                  value={emergencyFund.monthlyAmount}
-                  onChange={(value) => setEmergencyFund(prev => ({ 
-                    ...prev, 
-                    monthlyAmount: value 
-                  }))}
-                  prefix="$"
-                />
-              </FormField>
-              <FormField span={8}>
-                <div className={`flex items-end h-full pb-3`}>
-                  <p className={`text-sm ${
-                    isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                  }`}>
-                    Recommended: ${emergencyFundMin.toLocaleString()} - ${emergencyFundMax.toLocaleString()} 
-                    (3-6 months of expenses)
-                  </p>
-                </div>
-              </FormField>
-            </FormGrid>
-          )}
-        </FormSection>
+        <EmergencyFundSection
+          emergencyFund={emergencyFund}
+          setEmergencyFund={setEmergencyFund}
+          estimatedMonthlyExpenses={estimatedMonthlyExpenses}
+        />
 
         {/* Savings Goals Section */}
         <FormSection title="Specific Savings Goals">
@@ -293,6 +302,25 @@ const SavingsAllocationStep = ({ onNext, onBack, incomeData }) => {
             </FormSection>
           </>
         )}
+
+        {/* Helpful Tips */}
+        <div className={`mt-16 p-8 border-l-4 ${
+          isDarkMode ? 'border-gray-700 bg-gray-900/20' : 'border-gray-300 bg-gray-100'
+        }`}>
+          <h3 className={`text-xl font-light mb-4 ${
+            isDarkMode ? 'text-white' : 'text-black'
+          }`}>
+            Savings Strategy Tips
+          </h3>
+          <div className={`space-y-3 text-base font-light ${
+            isDarkMode ? 'text-gray-400' : 'text-gray-600'
+          }`}>
+            <p>• Emergency fund should cover 3-6 months of expenses</p>
+            <p>• Aim for at least 10-20% savings rate if possible</p>
+            <p>• Automate transfers to make saving effortless</p>
+            <p>• Review and adjust your goals quarterly</p>
+          </div>
+        </div>
 
       </StandardFormLayout>
     </>

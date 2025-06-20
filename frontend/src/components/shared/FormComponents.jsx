@@ -39,6 +39,7 @@ export const StandardInput = ({
   onChange, 
   placeholder = '', 
   prefix = null,
+  suffix = null,
   error = null,
   required = false,
   className = '',
@@ -78,7 +79,7 @@ export const StandardInput = ({
           onChange={handleChange}
           placeholder={placeholder}
           className={`w-full bg-transparent border-0 border-b-2 pb-2 text-lg focus:outline-none transition-colors ${
-            prefix ? 'pl-6' : 'px-0'
+            prefix ? 'pl-6' : suffix ? 'pr-8' : 'px-0'
           } py-3 ${
             error
               ? 'border-red-500 text-red-500'
@@ -88,6 +89,13 @@ export const StandardInput = ({
           }`}
           {...props}
         />
+        {suffix && (
+          <span className={`absolute right-0 top-3 text-lg ${
+            isDarkMode ? 'text-gray-400' : 'text-gray-500'
+          }`}>
+            {suffix}
+          </span>
+        )}
       </div>
       {error && (
         <div className="mt-2 text-red-500 text-sm font-light">
