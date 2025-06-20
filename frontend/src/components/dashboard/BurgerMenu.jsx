@@ -1,15 +1,18 @@
 // frontend/src/components/dashboard/BurgerMenu.jsx
+import React, { useEffect, useState } from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
-import React, { useEffect } from 'react';
+import { ConfirmationModal } from '../shared/FormComponents';
 
 const BurgerMenu = ({ isOpen, onClose, onAction, currentPage = 'dashboard' }) => {
   const { isDarkMode } = useTheme();
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   // Close menu on escape key
   useEffect(() => {
     const handleEscape = (e) => {
       if (e.key === 'Escape') {
         onClose();
+        setShowResetConfirm(false);
       }
     };
 
@@ -39,7 +42,8 @@ const BurgerMenu = ({ isOpen, onClose, onAction, currentPage = 'dashboard' }) =>
     ];
 
     const baseSettings = [
-      { id: 'export', label: 'Export data' }
+      { id: 'export', label: 'Export data' },
+      { id: 'reset-data', label: 'Reset all data', danger: true }
     ];
 
     return {
@@ -50,6 +54,20 @@ const BurgerMenu = ({ isOpen, onClose, onAction, currentPage = 'dashboard' }) =>
   };
 
   const menuItems = getMenuItems();
+
+  const handleResetConfirm = () => {
+    onAction('reset-data');
+    setShowResetConfirm(false);
+    onClose();
+  };
+
+  const handleMenuItemClick = (actionId) => {
+    if (actionId === 'reset-data') {
+      setShowResetConfirm(true);
+    } else {
+      onAction(actionId);
+    }
+  };
 
   return (
     <>
@@ -85,21 +103,21 @@ const BurgerMenu = ({ isOpen, onClose, onAction, currentPage = 'dashboard' }) =>
             <MenuSection 
               title="Actions" 
               items={menuItems.actions} 
-              onAction={onAction}
+              onAction={handleMenuItemClick}
               isDarkMode={isDarkMode}
               currentPage={currentPage}
             />
             <MenuSection 
               title="Navigate" 
               items={menuItems.navigate} 
-              onAction={onAction}
+              onAction={handleMenuItemClick}
               isDarkMode={isDarkMode}
               currentPage={currentPage}
             />
             <MenuSection 
               title="Settings" 
               items={menuItems.settings} 
-              onAction={onAction}
+              onAction={handleMenuItemClick}
               isDarkMode={isDarkMode}
               currentPage={currentPage}
             />
@@ -116,6 +134,25 @@ const BurgerMenu = ({ isOpen, onClose, onAction, currentPage = 'dashboard' }) =>
           </div>
         </div>
       </div>
+
+      {/* Reset Confirmation Modal using FormComponents */}
+      <ConfirmationModal
+        isOpen={showResetConfirm}
+        title="Reset All Data?"
+        description="This will permanently delete all your financial data, including:"
+        details={[
+          'Onboarding setup and budget configuration',
+          'All imported and manual transactions',
+          'Savings goals and net worth data',
+          'Theme preferences'
+        ]}
+        warningText="This action cannot be undone."
+        confirmText="Reset All Data"
+        cancelText="Cancel"
+        onConfirm={handleResetConfirm}
+        onCancel={() => setShowResetConfirm(false)}
+        confirmDanger={true}
+      />
     </>
   );
 };
@@ -141,11 +178,13 @@ const MenuSection = ({ title, items, onAction, isDarkMode, currentPage }) => (
             className={`
               block w-full text-left py-3 text-base transition-all duration-200
               border-b border-transparent hover:border-current
-              ${isCurrentPage
-                ? isDarkMode ? 'text-white font-medium border-gray-600' : 'text-black font-medium border-gray-400'
-                : item.primary 
-                  ? isDarkMode ? 'text-white font-medium' : 'text-black font-medium'
-                  : isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-black'
+              ${item.danger 
+                ? 'text-red-500 hover:text-red-400' 
+                : isCurrentPage
+                  ? isDarkMode ? 'text-white font-medium border-gray-600' : 'text-black font-medium border-gray-400'
+                  : item.primary 
+                    ? isDarkMode ? 'text-white font-medium' : 'text-black font-medium'
+                    : isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-black'
               }
             `}
           >
@@ -163,6 +202,5 @@ const MenuSection = ({ title, items, onAction, isDarkMode, currentPage }) => (
     </div>
   </div>
 );
-
 
 export default BurgerMenu;
