@@ -1,5 +1,6 @@
 // frontend/src/components/dashboard/ThisMonthSection.jsx
 import React from 'react';
+
 import useTheme from '../../contexts/ThemeContext';
 
 const ThisMonthSection = ({ data }) => {

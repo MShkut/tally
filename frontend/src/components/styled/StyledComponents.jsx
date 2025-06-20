@@ -1,5 +1,6 @@
 // frontend/src/components/styled/StyledComponents.jsx (matching IncomeStep.jsx import path)
 import React from 'react';
+
 import { useTheme } from '../../contexts/ThemeContext';
 import { 
   buildClasses, 

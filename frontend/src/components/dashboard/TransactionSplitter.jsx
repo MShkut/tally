@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import normalizeMerchantName from '../../utils/transactionHelpers';
 import { 
   Split, X, Plus, DollarSign, CheckCircle, AlertCircle
 } from 'lucide-react';
+
+import normalizeMerchantName from '../../utils/transactionHelpers';
 import useTheme from '../../contexts/ThemeContext';
 
 const TransactionSplitter = ({ transaction, categories, onSplit, onCancel }) => {

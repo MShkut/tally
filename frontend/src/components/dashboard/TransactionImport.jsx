@@ -1,8 +1,8 @@
 // frontend/src/components/dashboard/TransactionImport.jsx
 import React, { useState, useEffect } from 'react';
+
 import useTheme from '../../contexts/ThemeContext';
 import ThemeToggle from '../shared/ThemeToggle';
-import CSVUpload from './CSVUpload';
 import { 
   FormGrid, 
   FormField, 
@@ -17,6 +17,8 @@ import {
   EmptyState
 } from '../shared/FormComponents';
 import dataManager from '../../utils/dataManager';
+
+import CSVUpload from './CSVUpload';
 
 // Simplified manual transaction entry
 const ManualTransactionEntry = ({ onAddTransaction, budgetCategories }) => {

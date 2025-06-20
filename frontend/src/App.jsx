@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+
 import ThemeProvider from './contexts/ThemeContext'
 import useOnboarding from './hooks/useOnboarding'
 import WelcomeStep from './components/onboarding/WelcomeStep'
