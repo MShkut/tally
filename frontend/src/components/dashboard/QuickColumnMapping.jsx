@@ -1,4 +1,6 @@
-import { useTheme } from '../../contexts/ThemeContext';
+import React, { useState, useEffect } from 'react';
+import ArrowRight from 'lucide-react/dist/esm/icons/arrow-right';
+import useTheme from '../../contexts/ThemeContext';
 
 const QuickColumnMapping = ({ csvData, onMappingComplete, onCancel }) => {
   const { isDarkMode } = useTheme();

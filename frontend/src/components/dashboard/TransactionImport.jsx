@@ -1,6 +1,6 @@
 // frontend/src/components/dashboard/TransactionImport.jsx
 import React, { useState, useEffect } from 'react';
-import { useTheme } from '../../contexts/ThemeContext';
+import useTheme from '../../contexts/ThemeContext';
 import ThemeToggle from '../shared/ThemeToggle';
 import CSVUpload from './CSVUpload';
 import { 

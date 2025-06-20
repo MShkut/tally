@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useTheme } from '../../contexts/ThemeContext';
+import useTheme from '../../contexts/ThemeContext';
 import BurgerMenu from './BurgerMenu'; 
 import ThisMonthSection from './ThisMonthSection';
 import NetWorthSection from './NetWorthSection';
