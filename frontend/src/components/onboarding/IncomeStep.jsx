@@ -1,6 +1,6 @@
 import React from 'react';
 
-import ThemeToggle from '../shared/ThemeToggle';
+import { ThemeToggle } from 'components/shared/ThemeToggle';
 import { 
   FormGrid, 
   FormField, 
@@ -17,7 +17,7 @@ import {
 } from '../shared/FormComponents';
 
 // Clean income source component using 12-column grid
-const IncomeSource = ({ source, onUpdate, onDelete }) => {
+export const IncomeSource = ({ source, onUpdate, onDelete }) => {
   const frequencyOptions = [
     { value: 'Yearly', label: 'Yearly' },
     { value: 'Monthly', label: 'Monthly' },
@@ -67,7 +67,7 @@ const IncomeSource = ({ source, onUpdate, onDelete }) => {
   );
 };
 
-const IncomeStep = ({ onNext, onBack }) => {
+export const IncomeStep = ({ onNext, onBack }) => {
   // Use professional item manager
   const { 
     items: incomeSources, 
@@ -171,6 +171,4 @@ const IncomeStep = ({ onNext, onBack }) => {
       </StandardFormLayout>
     </>
   );
-};
-
-export default IncomeStep;
+}

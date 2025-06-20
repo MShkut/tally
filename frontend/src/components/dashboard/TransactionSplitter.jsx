@@ -3,10 +3,10 @@ import {
   Split, X, Plus, DollarSign, CheckCircle, AlertCircle
 } from 'lucide-react';
 
-import normalizeMerchantName from '../../utils/transactionHelpers';
-import useTheme from '../../contexts/ThemeContext';
+import { TransactionHelpers as normalizeMerchantName } from 'utils/transactionHelpers';
+import { useTheme } from 'contexts/ThemeContext';
 
-const TransactionSplitter = ({ transaction, categories, onSplit, onCancel }) => {
+export const TransactionSplitter = ({ transaction, categories, onSplit, onCancel }) => {
   const { isDarkMode } = useTheme();
   const [splitItems, setSplitItems] = useState([
     {
@@ -338,7 +338,4 @@ const TransactionSplitter = ({ transaction, categories, onSplit, onCancel }) => 
       </div>
     </div>
   );
-};
-
-
-export default TransactionSplitter;
+}

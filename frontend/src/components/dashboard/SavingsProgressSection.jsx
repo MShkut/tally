@@ -1,9 +1,9 @@
 // frontend/src/components/dashboard/SavingsProgressSection.jsx
 import React from 'react';
 
-import useTheme from '../../contexts/ThemeContext';
+import { useTheme } from 'contexts/ThemeContext';
 
-const SavingsProgressSection = ({ data }) => {
+export const SavingsProgressSection = ({ data }) => {
   const { isDarkMode } = useTheme();
   const savingsProgress = data?.savings || [];
 
@@ -61,7 +61,4 @@ const SavingsGoalItem = ({ goal }) => {
       </div>
     </div>
   );
-};
-
-
-export default SavingsProgressSection;
+}

@@ -1,9 +1,9 @@
 import React from 'react';
 
-import { useTheme } from '../../contexts/ThemeContext';
-import FrequencySelector from '../shared/FrequencySelector';
+import { useTheme } from 'contexts/ThemeContext';
+import { FrequencySelector } from 'components/shared/FrequencySelector';
 
-const IncomeSource = ({ source, onUpdate, onDelete }) => {
+export const IncomeSource = ({ source, onUpdate, onDelete }) => {
   const { isDarkMode } = useTheme();
 
   const handleNameChange = (e) => {
@@ -123,7 +123,4 @@ const IncomeSource = ({ source, onUpdate, onDelete }) => {
       )}
     </div>
   );
-};
-
-
-export default IncomeSource;
+}

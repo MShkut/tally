@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import Plus from 'lucide-react/dist/esm/icons/plus';
 import AlertCircle from 'lucide-react/dist/esm/icons/alert-circle';
 
-import normalizeMerchantName from '../../utils/transactionHelpers';
-import useTheme from '../../contexts/ThemeContext';
+import { TransactionHelpers as normalizeMerchantName } from 'utils/transactionHelpers';
+import { useTheme } from 'contexts/ThemeContext';
 
-const ManualTransactionEntry = ({ categories, onAddTransaction }) => {
+export const ManualTransactionEntry = ({ categories, onAddTransaction }) => {
   const { isDarkMode } = useTheme();
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
@@ -269,7 +269,4 @@ const ManualTransactionEntry = ({ categories, onAddTransaction }) => {
       </div>
     </div>
   );
-};
-
-
-export default ManualTransactionEntry;
+}

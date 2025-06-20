@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from 'react';
 
-import useTheme from '../../contexts/ThemeContext';
-import dataManager from '../../utils/dataManager';
+import { useTheme } from 'contexts/ThemeContext';
+import { dataManager } from 'utils/dataManager';
 
-import BurgerMenu from './BurgerMenu'; 
-import ThisMonthSection from './ThisMonthSection';
-import NetWorthSection from './NetWorthSection';
-import BudgetHealthSection from './BudgetHealthSection';
-import SavingsProgressSection from './SavingsProgressSection';
-import RecentActivitySection from './RecentActivitySection';
-import DashboardHeader from './DashboardHeader';
+import { BurgerMenu } from 'components/dashboard/BurgerMenu'; 
+import { ThisMonthSection } from 'components/dashboard/ThisMonthSection';
+import { NetWorthSection } from 'components/dashboard/NetWorthSection';
+import { BudgetHealthSection } from 'components/dashboard/BudgetHealthSection';
+import { SavingsProgressSection } from 'components/dashboard/SavingsProgressSection';
+import { RecentActivitySection } from 'components/dashboard/RecentActivitySection';
+import { DashboardHeader } from 'components/dashboard/DashboardHeader';
 
-const Dashboard = ({ onNavigate }) => {
+export const Dashboard = ({ onNavigate }) => {
   const { isDarkMode } = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
   const [onboardingData, setOnboardingData] = useState(null);
@@ -192,5 +192,3 @@ function processSavingsGoals(onboardingData) {
     target: parseFloat(goal.amount) * 12 || 0 // Annual target
   }));
 }
-
-export default Dashboard;

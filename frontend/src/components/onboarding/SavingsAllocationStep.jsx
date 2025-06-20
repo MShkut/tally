@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 
-import { useTheme } from '../../contexts/ThemeContext';
-import ThemeToggle from '../shared/ThemeToggle';
+import { useTheme } from 'contexts/ThemeContext';
+import { ThemeToggle } from 'components/shared/ThemeToggle';
 import { 
   FormGrid, 
   FormField, 
@@ -17,7 +17,7 @@ import {
 } from '../shared/FormComponents';
 
 // Clean savings goal component using 12-column grid
-const SavingsGoal = ({ goal, onUpdate, onDelete }) => {
+export const SavingsGoal = ({ goal, onUpdate, onDelete }) => {
   return (
     <FormGrid>
       {/* Goal name: 8 columns */}
@@ -53,7 +53,7 @@ const SavingsGoal = ({ goal, onUpdate, onDelete }) => {
 };
 
 // Standardized savings rate input using FormComponents
-const SavingsRateSection = ({ savingsRate, onChange }) => {
+export const SavingsRateSection = ({ savingsRate, onChange }) => {
   const { isDarkMode } = useTheme();
 
   const handleSavingsRateChange = (value) => {
@@ -99,7 +99,7 @@ const SavingsRateSection = ({ savingsRate, onChange }) => {
 };
 
 // Emergency fund section using FormComponents
-const EmergencyFundSection = ({ emergencyFund, setEmergencyFund, estimatedMonthlyExpenses }) => {
+export const EmergencyFundSection = ({ emergencyFund, setEmergencyFund, estimatedMonthlyExpenses }) => {
   const { isDarkMode } = useTheme();
   
   const emergencyFundMin = estimatedMonthlyExpenses * 3;
@@ -159,7 +159,7 @@ const EmergencyFundSection = ({ emergencyFund, setEmergencyFund, estimatedMonthl
   );
 };
 
-const SavingsAllocationStep = ({ onNext, onBack, incomeData }) => {
+export const SavingsAllocationStep = ({ onNext, onBack, incomeData }) => {
   const { isDarkMode } = useTheme();
   
   // Savings rate state - default to 20% as requested
@@ -326,6 +326,4 @@ const SavingsAllocationStep = ({ onNext, onBack, incomeData }) => {
       </StandardFormLayout>
     </>
   );
-};
-
-export default SavingsAllocationStep;
+}

@@ -3,9 +3,9 @@ import {
   X, Upload, BarChart3, Calculator, Settings
 } from 'lucide-react';
 
-import { useTheme } from '../../contexts/ThemeContext';
+import { useTheme } from 'contexts/ThemeContext';
 
-const NavigationMenu = ({ isOpen, onClose, onNavigate, currentPage = 'transactions' }) => {
+export const NavigationMenu = ({ isOpen, onClose, onNavigate, currentPage = 'transactions' }) => {
   const { isDarkMode } = useTheme();
 
   if (!isOpen) return null;
@@ -93,7 +93,4 @@ const NavigationMenu = ({ isOpen, onClose, onNavigate, currentPage = 'transactio
       </div>
     </>
   );
-};
-
-
-export default NavigationMenu;
+}

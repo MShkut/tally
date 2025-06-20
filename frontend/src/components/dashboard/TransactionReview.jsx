@@ -4,10 +4,10 @@ import {
   Calendar, Building2, DollarSign, Tag, Split
 } from 'lucide-react';
 
-import isSplitWorthy from '../../utils/transactionHelpers';
-import useTheme from '../../contexts/ThemeContext';
+import { TransactionHelpers as isSplitWorthy } from 'utils/transactionHelpers';
+import { useTheme } from 'contexts/ThemeContext';
 
-const TransactionReview = ({ 
+export const TransactionReview = ({ 
   transactions, 
   categories, 
   onCategoryChange, 
@@ -291,7 +291,4 @@ const TransactionReview = ({
       )}
     </div>
   );
-};
-
-
-export default TransactionReview;
+}

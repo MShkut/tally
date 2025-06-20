@@ -5,7 +5,7 @@ const STORAGE_KEYS = {
   APP_VERSION: 'financeTracker_version'
 };
 
-class DataManager {
+export class DataManager {
   constructor() {
     this.currentVersion = '1.0.0';
     this.initializeStorage();
@@ -165,6 +165,4 @@ class DataManager {
   }
 }
 
-// Create singleton instance
-const dataManager = new DataManager();
-export default dataManager;
+export import { dataManager } from "utils/dataManager";

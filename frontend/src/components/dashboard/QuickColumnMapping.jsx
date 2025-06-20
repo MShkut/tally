@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import ArrowRight from 'lucide-react/dist/esm/icons/arrow-right';
 
-import useTheme from '../../contexts/ThemeContext';
+import { useTheme } from 'contexts/ThemeContext';
 
-const QuickColumnMapping = ({ csvData, onMappingComplete, onCancel }) => {
+export const QuickColumnMapping = ({ csvData, onMappingComplete, onCancel }) => {
   const { isDarkMode } = useTheme();
   const [columnMapping, setColumnMapping] = useState({
     date: '',
@@ -130,7 +130,4 @@ const QuickColumnMapping = ({ csvData, onMappingComplete, onCancel }) => {
       </div>
     </div>
   );
-};
-
-
-export default QuickColumnMapping;
+}
