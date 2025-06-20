@@ -1,5 +1,6 @@
 // frontend/src/components/dashboard/BurgerMenu.jsx
 import React, { useEffect, useState } from 'react';
+
 import useTheme from '../../contexts/ThemeContext';
 import ConfirmationModal from '../shared/FormComponents';
 

@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
+
 import useTheme from '../../contexts/ThemeContext';
+import dataManager from '../../utils/dataManager';
+
 import BurgerMenu from './BurgerMenu'; 
 import ThisMonthSection from './ThisMonthSection';
 import NetWorthSection from './NetWorthSection';
@@ -7,7 +10,6 @@ import BudgetHealthSection from './BudgetHealthSection';
 import SavingsProgressSection from './SavingsProgressSection';
 import RecentActivitySection from './RecentActivitySection';
 import DashboardHeader from './DashboardHeader';
-import dataManager from '../../utils/dataManager';
 
 const Dashboard = ({ onNavigate }) => {
   const { isDarkMode } = useTheme();

@@ -1,5 +1,6 @@
 // frontend/src/components/dashboard/RecentActivitySection.jsx
 import React from 'react';
+
 import { 
   DataSection, 
   EmptyState, 

@@ -1,5 +1,6 @@
 // frontend/src/components/dashboard/SavingsProgressSection.jsx
 import React from 'react';
+
 import useTheme from '../../contexts/ThemeContext';
 
 const SavingsProgressSection = ({ data }) => {

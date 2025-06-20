@@ -2,6 +2,7 @@ import React from 'react';
 import { 
   X, Upload, BarChart3, Calculator, Settings
 } from 'lucide-react';
+
 import { useTheme } from '../../contexts/ThemeContext';
 
 const NavigationMenu = ({ isOpen, onClose, onNavigate, currentPage = 'transactions' }) => {

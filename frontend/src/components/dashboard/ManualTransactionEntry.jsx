@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Plus from 'lucide-react/dist/esm/icons/plus';
 import AlertCircle from 'lucide-react/dist/esm/icons/alert-circle';
+
 import normalizeMerchantName from '../../utils/transactionHelpers';
 import useTheme from '../../contexts/ThemeContext';
 

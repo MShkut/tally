@@ -1,5 +1,6 @@
 // frontend/src/components/dashboard/BudgetHealthSection.jsx
 import React from 'react';
+
 import useTheme from '../../contexts/ThemeContext';
 
 const BudgetHealthSection = ({ 
