@@ -46,7 +46,7 @@ export const NavigationMenu = ({ isOpen, onClose, onNavigate, currentPage = 'tra
         <div className="p-6">
           <div className="flex items-center justify-between mb-8">
             <h2 className={`text-2xl font-light ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-              Finance Tracker
+              Stash
             </h2>
             <button onClick={onClose} className={`p-2  ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}>
               <X className="w-5 h-5" />
