@@ -1,4 +1,4 @@
-# Personal Finance Tracker 🚧
+# Stash🚧
 
 > **⚠️ Experimental Project**: This is a work-in-progress personal finance app that I'm building for fun and to learn new technologies. It's very much "vibe coded" - expect rough edges, incomplete features, and things that might break. Don't use this for your actual finances yet!
 
