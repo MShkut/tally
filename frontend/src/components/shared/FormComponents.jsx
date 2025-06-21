@@ -33,6 +33,8 @@ export const FormField = ({
 // ==================== INPUT COMPONENTS ====================
 
 // Standardized input field with consistent styling
+// Update FormComponents.jsx - StandardInput with larger base fonts
+
 export const StandardInput = ({ 
   label, 
   type = 'text', 
@@ -50,8 +52,25 @@ export const StandardInput = ({
 
   const handleChange = (e) => {
     if (type === 'currency') {
-      const cleanValue = e.target.value.replace(/[^0-9.]/g, '');
-      onChange(cleanValue);
+      // Let users type naturally - only clean up bad characters
+      let inputValue = e.target.value;
+      
+      // Remove everything except numbers and one decimal point
+      inputValue = inputValue.replace(/[^0-9.]/g, '');
+      
+      // Prevent multiple decimal points
+      const parts = inputValue.split('.');
+      if (parts.length > 2) {
+        inputValue = parts[0] + '.' + parts[1];
+      }
+      
+      // Limit decimal places to 2, but only if user has typed more than 2
+      if (parts.length === 2 && parts[1].length > 2) {
+        inputValue = parts[0] + '.' + parts[1].substring(0, 2);
+      }
+      
+      // Pass the clean value back - no formatting while typing
+      onChange(inputValue);
     } else {
       onChange(e.target.value);
     }
@@ -60,7 +79,7 @@ export const StandardInput = ({
   return (
     <div className={className}>
       {label && (
-        <label className={`block text-sm font-medium mb-2 ${
+        <label className={`block text-2xl font-medium mb-2 ${
           isDarkMode ? 'text-gray-400' : 'text-gray-500'
         }`}>
           {label} {required && <span className="text-red-500">*</span>}
@@ -68,18 +87,19 @@ export const StandardInput = ({
       )}
       <div className="relative">
         {prefix && (
-          <span className={`absolute left-0 top-3 text-lg ${
+          <span className={`absolute left-0 top-3 text-2xl ${
             isDarkMode ? 'text-gray-400' : 'text-gray-500'
           }`}>
             {prefix}
           </span>
         )}
         <input
-          type={type === 'currency' ? 'text' : type}
+          type="text"
           value={value}
           onChange={handleChange}
           placeholder={placeholder}
-          className={`w-full bg-transparent border-0 border-b-2 pb-2 text-lg focus:outline-none transition-colors ${
+          inputMode={type === 'currency' ? 'decimal' : undefined}
+          className={`w-full bg-transparent border-0 border-b-2 pb-4 text-2xl font-medium focus:outline-none transition-colors ${
             prefix ? 'pl-6' : suffix ? 'pr-8' : 'px-0'
           } py-3 ${
             error
@@ -91,7 +111,7 @@ export const StandardInput = ({
           {...props}
         />
         {suffix && (
-          <span className={`absolute right-0 top-3 text-lg ${
+          <span className={`absolute right-0 top-3 text-2xl ${
             isDarkMode ? 'text-gray-400' : 'text-gray-500'
           }`}>
             {suffix}
@@ -358,6 +378,9 @@ export const SummaryCard = ({
 }) => {
   const { isDarkMode } = useTheme();
   
+  // Format value if it's a number (currency)
+  const displayValue = typeof value === 'number' ? formatCurrency(value) : value;
+  
   return (
     <div className={`text-center ${className}`}>
       <div className={`text-2xl font-light mb-2 ${
@@ -365,7 +388,7 @@ export const SummaryCard = ({
           ? isDarkMode ? 'text-white' : 'text-black'
           : isDarkMode ? 'text-white' : 'text-black'
       }`}>
-        {typeof value === 'number' ? `$${value.toLocaleString()}` : value}
+        {displayValue}
       </div>
       <div className={`text-sm ${
         isDarkMode ? 'text-gray-400' : 'text-gray-600'
@@ -455,28 +478,23 @@ export const validation = {
 };
 
 // Currency formatting
-export const formatCurrency = (amount, options = {}) => {
-  const {
-    minimumFractionDigits = 0,
-    maximumFractionDigits = 0,
-    currency = 'USD'
-  } = options;
-  
+// Currency formatting - Standard 2 decimal places
+export const formatCurrency = (amount) => {
+  const numValue = parseFloat(amount) || 0;
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
-    currency,
-    minimumFractionDigits,
-    maximumFractionDigits
-  }).format(amount);
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(numValue);
 };
 
 // Additional components to add to FormComponents.jsx
 
 // ==================== EMPTY STATE COMPONENTS ====================
 
-// Generic empty state with icon, title, and description
+// Generic empty state with title, and description
 export const EmptyState = ({ 
-  icon = '📄',
   title,
   description,
   className = ''
