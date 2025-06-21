@@ -49,14 +49,14 @@ export const NetWorthItem = ({ item, onUpdate, onDelete, type, placeholder }) =>
   );
 };
 
-export const NetWorthStep = ({ onNext, onBack, incomeData, savingsData, expensesData }) => {
-  // Use professional item managers for both assets and liabilities
+export const NetWorthStep = ({ onNext, onBack, incomeData, savingsData, expensesData, savedData = null }) => {
   const { 
     items: assets, 
     addItem: addAsset, 
     updateItem: updateAsset, 
     deleteItem: deleteAsset,
-    hasItems: hasAssets 
+    hasItems: hasAssets,
+    setItems: setAssets
   } = useItemManager();
 
   const { 
@@ -64,8 +64,23 @@ export const NetWorthStep = ({ onNext, onBack, incomeData, savingsData, expenses
     addItem: addLiability, 
     updateItem: updateLiability, 
     deleteItem: deleteLiability,
-    hasItems: hasLiabilities 
+    hasItems: hasLiabilities,
+    setItems: setLiabilities
   } = useItemManager();
+
+  // 🔧 FIX: Pre-populate with saved data
+  useEffect(() => {
+    if (savedData?.netWorth) {
+      console.log('🔄 Loading saved net worth data:', savedData.netWorth);
+      
+      if (savedData.netWorth.assets?.length > 0) {
+        setAssets(savedData.netWorth.assets);
+      }
+      if (savedData.netWorth.liabilities?.length > 0) {
+        setLiabilities(savedData.netWorth.liabilities);
+      }
+    }
+  }, [savedData, setAssets, setLiabilities]);
 
   const addAssetItem = () => {
     addAsset({

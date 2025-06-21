@@ -2,13 +2,12 @@ import React from 'react';
 
 import { useTheme } from 'contexts/ThemeContext';
 import { editorial } from 'utils/editorialStyles';
-import { FREQUENCY_DESCRIPTIONS } from 'utils/incomeHelpers';
 
 export const FrequencySelector = ({ 
   frequency, 
   onChange, 
   label = "Frequency",
-  allowOneTime = false, // Control whether to include one-time option
+  allowOneTime = false,
   className = ''
 }) => {
   const { isDarkMode } = useTheme();
@@ -42,17 +41,8 @@ export const FrequencySelector = ({
         `}
       >
         <div className="flex items-center justify-between">
-          <div>
-            <div className={editorial.typography.body}>
-              {frequency}
-            </div>
-            <div className={`text-xs mt-1 transition-colors duration-200 ${
-              isDarkMode 
-                ? 'text-gray-500 group-hover:text-gray-400' 
-                : 'text-gray-500 group-hover:text-gray-600'
-            }`}>
-              {FREQUENCY_DESCRIPTIONS[frequency] || 'Click to change'}
-            </div>
+          <div className={editorial.typography.body}>
+            {frequency}
           </div>
           
           {/* Subtle click indicator */}

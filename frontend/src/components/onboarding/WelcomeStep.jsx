@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 import { useTheme } from 'contexts/ThemeContext';
 import { ThemeToggle } from 'components/shared/ThemeToggle';
@@ -11,11 +11,22 @@ import {
   validation
 } from '../shared/FormComponents';
 
-export const WelcomeStep = ({ onNext }) => {
+export const WelcomeStep = ({ onNext, savedData = null }) => {
   const [formData, setFormData] = useState({
     householdName: '',
     periodDuration: ''
   });
+
+  // Pre-populate form with saved data
+  useEffect(() => {
+    if (savedData) {
+      console.log('🔄 Pre-populating welcome step:', savedData);
+      setFormData({
+        householdName: savedData.household?.name || '',
+        periodDuration: savedData.period?.duration_months?.toString() || ''
+      });
+    }
+  }, [savedData]);
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({

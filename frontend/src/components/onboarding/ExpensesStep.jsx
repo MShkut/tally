@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
 import { ThemeToggle } from 'components/shared/ThemeToggle';
 import { 
@@ -53,15 +53,23 @@ export const ExpenseCategory = ({ category, onUpdate, onDelete, availableBudget 
   );
 };
 
-export const ExpensesStep = ({ onNext, onBack, incomeData, savingsData }) => {
-  // Use professional item manager
+export const ExpensesStep = ({ onNext, onBack, incomeData, savingsData, savedData = null }) => {
   const { 
     items: expenseCategories, 
     addItem, 
     updateItem, 
     deleteItem,
-    hasItems 
+    hasItems,
+    setItems
   } = useItemManager();
+
+  // 🔧 FIX: Pre-populate with saved data
+  useEffect(() => {
+    if (savedData?.expenses?.expenseCategories?.length > 0) {
+      console.log('🔄 Loading saved expense categories:', savedData.expenses.expenseCategories);
+      setItems(savedData.expenses.expenseCategories);
+    }
+  }, [savedData, setItems]);
 
   // Calculate available budget for expenses
   const totalIncome = incomeData?.totalYearlyIncome || 0;
