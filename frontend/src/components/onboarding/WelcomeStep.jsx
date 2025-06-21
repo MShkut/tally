@@ -6,71 +6,15 @@ import {
   FormGrid, 
   FormField, 
   StandardInput,
-  StandardSelect,
   FormSection,
   StandardFormLayout,
-  SummaryCard,
-  SectionBorder,
   validation
 } from '../shared/FormComponents';
 
-// Custom duration selector component using FormComponents patterns
-export const DurationSelector = ({ value, onChange }) => {
-  const { isDarkMode } = useTheme();
-
-  const handleChange = (e) => {
-    const numValue = parseInt(e.target.value) || 1;
-    const clampedValue = Math.max(1, Math.min(12, numValue));
-    onChange(clampedValue);
-  };
-
-  const getDurationDescription = (months) => {
-    if (months === 1) return "Perfect for short-term planning and getting started";
-    if (months <= 3) return "Ideal for life transitions and focused goal periods";
-    if (months <= 6) return "The most natural planning cycle for most people";
-    if (months <= 9) return "Great for school years and longer projects";
-    return "Traditional annual budgeting for stable life phases";
-  };
-
-  return (
-    <FormSection>
-      <FormGrid>
-        <FormField span={3}>
-          <StandardInput
-            label="Planning Period"
-            type="number"
-            value={value}
-            onChange={handleChange}
-            min="1"
-            max="12"
-          />
-        </FormField>
-        <FormField span={9}>
-          <div className={`flex items-end h-full pb-3`}>
-            <div>
-              <span className={`text-2xl font-light ${
-                isDarkMode ? 'text-gray-400' : 'text-gray-600'
-              }`}>
-                {value === 1 ? 'month' : 'months'}
-              </span>
-              <p className={`text-base font-light mt-2 ${
-                isDarkMode ? 'text-gray-400' : 'text-gray-600'
-              }`}>
-                {getDurationDescription(value)}
-              </p>
-            </div>
-          </div>
-        </FormField>
-      </FormGrid>
-    </FormSection>
-  );
-};
-
 export const WelcomeStep = ({ onNext }) => {
-  const { isDarkMode } = useTheme();
   const [formData, setFormData] = useState({
     householdName: '',
-    periodDuration: 6
+    periodDuration: ''
   });
 
   const handleInputChange = (field, value) => {
@@ -80,89 +24,91 @@ export const WelcomeStep = ({ onNext }) => {
     }));
   };
 
+  const handleDurationChange = (inputValue) => {
+    // Only allow numbers 1-12
+    const cleanValue = inputValue.replace(/[^0-9]/g, '');
+    
+    if (cleanValue === '') {
+      handleInputChange('periodDuration', '');
+      return;
+    }
+    
+    const numValue = parseInt(cleanValue);
+    if (numValue >= 1 && numValue <= 12) {
+      handleInputChange('periodDuration', cleanValue);
+    }
+  };
+
   const handleNext = () => {
     if (canContinue) {
-      // Format data to match what useOnboarding expects
       const welcomeData = {
         household: {
           name: formData.householdName,
           created_date: new Date().toISOString().split('T')[0]
         },
         period: {
-          duration_months: formData.periodDuration,
+          duration_months: parseInt(formData.periodDuration),
           start_date: new Date().toISOString().split('T')[0],
           period_number: 1
         }
       };
       
-      console.log('WelcomeStep sending:', welcomeData);
       onNext(welcomeData);
     }
   };
 
-  const canContinue = validation.hasValidString(formData.householdName) && formData.periodDuration;
+  const getMonthText = () => {
+    return 'months';
+  };
+
+  // Validation: need valid name and valid period duration (1-12)
+  const canContinue = validation.hasValidString(formData.householdName) && 
+                     formData.periodDuration && 
+                     parseInt(formData.periodDuration) >= 1 && 
+                     parseInt(formData.periodDuration) <= 12;
 
   return (
     <>
       <ThemeToggle />
       <StandardFormLayout
-        title="Personal Finance Tracker"
-        subtitle="A privacy-first approach to understanding your financial life. All data stays on your device, giving you complete control over your financial information."
+        title="Welcome to Stash"
+        subtitle="A privacy-first approach to organizing your financial life. All data stays on your device, giving you complete control over your financial information."
         onNext={handleNext}
         canGoNext={canContinue}
         nextLabel="Begin Financial Setup"
         showBack={false}
+        className="flex items-center justify-center [&_h1]:text-6xl [&_h1]:font-medium [&_p]:text-2xl [&_p]:font-medium [&_button]:text-2xl [&_button]:font-medium"
       >
-        
-        {/* Household Name Section */}
-        <FormSection>
-          <FormGrid>
-            <FormField span={8}>
-              <StandardInput
-                label="Who is this budget for?"
-                value={formData.householdName}
-                onChange={(value) => handleInputChange('householdName', value)}
-                placeholder="Jane & John, Smith Family, or just Sarah..."
-                required
-              />
-            </FormField>
-          </FormGrid>
-        </FormSection>
-
-        {/* Duration Section */}
-        <FormSection title="How many months should we plan for?">
-          <DurationSelector
-            value={formData.periodDuration}
-            onChange={(value) => handleInputChange('periodDuration', value)}
-          />
-        </FormSection>
-
-        {/* Privacy Notice */}
-        <SectionBorder />
-        <div className={`py-8 border-l-4 ${
-          isDarkMode ? 'border-gray-700 bg-gray-900/20' : 'border-gray-300 bg-gray-100'
-        } pl-8`}>
-          <h3 className={`text-xl font-light mb-4 ${
-            isDarkMode ? 'text-white' : 'text-black'
-          }`}>
-            Your Data Stays Private
-          </h3>
-          <p className={`text-base font-light leading-relaxed ${
-            isDarkMode ? 'text-gray-400' : 'text-gray-600'
-          }`}>
-            Everything you enter is stored locally on your device. We never see your financial data, 
-            and you can export or delete it anytime.
-          </p>
+        <div className="max-w-2xl mx-auto transform scale-125 origin-center">
+          <FormSection>
+            <FormGrid>
+              {/* Name Input - Takes majority of space */}
+              <FormField span={8}>
+                <StandardInput
+                  label="Your name(s)"
+                  value={formData.householdName}
+                  onChange={(value) => handleInputChange('householdName', value)}
+                  placeholder="John, Jane & John, Smith Family"
+                  required
+                  className="[&_label]:text-2xl [&_label]:font-medium [&_input]:text-2xl [&_input]:font-medium [&_input]:pb-4 [&_span]:text-2xl [&_span]:font-medium"
+                />
+              </FormField>
+              
+              {/* Duration Input - Compact */}
+              <FormField span={4}>
+                <StandardInput
+                  label="Budget period"
+                  value={formData.periodDuration}
+                  onChange={handleDurationChange}
+                  placeholder="6"
+                  suffix={getMonthText()}
+                  required
+                  className="[&_label]:text-2xl [&_label]:font-medium [&_input]:text-2xl [&_input]:font-medium [&_input]:pb-4"
+                />
+              </FormField>
+            </FormGrid>
+          </FormSection>
         </div>
-
-        {/* Validation Message */}
-        {!canContinue && (
-          <div className={`text-center mt-8 text-base font-light ${
-            isDarkMode ? 'text-gray-500' : 'text-gray-500'
-          }`}>
-            Please enter a name and choose a planning period to continue
-          </div>
-        )}
 
       </StandardFormLayout>
     </>
