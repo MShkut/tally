@@ -1,11 +1,13 @@
+// frontend/src/utils/dataManager.js
 // Data Manager - Handle localStorage persistence
+
 const STORAGE_KEYS = {
   USER_DATA: 'financeTracker_userData',
   TRANSACTIONS: 'financeTracker_transactions',
   APP_VERSION: 'financeTracker_version'
 };
 
-export class DataManager {
+class DataManager {
   constructor() {
     this.currentVersion = '1.0.0';
     this.initializeStorage();
@@ -80,7 +82,7 @@ export class DataManager {
       if (!savedData) return [];
       
       const transactionData = JSON.parse(savedData);
-      console.log(`📖 ${transactionData.count} transactions loaded`);
+      console.log(`📖 ${transactionData.count || 0} transactions loaded`);
       return transactionData.transactions || [];
     } catch (error) {
       console.error('❌ Failed to load transactions:', error);
@@ -122,7 +124,7 @@ export class DataManager {
 
   isOnboardingComplete() {
     const userData = this.loadUserData();
-    return userData && userData.household && userData.income && userData.expenses;
+    return userData && userData.onboardingComplete === true;
   }
 
   getBudgetCategories() {
@@ -163,6 +165,22 @@ export class DataManager {
       return false;
     }
   }
+
+  // ==================== RESET/CLEAR METHODS ====================
+
+  resetAllData() {
+    try {
+      localStorage.removeItem(STORAGE_KEYS.USER_DATA);
+      localStorage.removeItem(STORAGE_KEYS.TRANSACTIONS);
+      localStorage.removeItem(STORAGE_KEYS.APP_VERSION);
+      console.log('🗑️ All application data cleared');
+      return true;
+    } catch (error) {
+      console.error('❌ Failed to clear data:', error);
+      return false;
+    }
+  }
 }
 
-export import { dataManager } from "utils/dataManager";
+export const dataManager = new DataManager();
+
