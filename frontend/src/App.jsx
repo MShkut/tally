@@ -90,6 +90,7 @@ function OnboardingFlow({ onComplete, onBack }) {
         return (
           <WelcomeStep 
             onNext={handleWelcomeNext}
+            savedData={formData}
           />
         );
       case 1:
@@ -97,6 +98,8 @@ function OnboardingFlow({ onComplete, onBack }) {
           <IncomeStep 
             onNext={handleIncomeNext}
             onBack={handleBack}
+            savedData={formData}
+            
           />
         );
       case 2:
@@ -105,6 +108,7 @@ function OnboardingFlow({ onComplete, onBack }) {
             onNext={handleSavingsNext}
             onBack={handleBack}
             incomeData={formData.income}
+            savedData={formData}
           />
         );
       case 3:
@@ -114,6 +118,7 @@ function OnboardingFlow({ onComplete, onBack }) {
             onBack={handleBack}
             incomeData={formData.income}
             savingsData={formData.savingsAllocation}
+            savedData={formData}
           />
         );
       case 4:
@@ -124,6 +129,7 @@ function OnboardingFlow({ onComplete, onBack }) {
             incomeData={formData.income}
             savingsData={formData.savingsAllocation}
             expensesData={formData.expenses}
+            savedData={formData}
           />
         );
       default:

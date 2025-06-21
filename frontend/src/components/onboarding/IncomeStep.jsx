@@ -1,6 +1,5 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 
-import { useTheme } from 'contexts/ThemeContext';
 import { ThemeToggle } from 'components/shared/ThemeToggle';
 import { FrequencySelector } from 'components/shared/FrequencySelector';
 import { 
@@ -17,13 +16,10 @@ import {
   validation,
   formatCurrency
 } from '../shared/FormComponents';
-import { editorial } from 'utils/editorialStyles';
 import { 
   convertToYearly,
   calculateTotalYearlyIncome,
-  analyzeIncomeDistribution,
-  validateAllIncomeSources,
-  formatIncomeInsights
+  analyzeIncomeDistribution
 } from 'utils/incomeHelpers';
 
 // Income Source component using shared utilities
@@ -32,136 +28,100 @@ export const IncomeSource = ({ source, onUpdate, onDelete }) => {
   const showYearlyEquivalent = source.amount && source.frequency !== 'Yearly';
 
   return (
-    <FormGrid>
-      {/* Frequency selector: 3 columns */}
-      <FormField span={3}>
-        <FrequencySelector
-          frequency={source.frequency}
-          onChange={(value) => onUpdate({ ...source, frequency: value })}
-          allowOneTime={false} // Income should be recurring
-        />
-      </FormField>
-      
-      {/* Income source name: 6 columns */}
-      <FormField span={6}>
-        <StandardInput
-          label="Income Source"
-          value={source.name}
-          onChange={(value) => onUpdate({ ...source, name: value })}
-          placeholder="Salary, consulting, freelance, investments"
-          required
-        />
-      </FormField>
-      
-      {/* Amount: 2 columns */}
-      <FormField span={2}>
-        <StandardInput
-          label="Amount"
-          type="currency"
-          value={source.amount}
-          onChange={(value) => onUpdate({ ...source, amount: value })}
-          prefix="$"
-          required
-        />
-      </FormField>
-      
-      {/* Remove button: 1 column */}
-      <RemoveButton 
-        onClick={onDelete}
-        children="Remove"
-      />
-      
-      {/* Yearly equivalent display - spans full width if shown */}
-      {showYearlyEquivalent && (
-        <FormField span={12}>
-          <div className={`${editorial.typography.caption} italic -mt-4`}>
-            ≈ {formatCurrency(yearlyAmount)} per year
-          </div>
+    <div className="py-6">
+      <FormGrid>
+        {/* Income source name: 8 columns (largest) */}
+        <FormField span={8}>
+          <StandardInput
+            label="Income Source"
+            value={source.name}
+            onChange={(value) => onUpdate({ ...source, name: value })}
+            placeholder="Salary, consulting, freelance, investments"
+            required
+            className="[&_label]:text-2xl [&_label]:font-medium [&_input]:text-2xl [&_input]:font-medium [&_input]:pb-4"
+          />
         </FormField>
+        
+        {/* Amount: 2 columns (middle) */}
+        <FormField span={2}>
+          <StandardInput
+            label="Amount"
+            type="currency"
+            value={source.amount}
+            onChange={(value) => onUpdate({ ...source, amount: value })}
+            prefix="$"
+            required
+            className="[&_label]:text-2xl [&_label]:font-medium [&_input]:text-2xl [&_input]:font-medium [&_input]:pb-4 [&_span]:text-2xl"
+          />
+        </FormField>
+        
+        {/* Frequency selector: 2 columns (right) */}
+        <FormField span={2}>
+          <FrequencySelector
+            frequency={source.frequency}
+            onChange={(value) => onUpdate({ ...source, frequency: value })}
+            allowOneTime={true}
+            className="[&_label]:text-2xl [&_label]:font-medium [&_button]:text-2xl [&_button]:font-medium [&_button]:pb-4"
+          />
+        </FormField>
+      </FormGrid>
+      
+      {/* Remove button - below the row */}
+      <div className="text-right mt-2">
+        <button
+          onClick={onDelete}
+          className="text-xl font-light text-gray-500 hover:text-gray-700 transition-colors"
+        >
+          Remove
+        </button>
+      </div>
+      
+      {/* Yearly equivalent display */}
+      {showYearlyEquivalent && (
+        <div className="text-xl font-light text-gray-500 italic mt-2">
+          ≈ {formatCurrency(yearlyAmount)} per year
+        </div>
       )}
-    </FormGrid>
+    </div>
   );
 };
 
-export const IncomeStep = ({ onNext, onBack }) => {
+export const IncomeStep = ({ onNext, onBack, savedData = null }) => {
   // Use professional item manager for income sources
   const { 
     items: incomeSources, 
     addItem, 
     updateItem, 
     deleteItem,
-    hasItems 
+    hasItems,
+    setItems 
   } = useItemManager();
+
+  // 🔧 FIX: Load saved data when component mounts
+  useEffect(() => {
+    if (savedData?.income?.incomeSources?.length > 0) {
+      console.log('🔄 Loading saved income sources:', savedData.income.incomeSources);
+      setItems(savedData.income.incomeSources);
+    }
+  }, [savedData, setItems]);
 
   const addIncomeSource = () => {
     addItem({
       name: '', 
       amount: '', 
-      frequency: 'Monthly' // Default to most common - matches FrequencySelector
+      frequency: 'Monthly'
     });
   };
 
-  // Enhanced financial calculations
-  const convertToYearly = (amount, frequency) => {
-    const num = parseFloat(amount) || 0;
-    const multipliers = {
-      'Weekly': 52,
-      'Bi-weekly': 26,
-      'Monthly': 12,
-      'Yearly': 1
-    };
-    return num * (multipliers[frequency] || 1);
-  };
-
-  const totalYearlyIncome = incomeSources.reduce((total, source) => {
-    return total + convertToYearly(source.amount, source.frequency);
-  }, 0);
-
+  // Use utility functions for calculations
+  const totalYearlyIncome = calculateTotalYearlyIncome(incomeSources);
   const monthlyIncome = totalYearlyIncome / 12;
-
-  // Enhanced validation with better error messages
-  const validateSources = () => {
-    const errors = [];
-    
-    incomeSources.forEach((source, index) => {
-      if (!validation.hasValidString(source.name)) {
-        errors.push(`Income source ${index + 1}: Name is required`);
-      }
-      if (!validation.isPositiveNumber(source.amount)) {
-        errors.push(`Income source ${index + 1}: Amount must be greater than 0`);
-      }
-    });
-    
-    return errors;
-  };
-
-  const validationErrors = validateSources();
-  const canContinue = totalYearlyIncome > 0 && validationErrors.length === 0;
-
-  // Income distribution analysis for insights
-  const getIncomeInsights = () => {
-    if (!hasItems) return null;
-    
-    const totalSources = incomeSources.length;
-    const primarySource = incomeSources.reduce((max, source) => {
-      const sourceYearly = convertToYearly(source.amount, source.frequency);
-      const maxYearly = convertToYearly(max.amount, max.frequency);
-      return sourceYearly > maxYearly ? source : max;
-    }, incomeSources[0]);
-    
-    const primaryPercentage = totalYearlyIncome > 0 
-      ? Math.round((convertToYearly(primarySource.amount, primarySource.frequency) / totalYearlyIncome) * 100)
-      : 0;
-    
-    return {
-      totalSources,
-      primarySource: primarySource.name,
-      primaryPercentage,
-      isDiversified: totalSources > 1 && primaryPercentage < 80
-    };
-  };
-
-  const insights = getIncomeInsights();
+  const insights = analyzeIncomeDistribution(incomeSources);
+  
+  // Simple validation - just check if we have valid data
+  const canContinue = totalYearlyIncome > 0 && incomeSources.every(source => 
+    validation.hasValidString(source.name) && validation.isPositiveNumber(source.amount)
+  );
 
   const handleNext = () => {
     if (onNext && canContinue) {
@@ -202,9 +162,8 @@ export const IncomeStep = ({ onNext, onBack }) => {
             </div>
           ) : (
             <div className="text-center py-12 text-gray-500">
-              <div className="text-4xl mb-4">💰</div>
-              <div className="text-lg font-light mb-2">No income sources yet</div>
-              <div className="text-base">Add your first income source to get started</div>
+              <div className="text-2xl font-light mb-2">No income sources yet</div>
+              <div className="text-xl font-light">Add your first income source to get started</div>
             </div>
           )}
 
@@ -213,22 +172,6 @@ export const IncomeStep = ({ onNext, onBack }) => {
             children={!hasItems ? 'Add your first income source' : 'Add another income source'}
           />
         </FormSection>
-
-        {/* Validation Errors */}
-        {validationErrors.length > 0 && (
-          <FormSection>
-            <div className="border-l-4 border-red-500 pl-6 py-4 bg-red-50 dark:bg-red-900/10">
-              <h3 className="text-lg font-medium text-red-700 dark:text-red-400 mb-2">
-                Please fix these issues:
-              </h3>
-              <ul className="space-y-1 text-sm text-red-600 dark:text-red-300">
-                {validationErrors.map((error, index) => (
-                  <li key={index}>• {error}</li>
-                ))}
-              </ul>
-            </div>
-          </FormSection>
-        )}
 
         {/* Summary Section */}
         {totalYearlyIncome > 0 && (
@@ -242,7 +185,7 @@ export const IncomeStep = ({ onNext, onBack }) => {
                   accent={true}
                 />
                 <SummaryCard
-                  title="Monthly Income"
+                  title="Monthly Income" 
                   value={monthlyIncome}
                   subtitle="Available for budgeting"
                 />
@@ -253,71 +196,10 @@ export const IncomeStep = ({ onNext, onBack }) => {
                 />
               </div>
             </FormSection>
-
-            {/* Income Insights */}
-            {insights && (
-              <FormSection>
-                <div className="border-l-4 border-gray-300 pl-6 py-4 bg-gray-50 dark:bg-gray-900/20">
-                  <h3 className="text-lg font-light mb-3 text-black dark:text-white">
-                    Income Analysis
-                  </h3>
-                  <div className="space-y-2 text-base font-light text-gray-600 dark:text-gray-400">
-                    <p>
-                      Primary income source: <strong>{insights.primarySource}</strong> ({insights.primaryPercentage}% of total)
-                    </p>
-                    {insights.isDiversified ? (
-                      <p className="text-green-600 dark:text-green-400">
-                        ✓ Good income diversification reduces financial risk
-                      </p>
-                    ) : insights.totalSources === 1 ? (
-                      <p className="text-yellow-600 dark:text-yellow-400">
-                        ⚠ Consider developing additional income sources for stability
-                      </p>
-                    ) : (
-                      <p className="text-yellow-600 dark:text-yellow-400">
-                        ⚠ Heavy reliance on one source - consider balancing income streams
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </FormSection>
-            )}
           </>
-        )}
-
-        {/* Getting Started Guide */}
-        {!hasItems && (
-          <div className="border-l-4 border-gray-300 pl-6 py-6 bg-gray-50 dark:bg-gray-900/20">
-            <h3 className="text-xl font-light mb-4 text-black dark:text-white">
-              Include All Income Sources
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-base font-light text-gray-600 dark:text-gray-400">
-              <div>
-                <h4 className="font-medium mb-2 text-black dark:text-white">Employment Income</h4>
-                <ul className="space-y-1 text-sm">
-                  <li>• Salary or wages</li>
-                  <li>• Commission payments</li>
-                  <li>• Tips and bonuses</li>
-                  <li>• Overtime pay</li>
-                </ul>
-              </div>
-              <div>
-                <h4 className="font-medium mb-2 text-black dark:text-white">Other Income</h4>
-                <ul className="space-y-1 text-sm">
-                  <li>• Freelance or consulting</li>
-                  <li>• Investment returns</li>
-                  <li>• Rental income</li>
-                  <li>• Side business profits</li>
-                </ul>
-              </div>
-            </div>
-            <p className="mt-4 text-sm text-gray-500 dark:text-gray-500">
-              Include only regular, recurring income. One-time payments like gifts or windfalls can be handled later.
-            </p>
-          </div>
         )}
 
       </StandardFormLayout>
     </>
   );
-}
+};

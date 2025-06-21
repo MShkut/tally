@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react'; // ← FIXED: Added useEffect
 
 import { useTheme } from 'contexts/ThemeContext';
 import { ThemeToggle } from 'components/shared/ThemeToggle';
@@ -159,25 +159,37 @@ export const EmergencyFundSection = ({ emergencyFund, setEmergencyFund, estimate
   );
 };
 
-export const SavingsAllocationStep = ({ onNext, onBack, incomeData }) => {
-  const { isDarkMode } = useTheme();
+export const SavingsAllocationStep = ({ onNext, onBack, incomeData, savedData = null }) => {
+  const { isDarkMode } = useTheme(); // ← FIXED: Added useTheme for tips section
   
-  // Savings rate state - default to 20% as requested
+  // ← FIXED: Only declare state once
   const [savingsRate, setSavingsRate] = useState(20);
-  
   const [emergencyFund, setEmergencyFund] = useState({
     hasExisting: false,
     monthlyAmount: ''
   });
 
-  // Use professional item manager for savings goals
+  // ← FIXED: Only declare useItemManager once
   const { 
     items: savingsGoals, 
     addItem, 
     updateItem, 
     deleteItem,
-    hasItems 
+    hasItems,
+    setItems
   } = useItemManager();
+
+  // Pre-populate with saved data
+  useEffect(() => {
+    if (savedData?.savingsAllocation) {
+      const saved = savedData.savingsAllocation;
+      console.log('🔄 Loading saved savings data:', saved);
+      
+      if (saved.savingsRate) setSavingsRate(saved.savingsRate);
+      if (saved.emergencyFund) setEmergencyFund(saved.emergencyFund);
+      if (saved.savingsGoals?.length > 0) setItems(saved.savingsGoals);
+    }
+  }, [savedData, setItems]);
 
   const addSavingsGoal = () => {
     addItem({

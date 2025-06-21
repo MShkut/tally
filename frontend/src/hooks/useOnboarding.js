@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { dataManager } from 'utils/dataManager';
 
 export const useOnboarding = () => {
-  const [currentStep, setCurrentStep] = useState(0); // Start at 0 for WelcomeStep
+  const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState({
     // Household and Period data
     household: {
@@ -12,12 +13,12 @@ export const useOnboarding = () => {
       duration_months: 6,
       start_date: null,
       period_number: 1,
-      end_date: null // will be calculated
+      end_date: null
     },
     // Financial data
     income: [],
-    savingsAllocation: { // Combined savings rate + allocation
-      savingsRate: 40, 
+    savingsAllocation: {
+      savingsRate: 20, 
       monthlySavings: 0,
       emergencyFund: { hasExisting: false, monthlyAmount: '' },
       savingsGoals: []
@@ -26,7 +27,25 @@ export const useOnboarding = () => {
     netWorth: { assets: [], liabilities: [] }
   });
 
-  const totalSteps = 5; // 0: Welcome, 1: Income, 2: Savings Allocation, 3: Expenses, 4: Net Worth
+  const totalSteps = 5;
+
+  // Load saved data on hook initialization
+  useEffect(() => {
+    const savedData = dataManager.loadUserData();
+    if (savedData && !savedData.onboardingComplete) {
+      console.log('📖 Loading saved onboarding progress:', savedData);
+      
+      // Restore form data
+      setFormData(prevData => ({
+        ...prevData,
+        ...savedData
+      }));
+      
+      // Restore current step
+      const savedStep = savedData.onboardingStep || 0;
+      setCurrentStep(savedStep);
+    }
+  }, []);
 
   const nextStep = () => {
     if (currentStep < totalSteps - 1) {
