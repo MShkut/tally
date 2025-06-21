@@ -1,7 +1,6 @@
 import React from 'react';
 
 import { useTheme } from 'contexts/ThemeContext';
-import { editorial } from 'utils/editorialStyles';
 
 export const FrequencySelector = ({ 
   frequency, 
@@ -28,20 +27,23 @@ export const FrequencySelector = ({
 
   return (
     <div className={className}>
-      <label className={editorial.forms.label(isDarkMode)}>
+      <label className={`block text-2xl font-medium mb-2 ${
+        isDarkMode ? 'text-gray-400' : 'text-gray-500'
+      }`}>
         {label}
       </label>
       
       <button
         type="button"
         onClick={cycleFrequency}
-        className={`
-          ${editorial.forms.input(isDarkMode)}
-          text-left group cursor-pointer
-        `}
+        className={`w-full bg-transparent border-0 border-b-2 pb-4 text-2xl font-medium focus:outline-none transition-colors px-0 py-3 text-left group cursor-pointer whitespace-nowrap ${
+          isDarkMode 
+            ? 'border-gray-700 text-white hover:border-white focus:border-white' 
+            : 'border-gray-300 text-black hover:border-black focus:border-black'
+        }`}
       >
         <div className="flex items-center justify-between">
-          <div className={editorial.typography.body}>
+          <div>
             {frequency}
           </div>
           
