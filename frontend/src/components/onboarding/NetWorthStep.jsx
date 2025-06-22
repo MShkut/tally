@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
 import { ThemeToggle } from 'components/shared/ThemeToggle';
 import { 
@@ -15,37 +15,48 @@ import {
   validation
 } from '../shared/FormComponents';
 
-// Clean net worth item component using 12-column grid
+// Clean net worth item component using 12-column grid with large fonts
 export const NetWorthItem = ({ item, onUpdate, onDelete, type, placeholder }) => {
   return (
-    <FormGrid>
-      {/* Asset/Liability name: 8 columns */}
-      <FormField span={8}>
-        <StandardInput
-          label={type === 'asset' ? 'Asset' : 'Liability'}
-          value={item.name}
-          onChange={(value) => onUpdate({ ...item, name: value })}
-          placeholder={placeholder}
-        />
-      </FormField>
-      
-      {/* Amount: 3 columns */}
-      <FormField span={3}>
-        <StandardInput
-          label={type === 'asset' ? 'Value' : 'Balance Owed'}
-          type="currency"
-          value={item.amount}
-          onChange={(value) => onUpdate({ ...item, amount: value })}
-          prefix="$"
-        />
-      </FormField>
-      
-      {/* Remove button: 1 column */}
-      <RemoveButton 
-        onClick={onDelete}
-        children="Remove"
-      />
-    </FormGrid>
+    <div className="py-8">
+      <div className="grid grid-cols-12 gap-8 items-end">
+        {/* Asset/Liability name: 8 columns */}
+        <div className="col-span-8">
+          <StandardInput
+            label={type === 'asset' ? 'Asset' : 'Liability'}
+            value={item.name}
+            onChange={(value) => onUpdate({ ...item, name: value })}
+            placeholder={placeholder}
+            className="[&_label]:text-2xl [&_label]:font-medium [&_input]:text-2xl [&_input]:font-medium [&_input]:pb-4"
+          />
+        </div>
+        
+        {/* Amount: 3 columns */}
+        <div className="col-span-3">
+          <StandardInput
+            label={type === 'asset' ? 'Value' : 'Balance Owed'}
+            type="currency"
+            value={item.amount}
+            onChange={(value) => onUpdate({ ...item, amount: value })}
+            prefix="$"
+            className="[&_label]:text-2xl [&_label]:font-medium [&_input]:text-2xl [&_input]:font-medium [&_input]:pb-4"
+          />
+        </div>
+        
+        {/* Remove button: 1 column - matching other steps' pattern */}
+        <div className="col-span-1">
+          <div className="flex items-end h-full pb-4">
+            <button
+              onClick={onDelete}
+              className="w-full text-center text-3xl font-light text-gray-400 hover:text-red-500 transition-colors"
+              title="Remove this item"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };
 
@@ -68,7 +79,7 @@ export const NetWorthStep = ({ onNext, onBack, incomeData, savingsData, expenses
     setItems: setLiabilities
   } = useItemManager();
 
-  // 🔧 FIX: Pre-populate with saved data
+  // Pre-populate with saved data
   useEffect(() => {
     if (savedData?.netWorth) {
       console.log('🔄 Loading saved net worth data:', savedData.netWorth);
@@ -131,98 +142,83 @@ export const NetWorthStep = ({ onNext, onBack, incomeData, savingsData, expenses
         canGoNext={true}
         showBack={true}
       >
-        
-        {/* Net Worth Summary */}
-        {(totalAssets > 0 || totalLiabilities > 0) && (
-          <>
-            <SectionBorder />
-            <FormSection>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-                <SummaryCard
-                  title="Total Assets"
-                  value={totalAssets}
+        {/* Assets Section - Full Width */}
+        <FormSection title="Assets (What You Own)">
+          {hasAssets ? (
+            <div className="space-y-0 mb-8">
+              {assets.map((asset) => (
+                <NetWorthItem
+                  key={asset.id}
+                  item={asset}
+                  onUpdate={(updatedAsset) => updateAsset(asset.id, updatedAsset)}
+                  onDelete={() => deleteAsset(asset.id)}
+                  type="asset"
+                  placeholder="Cash, bonds, equities, home value"
                 />
-                <SummaryCard
-                  title="Total Liabilities"
-                  value={totalLiabilities}
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12 text-gray-500">
+              <div className="text-2xl font-light mb-2">No assets yet</div>
+              <div className="text-xl font-light">Add your first asset to get started</div>
+            </div>
+          )}
+          
+          <AddItemButton 
+            onClick={addAssetItem}
+            children={!hasAssets ? 'Add your first asset' : 'Add another asset'}
+          />
+        </FormSection>
+
+        {/* Liabilities Section - Full Width */}
+        <FormSection title="Liabilities (What You Owe)">
+          {hasLiabilities ? (
+            <div className="space-y-0 mb-8">
+              {liabilities.map((liability) => (
+                <NetWorthItem
+                  key={liability.id}
+                  item={liability}
+                  onUpdate={(updatedLiability) => updateLiability(liability.id, updatedLiability)}
+                  onDelete={() => deleteLiability(liability.id)}
+                  type="liability"
+                  placeholder="Mortgage, auto loan, student loans"
                 />
-                <SummaryCard
-                  title="Net Worth"
-                  value={`${netWorth >= 0 ? '' : '-'}$${Math.abs(netWorth).toLocaleString()}`}
-                  subtitle={netWorth >= 0 ? 'Positive net worth' : 'Room to grow'}
-                  accent={netWorth >= 0}
-                />
-              </div>
-            </FormSection>
-          </>
-        )}
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12 text-gray-500">
+              <div className="text-2xl font-light mb-2">No liabilities yet</div>
+              <div className="text-xl font-light">Add your first liability to get started</div>
+            </div>
+          )}
+          
+          <AddItemButton 
+            onClick={addLiabilityItem}
+            children={!hasLiabilities ? 'Add your first liability' : 'Add another liability'}
+          />
+        </FormSection>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
-          {/* Assets Section */}
-          <div>
-            <FormSection title="Assets (What You Own)">
-              {hasAssets && (
-                <div className="space-y-0 mb-8">
-                  {assets.map((asset) => (
-                    <NetWorthItem
-                      key={asset.id}
-                      item={asset}
-                      onUpdate={(updatedAsset) => updateAsset(asset.id, updatedAsset)}
-                      onDelete={() => deleteAsset(asset.id)}
-                      type="asset"
-                      placeholder="Cash, bonds, equities, home value"
-                    />
-                  ))}
-                </div>
-              )}
-              
-              <AddItemButton 
-                onClick={addAssetItem}
-                children={!hasAssets ? 'Add your first asset' : 'Add another asset'}
-              />
-            </FormSection>
+        {/* Net Worth Summary - Always Visible at Bottom */}
+        <FormSection>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+            <SummaryCard
+              title="Total Assets"
+              value={totalAssets}
+            />
+            <SummaryCard
+              title="Total Liabilities"
+              value={totalLiabilities}
+            />
+            <SummaryCard
+              title="Net Worth"
+              value={`${netWorth >= 0 ? '' : '-'}${Math.abs(netWorth).toLocaleString()}`}
+              subtitle={netWorth >= 0 ? 'Positive net worth' : 'Room to grow'}
+              accent={netWorth >= 0}
+            />
           </div>
-
-          {/* Liabilities Section */}
-          <div>
-            <FormSection title="Liabilities (What You Owe)">
-              {hasLiabilities && (
-                <div className="space-y-0 mb-8">
-                  {liabilities.map((liability) => (
-                    <NetWorthItem
-                      key={liability.id}
-                      item={liability}
-                      onUpdate={(updatedLiability) => updateLiability(liability.id, updatedLiability)}
-                      onDelete={() => deleteLiability(liability.id)}
-                      type="liability"
-                      placeholder="Mortgage, auto loan, student loans"
-                    />
-                  ))}
-                </div>
-              )}
-              
-              <AddItemButton 
-                onClick={addLiabilityItem}
-                children={!hasLiabilities ? 'Add your first liability' : 'Add another liability'}
-              />
-            </FormSection>
-          </div>
-        </div>
-
-        {/* Privacy & Next Steps */}
-        <div className={`mt-16 p-8 border-l-4 border-gray-300 bg-gray-100`}>
-          <h3 className={`text-xl font-light mb-4 text-black`}>
-            Your Privacy Matters
-          </h3>
-          <div className={`space-y-3 text-base font-light text-gray-600`}>
-            <p>All your financial data stays on your device - we never see it</p>
-            <p>Import bank transactions via CSV for automatic categorization</p>
-            <p>Track progress toward your savings goals over time</p>
-            <p>Get insights into spending patterns and budget optimization</p>
-          </div>
-        </div>
+        </FormSection>
 
       </StandardFormLayout>
     </>
   );
-}
+};
