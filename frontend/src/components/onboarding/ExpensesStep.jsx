@@ -5,7 +5,6 @@ import {
   FormGrid, 
   FormField, 
   StandardInput,
-  RemoveButton,
   AddItemButton,
   FormSection,
   StandardFormLayout,
@@ -15,41 +14,52 @@ import {
   validation
 } from '../shared/FormComponents';
 
-// Clean expense category component using 12-column grid
+// Clean expense category component matching IncomeSource and SavingsGoal layout
 export const ExpenseCategory = ({ category, onUpdate, onDelete, availableBudget }) => {
   const categoryAmount = parseFloat(category.amount) || 0;
   const isOverBudget = categoryAmount > availableBudget;
   
   return (
-    <FormGrid>
-      {/* Category name: 8 columns */}
-      <FormField span={8}>
-        <StandardInput
-          label="Category Name"
-          value={category.name}
-          onChange={(value) => onUpdate({ ...category, name: value })}
-          placeholder="Housing, groceries, transportation, healthcare"
-        />
-      </FormField>
-      
-      {/* Monthly budget: 3 columns */}
-      <FormField span={3}>
-        <StandardInput
-          label="Monthly Budget"
-          type="currency"
-          value={category.amount}
-          onChange={(value) => onUpdate({ ...category, amount: value })}
-          prefix="$"
-          error={isOverBudget ? `Exceeds available budget by $${(categoryAmount - availableBudget).toLocaleString()}` : null}
-        />
-      </FormField>
-      
-      {/* Remove button: 1 column */}
-      <RemoveButton 
-        onClick={onDelete}
-        children="Remove"
-      />
-    </FormGrid>
+    <div className="py-8">
+      <div className="grid grid-cols-12 gap-8 items-end">
+        {/* Category name: 8 columns - generous space */}
+        <div className="col-span-8">
+          <StandardInput
+            label="Category Name"
+            value={category.name}
+            onChange={(value) => onUpdate({ ...category, name: value })}
+            placeholder="Housing, groceries, transportation, healthcare"
+            className="[&_label]:text-2xl [&_label]:font-medium [&_input]:text-2xl [&_input]:font-medium [&_input]:pb-4"
+          />
+        </div>
+        
+        {/* Monthly budget: 3 columns */}
+        <div className="col-span-3">
+          <StandardInput
+            label="Monthly Budget"
+            type="currency"
+            value={category.amount}
+            onChange={(value) => onUpdate({ ...category, amount: value })}
+            prefix="$"
+            error={isOverBudget ? `Exceeds available budget by $${(categoryAmount - availableBudget).toLocaleString()}` : null}
+            className="[&_label]:text-2xl [&_label]:font-medium [&_input]:text-2xl [&_input]:font-medium [&_input]:pb-4"
+          />
+        </div>
+        
+        {/* Remove button: 1 column - matching IncomeSource pattern */}
+        <div className="col-span-1">
+          <div className="flex items-end h-full pb-4">
+            <button
+              onClick={onDelete}
+              className="w-full text-center text-3xl font-light text-gray-400 hover:text-red-500 transition-colors"
+              title="Remove this expense category"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };
 
@@ -63,7 +73,7 @@ export const ExpensesStep = ({ onNext, onBack, incomeData, savingsData, savedDat
     setItems
   } = useItemManager();
 
-  // 🔧 FIX: Pre-populate with saved data
+  // Load saved data on mount
   useEffect(() => {
     if (savedData?.expenses?.expenseCategories?.length > 0) {
       console.log('🔄 Loading saved expense categories:', savedData.expenses.expenseCategories);
@@ -122,30 +132,9 @@ export const ExpensesStep = ({ onNext, onBack, incomeData, savingsData, savedDat
         canGoNext={canContinue}
         showBack={true}
       >
-        
-        {/* Budget Overview */}
-        <SectionBorder />
-        <FormSection>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-            <SummaryCard
-              title="Monthly Income"
-              value={monthlyIncome}
-            />
-            <SummaryCard
-              title="Monthly Savings"
-              value={monthlySavings}
-            />
-            <SummaryCard
-              title="Available for Expenses"
-              value={availableForExpenses}
-              accent={true}
-            />
-          </div>
-        </FormSection>
-
         {/* Expense Categories Section */}
         <FormSection title="Monthly Expense Categories">
-          {hasItems && (
+          {hasItems ? (
             <div className="space-y-0 mb-8">
               {expenseCategories.map((category) => (
                 <ExpenseCategory
@@ -157,6 +146,11 @@ export const ExpensesStep = ({ onNext, onBack, incomeData, savingsData, savedDat
                 />
               ))}
             </div>
+          ) : (
+            <div className="text-center py-12 text-gray-500">
+              <div className="text-2xl font-light mb-2">No expense categories yet</div>
+              <div className="text-xl font-light">Add your first expense category to get started</div>
+            </div>
           )}
 
           <AddItemButton 
@@ -165,47 +159,30 @@ export const ExpensesStep = ({ onNext, onBack, incomeData, savingsData, savedDat
           />
         </FormSection>
 
-        {/* Budget Summary */}
-        {totalExpenses > 0 && (
-          <>
-            <SectionBorder />
-            <FormSection>
-              <div className="text-center">
-                <SummaryCard
-                  title="Total monthly expenses"
-                  value={`$${totalExpenses.toLocaleString()} / $${availableForExpenses.toLocaleString()}`}
-                  subtitle={isOverBudget 
-                    ? `Over budget by $${Math.abs(remainingBudget).toLocaleString()}` 
-                    : remainingBudget > 0 
-                      ? `Remaining: $${remainingBudget.toLocaleString()}`
-                      : 'Budget fully allocated'
-                  }
-                  accent={!isOverBudget}
-                />
-              </div>
-            </FormSection>
-          </>
-        )}
-
-        {/* Helpful Tips */}
-        <div className={`py-8 border-l-2 pl-8 border-gray-300`}>
-          <h3 className={`text-xl font-light mb-4 text-black`}>
-            Essential vs. Lifestyle Categories
-          </h3>
-          <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600`}>
-            <div>
-              <strong>Essential:</strong> Housing, utilities, groceries, transportation, insurance, minimum debt payments
-            </div>
-            <div>
-              <strong>Lifestyle:</strong> Dining out, entertainment, shopping, subscriptions, personal care, hobbies
-            </div>
+        {/* Expense Allocation Summary - Always visible */}
+        <FormSection>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+            <SummaryCard
+              title="Available for Expenses"
+              value={availableForExpenses}
+              subtitle="Your monthly expense budget"
+              accent={true}
+            />
+            <SummaryCard
+              title="Currently Allocated"
+              value={totalExpenses}
+              subtitle="Assigned to categories"
+            />
+            <SummaryCard
+              title="Remaining to Allocate"
+              value={remainingBudget}
+              subtitle={remainingBudget < 0 ? `Over by $${Math.abs(remainingBudget).toLocaleString()}` : 
+                       remainingBudget === 0 ? 'Fully allocated' : 'Available for new categories'}
+            />
           </div>
-          <p className={`mt-4 text-sm text-gray-600`}>
-            Start with essentials first, then add lifestyle categories. You can always adjust these amounts later.
-          </p>
-        </div>
+        </FormSection>
 
       </StandardFormLayout>
     </>
   );
-}
+};
