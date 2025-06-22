@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
 import { ThemeToggle } from 'components/shared/ThemeToggle';
 import { FrequencySelector } from 'components/shared/FrequencySelector';
@@ -81,8 +81,16 @@ export const IncomeStep = ({ onNext, onBack, savedData }) => {
     addItem, 
     updateItem, 
     deleteItem,
-    hasItems 
+    hasItems,
+    setItems 
   } = useItemManager();
+  
+  useEffect(() => {
+    if (savedData?.income?.incomeSources?.length > 0) {
+      console.log('🔄 Loading saved income sources:', savedData.income.incomeSources);
+      setItems(savedData.income.incomeSources);
+    }
+  }, [savedData, setItems]);
 
   const addIncomeSource = () => {
     addItem({
