@@ -1,37 +1,59 @@
+// Streamlined Dashboard component - Remove redundant Financial Overview
 import React, { useState, useEffect } from 'react';
 
 import { useTheme } from 'contexts/ThemeContext';
 import { dataManager } from 'utils/dataManager';
+import { 
+  FormSection,
+  SummaryCard,
+  SectionBorder,
+  TransactionListItem,
+  EmptyState
+} from 'components/shared/FormComponents';
 
-import { BurgerMenu } from 'components/dashboard/BurgerMenu'; 
-import { ThisMonthSection } from 'components/dashboard/ThisMonthSection';
-import { NetWorthSection } from 'components/dashboard/NetWorthSection';
-import { BudgetHealthSection } from 'components/dashboard/BudgetHealthSection';
-import { SavingsProgressSection } from 'components/dashboard/SavingsProgressSection';
-import { RecentActivitySection } from 'components/dashboard/RecentActivitySection';
-import { DashboardHeader } from 'components/dashboard/DashboardHeader';
+import { BurgerMenu } from 'components/dashboard/BurgerMenu';
+import { BudgetPerformanceSection, calculateBudgetPerformance } from 'components/dashboard/BudgetPerformanceSection';
+import { DashboardViewSelector, generateAvailableMonths } from 'components/dashboard/DashboardViewSelector';
 
 export const Dashboard = ({ onNavigate }) => {
-  const { isDarkMode } = useTheme();
+  const { isDarkMode, toggleTheme } = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
   const [onboardingData, setOnboardingData] = useState(null);
   const [transactions, setTransactions] = useState([]);
+  
+  // Global view state
+  const [viewMode, setViewMode] = useState('month'); // 'month' or 'period'
+  const [selectedMonth, setSelectedMonth] = useState(null); // null = current month
+
+  // Handle menu state changes to prevent layout shift
+  useEffect(() => {
+    if (menuOpen) {
+      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+      document.body.style.paddingRight = `${scrollbarWidth}px`;
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.paddingRight = '';
+      document.body.style.overflow = '';
+    }
+    
+    return () => {
+      document.body.style.paddingRight = '';
+      document.body.style.overflow = '';
+    };
+  }, [menuOpen]);
 
   useEffect(() => {
-    // Load data from localStorage
     const userData = dataManager.loadUserData();
     const userTransactions = dataManager.loadTransactions();
     
     setOnboardingData(userData);
     setTransactions(userTransactions);
 
-    // If no onboarding data, redirect to onboarding
     if (!userData || !userData.onboardingComplete) {
       onNavigate('onboarding');
     }
   }, [onNavigate]);
 
-  // Handle menu actions
   const handleMenuAction = (actionId) => {
     setMenuOpen(false);
     
@@ -43,13 +65,14 @@ export const Dashboard = ({ onNavigate }) => {
         onNavigate('onboarding');
         break;
       case 'export':
-        // Handle export functionality
         const exportData = dataManager.exportData();
         console.log('Export data:', exportData);
-        // You could download as JSON file here
+        break;
+      case 'reset-data':
+        dataManager.resetAllData();
+        onNavigate('onboarding');
         break;
       case 'dashboard':
-        // Already on dashboard, just close menu
         break;
       default:
         console.log(`Action ${actionId} not implemented`);
@@ -58,7 +81,7 @@ export const Dashboard = ({ onNavigate }) => {
 
   if (!onboardingData) {
     return (
-      <div className={`min-h-screen flex items-center justify-center ${
+      <div className={`min-h-screen flex items-center justify-center transition-colors duration-300 ${
         isDarkMode ? 'bg-black text-white' : 'bg-gray-50 text-gray-900'
       }`}>
         <div className="text-xl font-light">Loading your dashboard...</div>
@@ -66,129 +89,467 @@ export const Dashboard = ({ onNavigate }) => {
     );
   }
 
-  // Process localStorage data into dashboard format
-  const dashboardData = {
-    household: onboardingData?.household?.name || 'Your Budget',
-    period: onboardingData?.period?.duration_months ? 
-      `${onboardingData.period.duration_months}-month budget period` : 
-      'Budget Period',
-    thisMonth: {
-      spent: calculateMonthlySpending(transactions),
-      budget: calculateMonthlyBudget(onboardingData),
-      percentage: calculateBudgetPercentage(transactions, onboardingData),
-      daysRemaining: getDaysRemainingInMonth()
-    },
-    netWorth: {
-      value: onboardingData?.netWorth?.netWorth || 0,
-      change: 1200, // You could calculate this from historical data
-      trend: 'up'
-    },
-    budget: {
-      totalSpent: calculateMonthlySpending(transactions),
-      totalBudget: calculateMonthlyBudget(onboardingData),
-      categories: processBudgetCategories(onboardingData, transactions)
-    },
-    savings: processSavingsGoals(onboardingData),
-    recentActivity: transactions?.slice(-5).reverse() || []
+  // Process data based on current view mode
+  const dashboardData = processDashboardData(onboardingData, transactions, viewMode, selectedMonth);
+  const performanceData = calculateBudgetPerformance(onboardingData, transactions, viewMode, selectedMonth);
+  const availableMonths = generateAvailableMonths(onboardingData, transactions);
+
+  // Get current view label for display
+  const getCurrentViewLabel = () => {
+    if (viewMode === 'period') {
+      return 'Period Total';
+    } else if (selectedMonth) {
+      const month = availableMonths.find(m => m.value === selectedMonth);
+      return month ? month.label : 'Selected Month';
+    } else {
+      return 'This Month';
+    }
   };
 
   return (
-    <div className={`min-h-screen transition-colors duration-300 ${
-      isDarkMode ? 'bg-black text-white' : 'bg-gray-50 text-gray-900'
-    }`}>
+    <>
       <BurgerMenu 
         isOpen={menuOpen} 
         onClose={() => setMenuOpen(false)}
         onAction={handleMenuAction}
+        currentPage="dashboard"
       />
       
-      <div className="max-w-6xl mx-auto px-6">
-        <DashboardHeader 
-          onboardingData={onboardingData}
-          onMenuToggle={() => setMenuOpen(true)}
-        />
+      <div className={`min-h-screen transition-colors duration-300 ${
+        isDarkMode ? 'bg-black text-white' : 'bg-gray-50 text-gray-900'
+      }`}>
+        
+        {/* Fixed Controls */}
+        <button
+          onClick={() => setMenuOpen(true)}
+          className={`
+            fixed top-8 left-8 z-40 p-2 transition-colors duration-200
+            ${isDarkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-black'}
+          `}
+          aria-label="Open menu"
+        >
+          <BurgerIcon />
+        </button>
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-20 mb-24">
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-20">
-            <ThisMonthSection data={dashboardData} />
-            <NetWorthSection data={dashboardData} />
-            <BudgetHealthSection data={dashboardData} />
+        <div className="fixed top-8 right-8 z-40">
+          <button
+            onClick={toggleTheme}
+            className={`
+              p-3 transition-colors focus:outline-none
+              ${isDarkMode 
+                ? 'text-gray-400 hover:text-gray-300' 
+                : 'text-gray-600 hover:text-gray-800'
+              }
+            `}
+            title={`Switch to ${isDarkMode ? 'light' : 'dark'} mode`}
+          >
+            <span className="text-xl">{isDarkMode ? '◐' : '◑'}</span>
+          </button>
+        </div>
+
+        {/* Main Content */}
+        <div className="max-w-6xl mx-auto px-6 py-12">
+          
+          {/* Header Section */}
+          <div className="mb-16 ml-16">
+            <h1 className={`text-6xl font-light leading-tight mb-4 ${
+              isDarkMode ? 'text-white' : 'text-black'
+            }`}>
+              {dashboardData.household}
+            </h1>
+            <p className={`text-2xl font-light ${
+              isDarkMode ? 'text-gray-400' : 'text-gray-600'
+            }`}>
+              {dashboardData.period}
+            </p>
           </div>
 
-          {/* Sidebar */}
-          <aside className="space-y-20">
-            <SavingsProgressSection data={dashboardData} />
-            <RecentActivitySection data={dashboardData} />
-          </aside>
+          {/* Global View Selector */}
+          <DashboardViewSelector
+            viewMode={viewMode}
+            setViewMode={setViewMode}
+            selectedMonth={selectedMonth}
+            setSelectedMonth={setSelectedMonth}
+            availableMonths={availableMonths}
+          />
+
+          {/* View Context Indicator */}
+          <div className={`text-center mb-12 text-sm font-light ${
+            isDarkMode ? 'text-gray-500' : 'text-gray-400'
+          }`}>
+            Showing data for: {getCurrentViewLabel()}
+          </div>
+
+          {/* Quick Summary - Only Non-Redundant Metrics */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-20">
+            <SummaryCard
+              title="Net Worth"
+              value={dashboardData.netWorth.value}
+              subtitle={dashboardData.netWorth.subtitle}
+              accent={true}
+            />
+            <SummaryCard
+              title="Cash Flow"
+              value={dashboardData.cashFlow}
+              subtitle={dashboardData.cashFlow >= 0 ? 'Positive this period' : 'Negative this period'}
+            />
+          </div>
+
+          {/* Budget Performance Section - Main Focus */}
+          <BudgetPerformanceSection performanceData={performanceData} />
+
+          <SectionBorder />
+
+          {/* Two Column Layout */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
+            
+            {/* Left Column */}
+            <div className="space-y-16">
+              {/* Budget Health */}
+              <FormSection title="Budget Categories">
+                {dashboardData.budgetCategories.length > 0 ? (
+                  <div className="space-y-4">
+                    {dashboardData.budgetCategories.map((category, index) => (
+                      <BudgetCategoryItem key={index} category={category} />
+                    ))}
+                  </div>
+                ) : (
+                  <EmptyState
+                    title="No budget categories"
+                    description="Complete your onboarding to see budget breakdown"
+                  />
+                )}
+              </FormSection>
+
+              {/* Recent Activity */}
+              <FormSection title={viewMode === 'period' ? 'Period Transactions' : 'Month Transactions'}>
+                {dashboardData.filteredTransactions.length > 0 ? (
+                  <div className="space-y-2">
+                    {dashboardData.filteredTransactions.slice(-8).reverse().map((transaction, index) => (
+                      <TransactionListItem
+                        key={transaction.id || index}
+                        title={transaction.description || 'Unknown Transaction'}
+                        subtitle={new Date(transaction.date).toLocaleDateString()}
+                        category={transaction.category}
+                        amount={transaction.amount}
+                        isIncome={transaction.amount > 0}
+                        isExpense={transaction.amount < 0}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <EmptyState
+                    title="No transactions"
+                    description={`No transactions found for ${getCurrentViewLabel().toLowerCase()}`}
+                  />
+                )}
+              </FormSection>
+            </div>
+
+            {/* Right Column */}
+            <div className="space-y-16">
+              {/* Savings Progress */}
+              <FormSection title="Savings Goals">
+                {dashboardData.savingsGoals.length > 0 ? (
+                  <div className="space-y-4">
+                    {dashboardData.savingsGoals.map((goal, index) => (
+                      <SavingsGoalItem key={index} goal={goal} viewMode={viewMode} />
+                    ))}
+                  </div>
+                ) : (
+                  <EmptyState
+                    title="No savings goals"
+                    description="Set up savings goals in your onboarding to track progress"
+                  />
+                )}
+              </FormSection>
+
+              {/* Quick Actions */}
+              <FormSection title="Quick Actions">
+                <div className="space-y-4">
+                  <button
+                    onClick={() => onNavigate('import')}
+                    className={`w-full py-6 border-2 border-dashed transition-colors text-center ${
+                      isDarkMode 
+                        ? 'border-gray-600 text-gray-400 hover:border-gray-500 hover:text-gray-300' 
+                        : 'border-gray-300 text-gray-600 hover:border-gray-400 hover:text-gray-700'
+                    }`}
+                  >
+                    <span className="text-lg font-light">Import New Transactions</span>
+                  </button>
+                  
+                  <button
+                    onClick={() => onNavigate('onboarding')}
+                    className={`w-full py-4 text-center transition-colors border-b border-transparent hover:border-current ${
+                      isDarkMode 
+                        ? 'text-gray-400 hover:text-white' 
+                        : 'text-gray-600 hover:text-black'
+                    }`}
+                  >
+                    <span className="text-base font-light">Start Next Budget Period</span>
+                  </button>
+                </div>
+              </FormSection>
+            </div>
+          </div>
+
+          <div className="h-24"></div>
+        </div>
+      </div>
+    </>
+  );
+};
+
+// Helper components remain the same...
+const BurgerIcon = () => (
+  <div className="w-5 h-5 flex flex-col justify-between">
+    <div className="w-full h-0.5 bg-current transition-all duration-300" />
+    <div className="w-full h-0.5 bg-current transition-all duration-300" />
+    <div className="w-full h-0.5 bg-current transition-all duration-300" />
+  </div>
+);
+
+const BudgetCategoryItem = ({ category }) => {
+  const { isDarkMode } = useTheme();
+  const percentage = category.budget > 0 ? (category.spent / category.budget) * 100 : 0;
+  const isOverBudget = percentage > 100;
+
+  return (
+    <div className={`flex items-center justify-between py-4 border-b ${
+      isDarkMode ? 'border-gray-800' : 'border-gray-200'
+    }`}>
+      <div className={`text-base font-light ${
+        isDarkMode ? 'text-white' : 'text-black'
+      }`}>
+        {category.name}
+      </div>
+      <div className="flex items-center gap-4 min-w-80">
+        <div className="flex-1 max-w-24">
+          <div className={`w-full h-1 relative ${
+            isDarkMode ? 'bg-gray-800' : 'bg-gray-200'
+          }`}>
+            <div 
+              className={`absolute top-0 left-0 h-full transition-all duration-300 ${
+                isOverBudget 
+                  ? 'bg-red-500' 
+                  : isDarkMode ? 'bg-gray-400' : 'bg-gray-600'
+              }`}
+              style={{ width: `${Math.min(percentage, 100)}%` }}
+            />
+          </div>
+        </div>
+        <div className={`text-sm font-mono text-right min-w-24 ${
+          isOverBudget 
+            ? 'text-red-500' 
+            : isDarkMode ? 'text-gray-400' : 'text-gray-600'
+        }`}>
+          ${category.spent.toLocaleString()} / ${category.budget.toLocaleString()}
         </div>
       </div>
     </div>
   );
 };
 
-// Helper functions to process localStorage data
-function calculateMonthlySpending(transactions) {
-  const currentMonth = new Date().getMonth();
-  const currentYear = new Date().getFullYear();
+const SavingsGoalItem = ({ goal, viewMode }) => {
+  const { isDarkMode } = useTheme();
+  const percentage = goal.target > 0 ? (goal.current / goal.target) * 100 : 0;
   
-  return transactions
-    .filter(t => {
+  return (
+    <div className={`py-4 border-b ${
+      isDarkMode ? 'border-gray-800' : 'border-gray-200'
+    }`}>
+      <div className={`text-base font-light mb-2 ${
+        isDarkMode ? 'text-white' : 'text-black'
+      }`}>
+        {goal.name}
+      </div>
+      
+      <div className="flex items-center gap-4 mb-2">
+        <div className={`flex-1 h-1 relative ${
+          isDarkMode ? 'bg-gray-800' : 'bg-gray-200'
+        }`}>
+          <div 
+            className={`absolute top-0 left-0 h-full transition-all duration-300 ${
+              percentage >= 100 
+                ? 'bg-green-500' 
+                : percentage >= 90 
+                  ? isDarkMode ? 'bg-gray-500' : 'bg-gray-400'
+                  : 'bg-yellow-500'
+            }`}
+            style={{ width: `${Math.min(percentage, 100)}%` }}
+          />
+        </div>
+        <div className={`text-sm font-mono text-right min-w-20 ${
+          isDarkMode ? 'text-gray-400' : 'text-gray-600'
+        }`}>
+          ${(goal.current / 1000).toFixed(1)}k / ${(goal.target / 1000).toFixed(0)}k
+        </div>
+      </div>
+      
+      <div className={`text-xs ${
+        isDarkMode ? 'text-gray-500' : 'text-gray-500'
+      }`}>
+        {goal.current === 0 
+          ? `No savings yet for ${viewMode === 'period' ? 'period' : 'month'}` 
+          : `$${goal.current.toLocaleString()} saved ${viewMode === 'period' ? 'this period' : 'this month'}`
+        }
+      </div>
+    </div>
+  );
+};
+
+// Enhanced data processing that supports view modes and month selection
+function processDashboardData(onboardingData, transactions, viewMode, selectedMonth) {
+  const household = onboardingData?.household?.name || 'Your Budget';
+  const period = formatPeriodInfo(onboardingData);
+  
+  // Filter transactions based on view mode
+  const filteredTransactions = getFilteredTransactions(transactions, viewMode, selectedMonth, onboardingData);
+  
+  // Calculate simple metrics
+  const income = filteredTransactions.filter(t => t.amount > 0).reduce((sum, t) => sum + t.amount, 0);
+  const expenses = filteredTransactions.filter(t => t.amount < 0).reduce((sum, t) => sum + Math.abs(t.amount), 0);
+  const cashFlow = income - expenses;
+  
+  const budgetCategories = processBudgetCategories(onboardingData, filteredTransactions, viewMode);
+  const savingsGoals = processSavingsGoals(onboardingData, filteredTransactions, viewMode);
+  const netWorth = processNetWorth(onboardingData);
+
+  return {
+    household,
+    period,
+    cashFlow,
+    budgetCategories,
+    savingsGoals,
+    netWorth,
+    filteredTransactions
+  };
+}
+
+function getFilteredTransactions(transactions, viewMode, selectedMonth, onboardingData) {
+  if (viewMode === 'period') {
+    const periodStart = new Date(onboardingData?.period?.start_date || new Date());
+    return transactions.filter(t => {
       const transactionDate = new Date(t.date);
-      return transactionDate.getMonth() === currentMonth && 
-             transactionDate.getFullYear() === currentYear &&
-             t.amount < 0; // Only expenses
-    })
-    .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+      return transactionDate >= periodStart;
+    });
+  } else {
+    let targetMonth, targetYear;
+    
+    if (selectedMonth) {
+      const [year, month] = selectedMonth.split('-').map(Number);
+      targetMonth = month;
+      targetYear = year;
+    } else {
+      const now = new Date();
+      targetMonth = now.getMonth();
+      targetYear = now.getFullYear();
+    }
+    
+    return transactions.filter(t => {
+      const transactionDate = new Date(t.date);
+      return transactionDate.getMonth() === targetMonth && 
+             transactionDate.getFullYear() === targetYear;
+    });
+  }
 }
 
-function calculateMonthlyBudget(onboardingData) {
-  return onboardingData?.expenses?.totalExpenses || 0;
-}
-
-function calculateBudgetPercentage(transactions, onboardingData) {
-  const spent = calculateMonthlySpending(transactions);
-  const budget = calculateMonthlyBudget(onboardingData);
-  return budget > 0 ? Math.round((spent / budget) * 100) : 0;
-}
-
-function getDaysRemainingInMonth() {
-  const now = new Date();
-  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-  return lastDay.getDate() - now.getDate();
-}
-
-function processBudgetCategories(onboardingData, transactions) {
+function processBudgetCategories(onboardingData, filteredTransactions, viewMode) {
   const categories = onboardingData?.expenses?.expenseCategories || [];
-  const currentMonth = new Date().getMonth();
-  const currentYear = new Date().getFullYear();
   
   return categories.map(category => {
-    const spent = transactions
-      .filter(t => {
-        const transactionDate = new Date(t.date);
-        return transactionDate.getMonth() === currentMonth && 
-               transactionDate.getFullYear() === currentYear &&
-               t.category === category.name &&
-               t.amount < 0;
-      })
+    const spent = filteredTransactions
+      .filter(t => t.category === category.name && t.amount < 0)
       .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+    
+    // Adjust budget based on view mode
+    let budget = parseFloat(category.amount) || 0;
+    if (viewMode === 'period') {
+      const periodStart = new Date(onboardingData?.period?.start_date || new Date());
+      const now = new Date();
+      const monthsElapsed = Math.max(1, 
+        ((now.getFullYear() - periodStart.getFullYear()) * 12) + 
+        (now.getMonth() - periodStart.getMonth()) + 1
+      );
+      budget = budget * monthsElapsed;
+    }
     
     return {
       name: category.name,
       spent: spent,
-      budget: parseFloat(category.amount) || 0
+      budget: budget
     };
   });
 }
 
-function processSavingsGoals(onboardingData) {
+function processSavingsGoals(onboardingData, filteredTransactions, viewMode) {
   const goals = onboardingData?.savingsAllocation?.savingsGoals || [];
   
-  return goals.map(goal => ({
-    title: goal.name,
-    current: parseFloat(goal.amount) * 6 || 0, // Estimate current progress
-    target: parseFloat(goal.amount) * 12 || 0 // Annual target
-  }));
+  return goals.map(goal => {
+    const actualSaved = calculateActualSavingsForGoal(goal.name, filteredTransactions);
+    
+    // Adjust target based on view mode
+    let target = (parseFloat(goal.amount) || 0) * 12; // Annual target
+    if (viewMode === 'month') {
+      target = parseFloat(goal.amount) || 0; // Monthly target
+    }
+    
+    return {
+      name: goal.name,
+      current: actualSaved,
+      target: target,
+      monthlyBudget: parseFloat(goal.amount) || 0
+    };
+  });
+}
+
+function calculateActualSavingsForGoal(goalName, filteredTransactions) {
+  return filteredTransactions
+    .filter(transaction => {
+      const categoryMatches = transaction.category === goalName ||
+                             transaction.category === `Savings: ${goalName}` ||
+                             (typeof transaction.category === 'object' && 
+                              transaction.category?.name === goalName);
+      
+      const descriptionMatches = transaction.description && 
+                                transaction.description.toLowerCase().includes(goalName.toLowerCase());
+      
+      const isPositiveOrSavingsTransfer = transaction.amount > 0 || 
+                                         (transaction.category && 
+                                          transaction.category.toLowerCase && 
+                                          transaction.category.toLowerCase().includes('savings'));
+      
+      return (categoryMatches || descriptionMatches) && isPositiveOrSavingsTransfer;
+    })
+    .reduce((total, transaction) => total + Math.abs(transaction.amount), 0);
+}
+
+function formatPeriodInfo(onboardingData) {
+  if (!onboardingData?.period) return 'Budget Period';
+
+  const startDate = new Date(onboardingData.period.start_date);
+  const durationMonths = onboardingData.period.duration_months;
+  const endDate = new Date(startDate);
+  endDate.setMonth(endDate.getMonth() + durationMonths - 1);
+
+  const now = new Date();
+  const monthsElapsed = Math.max(1, Math.floor((now - startDate) / (1000 * 60 * 60 * 24 * 30)) + 1);
+  const currentMonth = Math.min(monthsElapsed, durationMonths);
+
+  const formatDate = (date) => {
+    return date.toLocaleDateString('en-US', { 
+      month: 'long', 
+      year: 'numeric' 
+    });
+  };
+
+  return `${formatDate(startDate)} to ${formatDate(endDate)} • Month ${currentMonth} of ${durationMonths}`;
+}
+
+function processNetWorth(onboardingData) {
+  const netWorthValue = onboardingData?.netWorth?.netWorth || 0;
+  return {
+    value: netWorthValue,
+    subtitle: netWorthValue >= 0 ? 'Positive net worth' : 'Room to grow'
+  };
 }

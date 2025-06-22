@@ -495,6 +495,7 @@ export const formatCurrency = (amount) => {
 
 // Generic empty state with title, and description
 export const EmptyState = ({ 
+  icon,
   title,
   description,
   className = ''

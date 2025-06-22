@@ -202,4 +202,4 @@ const MenuSection = ({ title, items, onAction, isDarkMode, currentPage }) => (
       })}
     </div>
   </div>
-)
+);
