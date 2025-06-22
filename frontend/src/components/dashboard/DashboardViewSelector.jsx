@@ -2,6 +2,7 @@
 import React from 'react';
 
 import { useTheme } from 'contexts/ThemeContext';
+import { StandardSelect } from 'components/shared/FormComponents';
 
 export const DashboardViewSelector = ({ 
   viewMode, 
@@ -12,46 +13,44 @@ export const DashboardViewSelector = ({
 }) => {
   const { isDarkMode } = useTheme();
 
+  // Create options for the month selector
+  const monthOptions = availableMonths.map(month => ({
+    value: month.value,
+    label: month.label
+  }));
+
+  const handleMonthChange = (value) => {
+    setSelectedMonth(value);
+    setViewMode('month');
+  };
+
+  // Get current month label for display
+  const getCurrentMonthLabel = () => {
+    if (selectedMonth) {
+      const month = availableMonths.find(m => m.value === selectedMonth);
+      return month ? month.label : 'Selected Month';
+    } else {
+      // Default to current month
+      const now = new Date();
+      return now.toLocaleDateString('en-US', { 
+        month: 'long', 
+        year: 'numeric' 
+      });
+    }
+  };
+
   return (
     <div className="flex items-center justify-center mb-16">
-      <div className="flex items-center gap-0 border-b border-gray-300 dark:border-gray-700">
+      <div className="flex items-center gap-0">
         
-        {/* Month Selection */}
-        <div className="relative">
-          <select
-            value={selectedMonth || 'current'}
-            onChange={(e) => {
-              const value = e.target.value;
-              if (value === 'current') {
-                setSelectedMonth(null);
-                setViewMode('month');
-              } else {
-                setSelectedMonth(value);
-                setViewMode('month');
-              }
-            }}
-            className={`px-4 py-2 text-sm bg-transparent border-0 focus:outline-none transition-all duration-200 border-b-2 appearance-none cursor-pointer ${
-              viewMode === 'month'
-                ? isDarkMode 
-                  ? 'text-white border-white' 
-                  : 'text-black border-black'
-                : isDarkMode 
-                  ? 'text-gray-500 border-transparent hover:text-gray-300' 
-                  : 'text-gray-400 border-transparent hover:text-gray-600'
-            }`}
-          >
-            <option value="current">This Month</option>
-            {availableMonths.map(month => (
-              <option key={month.value} value={month.value}>
-                {month.label}
-              </option>
-            ))}
-          </select>
-          <div className={`absolute right-1 top-1/2 transform -translate-y-1/2 pointer-events-none text-xs ${
-            isDarkMode ? 'text-gray-400' : 'text-gray-500'
-          }`}>
-            ▼
-          </div>
+        {/* Month Selection using StandardSelect */}
+        <div className="relative min-w-48">
+          <StandardSelect
+            value={selectedMonth || availableMonths[0]?.value || ''}
+            onChange={handleMonthChange}
+            options={monthOptions}
+            className="[&_button]:border-b-2 [&_button]:border-t-0 [&_button]:border-l-0 [&_button]:border-r-0 [&_button]:rounded-none [&_button]:text-sm [&_button]:px-4 [&_button]:py-2"
+          />
         </div>
 
         {/* Period Total Button */}
@@ -79,7 +78,17 @@ export const generateAvailableMonths = (onboardingData, transactions) => {
   const months = [];
   
   if (!onboardingData?.period?.start_date) {
-    return months;
+    // Fallback to current month if no period data
+    const now = new Date();
+    return [{
+      value: `${now.getFullYear()}-${now.getMonth()}`,
+      label: now.toLocaleDateString('en-US', { 
+        month: 'long', 
+        year: 'numeric' 
+      }),
+      date: now,
+      hasTransactions: transactions.length > 0
+    }];
   }
 
   const periodStart = new Date(onboardingData.period.start_date);
