@@ -1,4 +1,4 @@
-// Streamlined Dashboard component - Remove redundant Financial Overview
+// Updated Dashboard component with requested changes
 import React, { useState, useEffect } from 'react';
 
 import { useTheme } from 'contexts/ThemeContext';
@@ -12,7 +12,7 @@ import {
 } from 'components/shared/FormComponents';
 
 import { BurgerMenu } from 'components/dashboard/BurgerMenu';
-import { BudgetPerformanceSection, calculateBudgetPerformance } from 'components/dashboard/BudgetPerformanceSection';
+import { BudgetPerformanceSection, calculateBudgetPerformance, calculateNetWorthData } from 'components/dashboard/BudgetPerformanceSection';
 import { DashboardViewSelector, generateAvailableMonths } from 'components/dashboard/DashboardViewSelector';
 
 export const Dashboard = ({ onNavigate }) => {
@@ -92,6 +92,7 @@ export const Dashboard = ({ onNavigate }) => {
   // Process data based on current view mode
   const dashboardData = processDashboardData(onboardingData, transactions, viewMode, selectedMonth);
   const performanceData = calculateBudgetPerformance(onboardingData, transactions, viewMode, selectedMonth);
+  const netWorthData = calculateNetWorthData(onboardingData, viewMode);
   const availableMonths = generateAvailableMonths(onboardingData, transactions);
 
   // Get current view label for display
@@ -180,23 +181,11 @@ export const Dashboard = ({ onNavigate }) => {
             Showing data for: {getCurrentViewLabel()}
           </div>
 
-          {/* Quick Summary - Only Non-Redundant Metrics */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-20">
-            <SummaryCard
-              title="Net Worth"
-              value={dashboardData.netWorth.value}
-              subtitle={dashboardData.netWorth.subtitle}
-              accent={true}
-            />
-            <SummaryCard
-              title="Cash Flow"
-              value={dashboardData.cashFlow}
-              subtitle={dashboardData.cashFlow >= 0 ? 'Positive this period' : 'Negative this period'}
-            />
-          </div>
-
-          {/* Budget Performance Section - Main Focus */}
-          <BudgetPerformanceSection performanceData={performanceData} />
+          {/* Budget Performance Section - Enhanced with 2 rows */}
+          <BudgetPerformanceSection 
+            performanceData={performanceData}
+            netWorthData={netWorthData}
+          />
 
           <SectionBorder />
 
@@ -205,7 +194,7 @@ export const Dashboard = ({ onNavigate }) => {
             
             {/* Left Column */}
             <div className="space-y-16">
-              {/* Budget Health */}
+              {/* Budget Categories */}
               <FormSection title="Budget Categories">
                 {dashboardData.budgetCategories.length > 0 ? (
                   <div className="space-y-4">
@@ -221,26 +210,18 @@ export const Dashboard = ({ onNavigate }) => {
                 )}
               </FormSection>
 
-              {/* Recent Activity */}
-              <FormSection title={viewMode === 'period' ? 'Period Transactions' : 'Month Transactions'}>
-                {dashboardData.filteredTransactions.length > 0 ? (
-                  <div className="space-y-2">
-                    {dashboardData.filteredTransactions.slice(-8).reverse().map((transaction, index) => (
-                      <TransactionListItem
-                        key={transaction.id || index}
-                        title={transaction.description || 'Unknown Transaction'}
-                        subtitle={new Date(transaction.date).toLocaleDateString()}
-                        category={transaction.category}
-                        amount={transaction.amount}
-                        isIncome={transaction.amount > 0}
-                        isExpense={transaction.amount < 0}
-                      />
+              {/* Income Breakdown */}
+              <FormSection title="Income Breakdown">
+                {dashboardData.incomeBreakdown.length > 0 ? (
+                  <div className="space-y-4">
+                    {dashboardData.incomeBreakdown.map((source, index) => (
+                      <IncomeSourceItem key={index} source={source} viewMode={viewMode} />
                     ))}
                   </div>
                 ) : (
                   <EmptyState
-                    title="No transactions"
-                    description={`No transactions found for ${getCurrentViewLabel().toLowerCase()}`}
+                    title="No income data"
+                    description="Add income sources in onboarding to see breakdown"
                   />
                 )}
               </FormSection>
@@ -248,12 +229,12 @@ export const Dashboard = ({ onNavigate }) => {
 
             {/* Right Column */}
             <div className="space-y-16">
-              {/* Savings Progress */}
+              {/* Savings Progress - Cleaned up without comments */}
               <FormSection title="Savings Goals">
                 {dashboardData.savingsGoals.length > 0 ? (
                   <div className="space-y-4">
                     {dashboardData.savingsGoals.map((goal, index) => (
-                      <SavingsGoalItem key={index} goal={goal} viewMode={viewMode} />
+                      <CleanSavingsGoalItem key={index} goal={goal} />
                     ))}
                   </div>
                 ) : (
@@ -262,33 +243,6 @@ export const Dashboard = ({ onNavigate }) => {
                     description="Set up savings goals in your onboarding to track progress"
                   />
                 )}
-              </FormSection>
-
-              {/* Quick Actions */}
-              <FormSection title="Quick Actions">
-                <div className="space-y-4">
-                  <button
-                    onClick={() => onNavigate('import')}
-                    className={`w-full py-6 border-2 border-dashed transition-colors text-center ${
-                      isDarkMode 
-                        ? 'border-gray-600 text-gray-400 hover:border-gray-500 hover:text-gray-300' 
-                        : 'border-gray-300 text-gray-600 hover:border-gray-400 hover:text-gray-700'
-                    }`}
-                  >
-                    <span className="text-lg font-light">Import New Transactions</span>
-                  </button>
-                  
-                  <button
-                    onClick={() => onNavigate('onboarding')}
-                    className={`w-full py-4 text-center transition-colors border-b border-transparent hover:border-current ${
-                      isDarkMode 
-                        ? 'text-gray-400 hover:text-white' 
-                        : 'text-gray-600 hover:text-black'
-                    }`}
-                  >
-                    <span className="text-base font-light">Start Next Budget Period</span>
-                  </button>
-                </div>
               </FormSection>
             </div>
           </div>
@@ -300,7 +254,7 @@ export const Dashboard = ({ onNavigate }) => {
   );
 };
 
-// Helper components remain the same...
+// Helper components
 const BurgerIcon = () => (
   <div className="w-5 h-5 flex flex-col justify-between">
     <div className="w-full h-0.5 bg-current transition-all duration-300" />
@@ -350,7 +304,32 @@ const BudgetCategoryItem = ({ category }) => {
   );
 };
 
-const SavingsGoalItem = ({ goal, viewMode }) => {
+// New Income Source Item component
+const IncomeSourceItem = ({ source, viewMode }) => {
+  const { isDarkMode } = useTheme();
+  
+  return (
+    <div className={`flex items-center justify-between py-4 border-b ${
+      isDarkMode ? 'border-gray-800' : 'border-gray-200'
+    }`}>
+      <div className={`text-base font-light ${
+        isDarkMode ? 'text-white' : 'text-black'
+      }`}>
+        {source.name}
+      </div>
+      <div className="flex items-center gap-4">
+        <div className={`text-sm font-mono text-right ${
+          isDarkMode ? 'text-gray-400' : 'text-gray-600'
+        }`}>
+          ${source.actual.toLocaleString()} / ${source.expected.toLocaleString()}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Cleaned up Savings Goal component without comments
+const CleanSavingsGoalItem = ({ goal }) => {
   const { isDarkMode } = useTheme();
   const percentage = goal.target > 0 ? (goal.current / goal.target) * 100 : 0;
   
@@ -364,7 +343,7 @@ const SavingsGoalItem = ({ goal, viewMode }) => {
         {goal.name}
       </div>
       
-      <div className="flex items-center gap-4 mb-2">
+      <div className="flex items-center gap-4">
         <div className={`flex-1 h-1 relative ${
           isDarkMode ? 'bg-gray-800' : 'bg-gray-200'
         }`}>
@@ -385,20 +364,11 @@ const SavingsGoalItem = ({ goal, viewMode }) => {
           ${(goal.current / 1000).toFixed(1)}k / ${(goal.target / 1000).toFixed(0)}k
         </div>
       </div>
-      
-      <div className={`text-xs ${
-        isDarkMode ? 'text-gray-500' : 'text-gray-500'
-      }`}>
-        {goal.current === 0 
-          ? `No savings yet for ${viewMode === 'period' ? 'period' : 'month'}` 
-          : `$${goal.current.toLocaleString()} saved ${viewMode === 'period' ? 'this period' : 'this month'}`
-        }
-      </div>
     </div>
   );
 };
 
-// Enhanced data processing that supports view modes and month selection
+// Enhanced data processing that includes income breakdown
 function processDashboardData(onboardingData, transactions, viewMode, selectedMonth) {
   const household = onboardingData?.household?.name || 'Your Budget';
   const period = formatPeriodInfo(onboardingData);
@@ -406,24 +376,65 @@ function processDashboardData(onboardingData, transactions, viewMode, selectedMo
   // Filter transactions based on view mode
   const filteredTransactions = getFilteredTransactions(transactions, viewMode, selectedMonth, onboardingData);
   
-  // Calculate simple metrics
-  const income = filteredTransactions.filter(t => t.amount > 0).reduce((sum, t) => sum + t.amount, 0);
-  const expenses = filteredTransactions.filter(t => t.amount < 0).reduce((sum, t) => sum + Math.abs(t.amount), 0);
-  const cashFlow = income - expenses;
-  
   const budgetCategories = processBudgetCategories(onboardingData, filteredTransactions, viewMode);
   const savingsGoals = processSavingsGoals(onboardingData, filteredTransactions, viewMode);
   const netWorth = processNetWorth(onboardingData);
+  const incomeBreakdown = processIncomeBreakdown(onboardingData, filteredTransactions, viewMode);
 
   return {
     household,
     period,
-    cashFlow,
     budgetCategories,
     savingsGoals,
     netWorth,
-    filteredTransactions
+    incomeBreakdown
   };
+}
+
+function processIncomeBreakdown(onboardingData, filteredTransactions, viewMode) {
+  const incomeSources = onboardingData?.income?.incomeSources || [];
+  
+  return incomeSources.map(source => {
+    // Calculate expected income based on view mode
+    let expectedAmount = 0;
+    if (viewMode === 'period') {
+      const periodStart = new Date(onboardingData?.period?.start_date || new Date());
+      const now = new Date();
+      const monthsElapsed = Math.max(1, 
+        ((now.getFullYear() - periodStart.getFullYear()) * 12) + 
+        (now.getMonth() - periodStart.getMonth()) + 1
+      );
+      // Convert to yearly, then prorate for elapsed months
+      const yearlyAmount = parseFloat(source.amount) * (source.frequency === 'Monthly' ? 12 : 
+                                                        source.frequency === 'Yearly' ? 1 :
+                                                        source.frequency === 'Weekly' ? 52 :
+                                                        source.frequency === 'Bi-weekly' ? 26 : 12);
+      expectedAmount = (yearlyAmount / 12) * monthsElapsed;
+    } else {
+      // Monthly view
+      expectedAmount = source.frequency === 'Monthly' ? parseFloat(source.amount) :
+                      source.frequency === 'Yearly' ? parseFloat(source.amount) / 12 :
+                      source.frequency === 'Weekly' ? parseFloat(source.amount) * 4.33 :
+                      source.frequency === 'Bi-weekly' ? parseFloat(source.amount) * 2.17 :
+                      parseFloat(source.amount);
+    }
+    
+    // Calculate actual income from transactions (this is simplified - in reality you'd need better matching)
+    const actualAmount = filteredTransactions
+      .filter(t => t.amount > 0 && 
+        (t.description?.toLowerCase().includes(source.name.toLowerCase()) ||
+         t.category === source.name ||
+         (t.description?.toLowerCase().includes('salary') && source.name.toLowerCase().includes('salary'))
+        )
+      )
+      .reduce((sum, t) => sum + t.amount, 0);
+    
+    return {
+      name: source.name,
+      expected: expectedAmount,
+      actual: actualAmount
+    };
+  });
 }
 
 function getFilteredTransactions(transactions, viewMode, selectedMonth, onboardingData) {

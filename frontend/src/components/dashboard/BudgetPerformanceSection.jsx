@@ -1,10 +1,10 @@
-// frontend/src/components/dashboard/BudgetPerformanceSection.jsx - Simplified Version
+// frontend/src/components/dashboard/BudgetPerformanceSection.jsx - Enhanced Version
 import React from 'react';
 
 import { useTheme } from 'contexts/ThemeContext';
 
-// Simplified Budget Performance Section - no internal toggle, no category breakdown
-export const BudgetPerformanceSection = ({ performanceData }) => {
+// Enhanced Budget Performance Section with 2 rows
+export const BudgetPerformanceSection = ({ performanceData, netWorthData }) => {
   const { isDarkMode } = useTheme();
 
   return (
@@ -15,8 +15,8 @@ export const BudgetPerformanceSection = ({ performanceData }) => {
         Budget Performance
       </h2>
 
-      {/* Performance Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+      {/* First Row - Main Performance */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 mb-12">
         <PerformanceCategory
           title="Income"
           data={performanceData.income}
@@ -33,11 +33,22 @@ export const BudgetPerformanceSection = ({ performanceData }) => {
           type="expenses"
         />
       </div>
+
+      {/* Second Row - Additional Metrics */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+        <NetWorthCategory
+          title="Net Worth"
+          data={netWorthData}
+        />
+        {/* Two empty slots for future expansion */}
+        <div></div>
+        <div></div>
+      </div>
     </section>
   );
 };
 
-// Individual Performance Category Component - Simplified
+// Individual Performance Category Component
 const PerformanceCategory = ({ title, data, type }) => {
   const { isDarkMode } = useTheme();
   
@@ -134,13 +145,86 @@ const PerformanceCategory = ({ title, data, type }) => {
   );
 };
 
-// Enhanced data calculation functions that support specific month selection
+// Net Worth Category Component
+const NetWorthCategory = ({ title, data }) => {
+  const { isDarkMode } = useTheme();
+  
+  const getTrendColor = (trend) => {
+    if (trend > 0) return 'text-green-500';
+    if (trend < 0) return 'text-red-500';
+    return isDarkMode ? 'text-gray-400' : 'text-gray-600';
+  };
+
+  const getTrendLabel = (trend) => {
+    if (trend === 0) return 'No change this period';
+    const amount = Math.abs(trend);
+    return trend > 0 
+      ? `+$${amount.toLocaleString()} this period` 
+      : `-$${amount.toLocaleString()} this period`;
+  };
+
+  const trendArrow = data.trend > 0 ? '↗' : data.trend < 0 ? '↘' : '→';
+
+  return (
+    <div>
+      {/* Category Title */}
+      <h3 className={`text-sm font-medium uppercase tracking-wider mb-6 ${
+        isDarkMode ? 'text-gray-500' : 'text-gray-400'
+      }`}>
+        {title}
+      </h3>
+
+      {/* Main Number */}
+      <div className="mb-6">
+        <div className={`text-3xl font-light leading-none mb-2 font-mono ${
+          data.value >= 0 
+            ? isDarkMode ? 'text-white' : 'text-black'
+            : 'text-red-500'
+        }`}>
+          {data.value >= 0 ? '' : '-'}${Math.abs(data.value).toLocaleString()}
+        </div>
+        <div className={`text-base font-light ${
+          isDarkMode ? 'text-gray-400' : 'text-gray-600'
+        }`}>
+          {data.value >= 0 ? 'Positive net worth' : 'Room to grow'}
+        </div>
+      </div>
+
+      {/* Trend Indicator */}
+      <div className="mb-4">
+        <div className={`text-lg font-light ${getTrendColor(data.trend)}`}>
+          {trendArrow}
+        </div>
+      </div>
+
+      {/* Trend Display */}
+      <div className={`text-sm font-light ${getTrendColor(data.trend)}`}>
+        {getTrendLabel(data.trend)}
+      </div>
+    </div>
+  );
+};
+
+// Enhanced data calculation functions
 export const calculateBudgetPerformance = (onboardingData, transactions, viewMode, selectedMonth) => {
   if (viewMode === 'period') {
     return calculatePeriodPerformance(onboardingData, transactions);
   } else {
     return calculateMonthPerformance(onboardingData, transactions, selectedMonth);
   }
+};
+
+export const calculateNetWorthData = (onboardingData, viewMode) => {
+  const netWorthValue = onboardingData?.netWorth?.netWorth || 0;
+  
+  // For now, we don't have historical data to calculate actual trend
+  // In the future, this could track period-over-period changes
+  const trend = 0; // Placeholder for future implementation
+  
+  return {
+    value: netWorthValue,
+    trend: trend
+  };
 };
 
 function calculateMonthPerformance(onboardingData, transactions, selectedMonth) {
