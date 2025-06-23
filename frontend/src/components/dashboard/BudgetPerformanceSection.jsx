@@ -2,6 +2,7 @@
 import React from 'react';
 
 import { useTheme } from 'contexts/ThemeContext';
+import { convertToYearly } from 'utils/incomeHelpers';
 
 // Enhanced Budget Performance Section with 2 rows
 export const BudgetPerformanceSection = ({ performanceData, netWorthData }) => {

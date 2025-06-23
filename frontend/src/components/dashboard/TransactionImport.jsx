@@ -100,6 +100,7 @@ export const TransactionImport = ({ onNavigate }) => {
       case 'export':
         const exportData = dataManager.exportData();
         console.log('Export data:', exportData);
+        // TODO: Implement actual export download
         break;
       case 'reset-data':
         dataManager.resetAllData();
@@ -301,15 +302,12 @@ export const TransactionImport = ({ onNavigate }) => {
                 }
               `}
             >
-              <div className="text-6xl mb-6 opacity-50 group-hover:opacity-100 transition-opacity">
-                📄
-              </div>
-              <h3 className={`text-2xl font-light mb-4 ${
+              <h3 className={`text-3xl font-light mb-4 ${
                 isDarkMode ? 'text-white' : 'text-black'
               }`}>
                 Import CSV File
               </h3>
-              <p className={`text-base font-light ${
+              <p className={`text-xl font-light ${
                 isDarkMode ? 'text-gray-400' : 'text-gray-600'
               }`}>
                 Upload bank or credit card statements
@@ -324,10 +322,7 @@ export const TransactionImport = ({ onNavigate }) => {
                 : 'border-gray-300'
               }
             `}>
-              <div className="text-6xl mb-6 opacity-50 text-center">
-                ✏️
-              </div>
-              <h3 className={`text-2xl font-light mb-8 text-center ${
+              <h3 className={`text-3xl font-light mb-8 text-center ${
                 isDarkMode ? 'text-white' : 'text-black'
               }`}>
                 Add Manually
@@ -341,29 +336,32 @@ export const TransactionImport = ({ onNavigate }) => {
         </FormSection>
 
         {/* Recent Transactions */}
-        <SectionBorder />
-        <DataSection
-          title="Recent Transactions"
-          data={allTransactions.slice(-5).reverse()}
-          renderItem={(transaction) => (
-            <TransactionListItem
-              key={transaction.id}
-              title={transaction.description}
-              subtitle={transaction.date}
-              amount={transaction.amount}
-              category={transaction.category?.name}
-              isIncome={transaction.amount > 0}
-              isExpense={transaction.amount < 0}
+        {allTransactions.length > 0 && (
+          <>
+            <SectionBorder />
+            <DataSection
+              title="Recent Transactions"
+              data={allTransactions.slice(-5).reverse()}
+              renderItem={(transaction) => (
+                <TransactionListItem
+                  key={transaction.id}
+                  title={transaction.description}
+                  subtitle={transaction.date}
+                  amount={transaction.amount}
+                  category={transaction.category?.name}
+                  isIncome={transaction.amount > 0}
+                  isExpense={transaction.amount < 0}
+                />
+              )}
+              emptyState={
+                <EmptyState
+                  title="No transactions yet"
+                  description="Import a CSV or add manually to get started"
+                />
+              }
             />
-          )}
-          emptyState={
-            <EmptyState
-              icon="💳"
-              title="No transactions yet"
-              description="Import a CSV or add manually to get started"
-            />
-          }
-        />
+          </>
+        )}
 
       </StandardFormLayout>
     </>
@@ -381,6 +379,7 @@ const BurgerIcon = () => (
 
 // Simplified manual transaction form
 const ManualTransactionForm = ({ categories, onAdd }) => {
+  const { isDarkMode } = useTheme();
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
     description: '',
@@ -423,6 +422,7 @@ const ManualTransactionForm = ({ categories, onAdd }) => {
             value={formData.description}
             onChange={(value) => setFormData(prev => ({ ...prev, description: value }))}
             placeholder="Coffee Shop, Grocery Store, etc."
+            className="[&_label]:text-2xl [&_label]:font-medium [&_input]:text-2xl [&_input]:font-medium [&_input]:pb-4"
           />
         </FormField>
       </FormGrid>
@@ -434,6 +434,7 @@ const ManualTransactionForm = ({ categories, onAdd }) => {
             type="date"
             value={formData.date}
             onChange={(value) => setFormData(prev => ({ ...prev, date: value }))}
+            className="[&_label]:text-2xl [&_label]:font-medium [&_input]:text-2xl [&_input]:font-medium [&_input]:pb-4"
           />
         </FormField>
         <FormField span={4}>
@@ -444,6 +445,7 @@ const ManualTransactionForm = ({ categories, onAdd }) => {
             onChange={(value) => setFormData(prev => ({ ...prev, amount: value }))}
             prefix="$"
             placeholder="0.00"
+            className="[&_label]:text-2xl [&_label]:font-medium [&_input]:text-2xl [&_input]:font-medium [&_input]:pb-4"
           />
         </FormField>
         <FormField span={4}>
@@ -452,6 +454,7 @@ const ManualTransactionForm = ({ categories, onAdd }) => {
             value={formData.categoryId}
             onChange={(value) => setFormData(prev => ({ ...prev, categoryId: value }))}
             options={categoryOptions}
+            className="[&_label]:text-2xl [&_label]:font-medium [&_button]:text-2xl [&_button]:font-medium [&_button]:pb-4"
           />
         </FormField>
       </FormGrid>
@@ -461,9 +464,11 @@ const ManualTransactionForm = ({ categories, onAdd }) => {
           onClick={handleSubmit}
           disabled={!formData.description || !formData.amount}
           className={`
-            text-base font-light border-b-2 pb-2 transition-all
+            text-xl font-light border-b-2 pb-2 transition-all
             ${formData.description && formData.amount
-              ? 'text-black border-black hover:border-gray-600'
+              ? isDarkMode
+                ? 'text-white border-white hover:border-gray-400'
+                : 'text-black border-black hover:border-gray-600'
               : 'text-gray-400 border-gray-400 cursor-not-allowed'
             }
           `}

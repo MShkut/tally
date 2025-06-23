@@ -74,6 +74,11 @@ export const ReviewTransactions = ({
     }
   };
 
+  const handleDelete = (transactionId) => {
+    // Filter out the transaction
+    onSplitTransaction(transactionId, []);
+  };
+
   const handleSplitComplete = (splitTransactions) => {
     if (selectedTransaction) {
       onSplitTransaction(selectedTransaction.id, splitTransactions);
@@ -91,92 +96,168 @@ export const ReviewTransactions = ({
   return (
     <>
       <ThemeToggle />
-      <StandardFormLayout
-        title="Review & Categorize"
-        subtitle="Confirm categories for your imported transactions. We've made suggestions based on your budget."
-        onBack={onBack}
-        onNext={onSave}
-        canGoNext={true}
-        nextLabel="Save All Transactions"
-        backLabel="Back to Import"
-      >
-        
-        {/* Import Summary */}
-        <FormSection>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-            <SummaryCard
-              title="Total Imported"
-              value={stats.totalImported}
-              subtitle="New transactions"
-            />
-            <SummaryCard
-              title="Auto-Categorized"
-              value={stats.categorized}
-              subtitle="High confidence"
-              accent={true}
-            />
-            <SummaryCard
-              title="Need Review"
-              value={stats.needsReview}
-              subtitle="Low confidence"
-            />
-            <SummaryCard
-              title="Split"
-              value={stats.splits}
-              subtitle="Transactions split"
-            />
+      <div className={`min-h-screen transition-colors duration-300 ${
+        isDarkMode ? 'bg-black text-white' : 'bg-gray-50 text-gray-900'
+      }`}>
+        <div className="max-w-7xl mx-auto px-6 py-12">
+          
+          {/* Header */}
+          <div className="mb-24">
+            <h1 className={`text-5xl font-light leading-tight mb-4 ${
+              isDarkMode ? 'text-white' : 'text-black'
+            }`}>
+              Review & Categorize
+            </h1>
+            <p className={`text-xl font-light ${
+              isDarkMode ? 'text-gray-400' : 'text-gray-600'
+            }`}>
+              Confirm categories for your imported transactions. We've made suggestions based on your budget.
+            </p>
           </div>
-        </FormSection>
-
-        {/* Filters and Controls */}
-        <FormSection>
-          <FormGrid>
-            <FormField span={6}>
-              <StandardSelect
-                label="Filter Transactions"
-                value={filter}
-                onChange={setFilter}
-                options={filterOptions}
+          
+          {/* Import Summary */}
+          <FormSection>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+              <SummaryCard
+                title="Total Imported"
+                value={stats.totalImported}
+                subtitle="New transactions"
               />
-            </FormField>
-            <FormField span={6}>
-              <StandardSelect
-                label="Sort By"
-                value={sortBy}
-                onChange={setSortBy}
-                options={sortOptions}
+              <SummaryCard
+                title="Auto-Categorized"
+                value={stats.categorized}
+                subtitle="High confidence"
+                accent={true}
               />
-            </FormField>
-          </FormGrid>
-        </FormSection>
-
-        <SectionBorder />
-
-        {/* Transaction List */}
-        <FormSection title={`Transactions (${sortedTransactions.length})`}>
-          {sortedTransactions.length === 0 ? (
-            <EmptyState
-              title="No transactions match filter"
-              description="Try adjusting your filter settings"
-            />
-          ) : (
-            <div className="space-y-0">
-              {sortedTransactions.map((transaction) => (
-                <TransactionReviewItem
-                  key={transaction.id}
-                  transaction={transaction}
-                  categories={categories}
-                  categoryOptions={categoryOptions}
-                  onCategoryChange={onCategoryChange}
-                  onSplit={handleSplit}
-                  getConfidenceIndicator={getConfidenceIndicator}
-                />
-              ))}
+              <SummaryCard
+                title="Need Review"
+                value={stats.needsReview}
+                subtitle="Low confidence"
+              />
+              <SummaryCard
+                title="Split"
+                value={stats.splits}
+                subtitle="Transactions split"
+              />
             </div>
-          )}
-        </FormSection>
+          </FormSection>
 
-      </StandardFormLayout>
+          {/* Filters and Controls */}
+          <FormSection>
+            <FormGrid>
+              <FormField span={6}>
+                <StandardSelect
+                  label="Filter Transactions"
+                  value={filter}
+                  onChange={setFilter}
+                  options={filterOptions}
+                  className="[&_label]:text-2xl [&_label]:font-medium [&_button]:text-xl [&_button]:font-medium"
+                />
+              </FormField>
+              <FormField span={6}>
+                <StandardSelect
+                  label="Sort By"
+                  value={sortBy}
+                  onChange={setSortBy}
+                  options={sortOptions}
+                  className="[&_label]:text-2xl [&_label]:font-medium [&_button]:text-xl [&_button]:font-medium"
+                />
+              </FormField>
+            </FormGrid>
+          </FormSection>
+
+          <SectionBorder />
+
+          {/* Transaction List - Table-like layout */}
+          <FormSection>
+            <h2 className={`text-2xl font-light mb-8 ${
+              isDarkMode ? 'text-white' : 'text-black'
+            }`}>
+              Transactions ({sortedTransactions.length})
+            </h2>
+            
+            {sortedTransactions.length === 0 ? (
+              <EmptyState
+                title="No transactions match filter"
+                description="Try adjusting your filter settings"
+              />
+            ) : (
+              <div className="space-y-0">
+                {/* Table Header */}
+                <div className={`grid grid-cols-12 gap-4 pb-4 border-b ${
+                  isDarkMode ? 'border-gray-800' : 'border-gray-200'
+                }`}>
+                  <div className={`col-span-1 text-sm font-medium ${
+                    isDarkMode ? 'text-gray-500' : 'text-gray-400'
+                  }`}>
+                    Date
+                  </div>
+                  <div className={`col-span-4 text-sm font-medium ${
+                    isDarkMode ? 'text-gray-500' : 'text-gray-400'
+                  }`}>
+                    Description
+                  </div>
+                  <div className={`col-span-2 text-sm font-medium text-right ${
+                    isDarkMode ? 'text-gray-500' : 'text-gray-400'
+                  }`}>
+                    Amount
+                  </div>
+                  <div className={`col-span-3 text-sm font-medium ${
+                    isDarkMode ? 'text-gray-500' : 'text-gray-400'
+                  }`}>
+                    Category
+                  </div>
+                  <div className={`col-span-2 text-sm font-medium text-right ${
+                    isDarkMode ? 'text-gray-500' : 'text-gray-400'
+                  }`}>
+                    Actions
+                  </div>
+                </div>
+                
+                {/* Transaction Rows */}
+                {sortedTransactions.map((transaction) => (
+                  <TransactionReviewItem
+                    key={transaction.id}
+                    transaction={transaction}
+                    categories={categories}
+                    categoryOptions={categoryOptions}
+                    onCategoryChange={onCategoryChange}
+                    onSplit={handleSplit}
+                    onDelete={handleDelete}
+                    getConfidenceIndicator={getConfidenceIndicator}
+                  />
+                ))}
+              </div>
+            )}
+          </FormSection>
+
+          {/* Navigation */}
+          <div className="flex justify-between items-center mt-16">
+            <button
+              onClick={onBack}
+              className={`text-lg font-light transition-colors ${
+                isDarkMode 
+                  ? 'text-gray-400 hover:text-white border-b border-gray-700 hover:border-white pb-1' 
+                  : 'text-gray-600 hover:text-black border-b border-gray-300 hover:border-black pb-1'
+              }`}
+            >
+              Back to Import
+            </button>
+            
+            <button
+              onClick={onSave}
+              className={`text-xl font-light transition-all ${
+                isDarkMode
+                  ? 'text-white border-b-2 border-white hover:border-gray-400 pb-2'
+                  : 'text-black border-b-2 border-black hover:border-gray-600 pb-2'
+              }`}
+            >
+              Save All Transactions
+            </button>
+          </div>
+
+        </div>
+      </div>
 
       {/* Split Transaction Inline */}
       {showSplitter && selectedTransaction && (
@@ -194,82 +275,134 @@ export const ReviewTransactions = ({
   );
 };
 
-// Individual transaction review item
+// Individual transaction review item - horizontal table-like layout
 const TransactionReviewItem = ({ 
   transaction, 
   categories,
   categoryOptions, 
   onCategoryChange, 
   onSplit,
+  onDelete,
   getConfidenceIndicator
 }) => {
   const { isDarkMode } = useTheme();
   const confidence = getConfidenceIndicator(transaction.confidence);
-  const isSplitWorthy = TransactionHelpers.isSplitWorthy(transaction);
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+
+  // Format date to be more compact
+  const formatDate = (dateStr) => {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
+
+  const handleCategoryClick = (e) => {
+    e.stopPropagation();
+    setShowCategoryDropdown(!showCategoryDropdown);
+  };
+
+  const handleCategorySelect = (categoryId) => {
+    onCategoryChange(transaction.id, categoryId);
+    setShowCategoryDropdown(false);
+  };
 
   return (
-    <div className={`py-6 border-b ${
+    <div className={`grid grid-cols-12 gap-4 py-6 border-b ${
       isDarkMode ? 'border-gray-800' : 'border-gray-200'
     }`}>
-      <FormGrid>
-        {/* Date and Description */}
-        <FormField span={5}>
-          <div>
-            <div className={`text-base font-light mb-1 ${
-              isDarkMode ? 'text-white' : 'text-black'
-            }`}>
-              {transaction.description}
-            </div>
-            <div className={`text-sm font-light ${
-              isDarkMode ? 'text-gray-500' : 'text-gray-400'
-            }`}>
-              {transaction.date}
-            </div>
-          </div>
-        </FormField>
+      {/* Date - 1 column */}
+      <div className={`col-span-1 text-base font-light ${
+        isDarkMode ? 'text-gray-400' : 'text-gray-600'
+      }`}>
+        {formatDate(transaction.date)}
+      </div>
 
-        {/* Amount */}
-        <FormField span={2}>
-          <div className={`text-base font-mono ${
-            transaction.amount >= 0 ? 'text-green-500' : 'text-red-500'
+      {/* Description - 4 columns, full text */}
+      <div className={`col-span-4 text-base font-light ${
+        isDarkMode ? 'text-white' : 'text-black'
+      }`}>
+        <div className="truncate pr-4" title={transaction.description}>
+          {transaction.description}
+        </div>
+        <div className={`text-sm font-light ${confidence.color}`}>
+          {confidence.text} confidence
+        </div>
+      </div>
+
+      {/* Amount - 2 columns */}
+      <div className={`col-span-2 text-base font-mono text-right ${
+        transaction.amount >= 0 ? 'text-green-500' : 'text-red-500'
+      }`}>
+        {transaction.amount >= 0 ? '+' : ''}${Math.abs(transaction.amount).toFixed(2)}
+      </div>
+
+      {/* Category - 3 columns, inline dropdown */}
+      <div className="col-span-3 relative">
+        <button
+          onClick={handleCategoryClick}
+          className={`w-full px-0 py-2 border-0 border-b-2 bg-transparent transition-colors focus:outline-none text-left text-base font-light ${
+            isDarkMode 
+              ? 'border-gray-700 text-white hover:border-white' 
+              : 'border-gray-300 text-black hover:border-black'
+          }`}
+        >
+          <span className="flex items-center justify-between">
+            <span>{transaction.category?.name || 'Select category'}</span>
+            <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+              ▼
+            </span>
+          </span>
+        </button>
+        
+        {showCategoryDropdown && (
+          <div className={`absolute top-full left-0 right-0 mt-2 border shadow-lg z-10 max-h-60 overflow-y-auto ${
+            isDarkMode 
+              ? 'bg-black border-gray-700 shadow-gray-900' 
+              : 'bg-white border-gray-200 shadow-gray-300'
           }`}>
-            {transaction.amount >= 0 ? '+' : ''}${Math.abs(transaction.amount).toFixed(2)}
-          </div>
-        </FormField>
-
-        {/* Category Selection */}
-        <FormField span={3}>
-          <StandardSelect
-            value={transaction.category?.id || ''}
-            onChange={(value) => onCategoryChange(transaction.id, value)}
-            options={categoryOptions}
-          />
-        </FormField>
-
-        {/* Confidence & Actions */}
-        <FormField span={2}>
-          <div className="flex items-center gap-4">
-            <div className={`text-sm font-light ${confidence.color}`}>
-              {confidence.text}
-            </div>
-            {isSplitWorthy && (
+            {categoryOptions.map((option) => (
               <button
-                onClick={() => onSplit(transaction.id)}
-                className={`
-                  text-sm font-light border-b border-transparent hover:border-current pb-1
-                  ${isDarkMode 
-                    ? 'text-gray-400 hover:text-white' 
-                    : 'text-gray-600 hover:text-black'
-                  }
-                `}
-                title="Split this transaction"
+                key={option.value}
+                onClick={() => handleCategorySelect(option.value)}
+                className={`w-full px-4 py-3 text-left text-base font-light transition-colors duration-200 ${
+                  transaction.category?.id === option.value
+                    ? isDarkMode 
+                      ? 'bg-gray-800 text-white' 
+                      : 'bg-gray-100 text-black'
+                    : isDarkMode 
+                      ? 'text-gray-300 hover:bg-gray-900 hover:text-white' 
+                      : 'text-gray-700 hover:bg-gray-50 hover:text-black'
+                }`}
               >
-                Split
+                {option.label}
               </button>
-            )}
+            ))}
           </div>
-        </FormField>
-      </FormGrid>
+        )}
+      </div>
+
+      {/* Actions - 2 columns */}
+      <div className="col-span-2 flex items-center justify-end gap-4">
+        <button
+          onClick={() => onSplit(transaction.id)}
+          className={`
+            text-base font-light border-b border-transparent hover:border-current pb-1
+            ${isDarkMode 
+              ? 'text-gray-400 hover:text-white' 
+              : 'text-gray-600 hover:text-black'
+            }
+          `}
+          title="Split this transaction"
+        >
+          Split
+        </button>
+        <button
+          onClick={() => onDelete(transaction.id)}
+          className="text-2xl font-light text-gray-400 hover:text-red-500 transition-colors"
+          title="Remove this transaction"
+        >
+          ×
+        </button>
+      </div>
     </div>
   );
 };
@@ -370,7 +503,7 @@ const TransactionSplitter = ({ transaction, categories, onComplete, onCancel }) 
               <button
                 onClick={autoDistribute}
                 className={`
-                  text-sm font-light border-b border-transparent hover:border-current pb-1
+                  text-lg font-light border-b border-transparent hover:border-current pb-1
                   ${isDarkMode 
                     ? 'text-gray-400 hover:text-white' 
                     : 'text-gray-600 hover:text-black'
@@ -379,7 +512,7 @@ const TransactionSplitter = ({ transaction, categories, onComplete, onCancel }) 
               >
                 Distribute Evenly
               </button>
-              <div className={`text-sm font-light ${
+              <div className={`text-lg font-light ${
                 isDarkMode ? 'text-gray-500' : 'text-gray-400'
               }`}>
                 Remaining: ${remaining.toFixed(2)}
@@ -413,7 +546,7 @@ const TransactionSplitter = ({ transaction, categories, onComplete, onCancel }) 
                   }
                 `}
               >
-                <span className="text-lg font-light">Add Split Item</span>
+                <span className="text-xl font-light">Add Split Item</span>
               </button>
             </div>
           </FormSection>
@@ -421,7 +554,7 @@ const TransactionSplitter = ({ transaction, categories, onComplete, onCancel }) 
           {/* Validation Status */}
           <FormSection>
             <div className={`
-              text-center py-4 text-base font-light
+              text-center py-4 text-xl font-light
               ${isValid 
                 ? 'text-green-500' 
                 : 'text-red-500'
@@ -445,7 +578,7 @@ const SplitItem = ({ split, categoryOptions, onUpdate, onDelete, canDelete }) =>
   const { isDarkMode } = useTheme();
 
   return (
-    <div className={`py-6 border-b ${
+    <div className={`py-8 border-b ${
       isDarkMode ? 'border-gray-800' : 'border-gray-200'
     }`}>
       <FormGrid>
@@ -455,6 +588,7 @@ const SplitItem = ({ split, categoryOptions, onUpdate, onDelete, canDelete }) =>
             value={split.description}
             onChange={(value) => onUpdate({ ...split, description: value })}
             placeholder="What was this part for?"
+            className="[&_label]:text-2xl [&_label]:font-medium [&_input]:text-2xl [&_input]:font-medium [&_input]:pb-4"
           />
         </FormField>
         <FormField span={2}>
@@ -464,6 +598,7 @@ const SplitItem = ({ split, categoryOptions, onUpdate, onDelete, canDelete }) =>
             value={split.amount}
             onChange={(value) => onUpdate({ ...split, amount: value })}
             prefix="$"
+            className="[&_label]:text-2xl [&_label]:font-medium [&_input]:text-2xl [&_input]:font-medium [&_input]:pb-4"
           />
         </FormField>
         <FormField span={4}>
@@ -472,6 +607,7 @@ const SplitItem = ({ split, categoryOptions, onUpdate, onDelete, canDelete }) =>
             value={split.categoryId}
             onChange={(value) => onUpdate({ ...split, categoryId: value })}
             options={categoryOptions}
+            className="[&_label]:text-2xl [&_label]:font-medium [&_button]:text-xl [&_button]:font-medium"
           />
         </FormField>
         <FormField span={1}>

@@ -170,13 +170,12 @@ export const EnhancedCSVUpload = ({ onComplete, onBack }) => {
               {...dragHandlers}
               onClick={() => document.getElementById('csv-file-input').click()}
             >
-              <div className="text-6xl mb-8 opacity-50">📄</div>
-              <h3 className={`text-3xl font-light mb-4 ${
+              <h3 className={`text-5xl font-light mb-4 ${
                 isDarkMode ? 'text-white' : 'text-black'
               }`}>
                 Drop CSV file here
               </h3>
-              <p className={`text-xl font-light mb-8 ${
+              <p className={`text-2xl font-light mb-8 ${
                 isDarkMode ? 'text-gray-400' : 'text-gray-600'
               }`}>
                 or click to browse
@@ -194,7 +193,7 @@ export const EnhancedCSVUpload = ({ onComplete, onBack }) => {
 
           {/* Format Help */}
           <FormSection title="Supported Formats">
-            <div className={`space-y-3 text-base font-light ${
+            <div className={`space-y-3 text-xl font-light ${
               isDarkMode ? 'text-gray-400' : 'text-gray-600'
             }`}>
               <p>• Standard CSV exports from major banks and credit cards</p>
@@ -247,6 +246,7 @@ export const EnhancedCSVUpload = ({ onComplete, onBack }) => {
                   value=""
                   onChange={loadSavedMapping}
                   options={savedMappingOptions}
+                  className="[&_label]:text-2xl [&_label]:font-medium [&_button]:text-xl [&_button]:font-medium"
                 />
               </FormField>
             </FormGrid>
@@ -264,12 +264,13 @@ export const EnhancedCSVUpload = ({ onComplete, onBack }) => {
                   onChange={(value) => setColumnMapping(prev => ({ ...prev, date: value }))}
                   options={columnOptions}
                   required
+                  className="[&_label]:text-2xl [&_label]:font-medium [&_button]:text-xl [&_button]:font-medium"
                 />
               </FormField>
               <FormField span={8}>
                 {columnMapping.date && csvData[0]?.[columnMapping.date] && (
                   <div className="flex items-end h-full pb-4">
-                    <div className={`text-base font-light ${
+                    <div className={`text-xl font-light ${
                       isDarkMode ? 'text-gray-400' : 'text-gray-600'
                     }`}>
                       Sample: "{csvData[0][columnMapping.date]}"
@@ -287,12 +288,13 @@ export const EnhancedCSVUpload = ({ onComplete, onBack }) => {
                   onChange={(value) => setColumnMapping(prev => ({ ...prev, description: value }))}
                   options={columnOptions}
                   required
+                  className="[&_label]:text-2xl [&_label]:font-medium [&_button]:text-xl [&_button]:font-medium"
                 />
               </FormField>
               <FormField span={8}>
                 {columnMapping.description && csvData[0]?.[columnMapping.description] && (
                   <div className="flex items-end h-full pb-4">
-                    <div className={`text-base font-light ${
+                    <div className={`text-xl font-light ${
                       isDarkMode ? 'text-gray-400' : 'text-gray-600'
                     }`}>
                       Sample: "{csvData[0][columnMapping.description]}"
@@ -310,12 +312,13 @@ export const EnhancedCSVUpload = ({ onComplete, onBack }) => {
                   onChange={(value) => setColumnMapping(prev => ({ ...prev, amount: value }))}
                   options={columnOptions}
                   required
+                  className="[&_label]:text-2xl [&_label]:font-medium [&_button]:text-xl [&_button]:font-medium"
                 />
               </FormField>
               <FormField span={8}>
                 {columnMapping.amount && csvData[0]?.[columnMapping.amount] && (
                   <div className="flex items-end h-full pb-4">
-                    <div className={`text-base font-light ${
+                    <div className={`text-xl font-light ${
                       isDarkMode ? 'text-gray-400' : 'text-gray-600'
                     }`}>
                       Sample: "{csvData[0][columnMapping.amount]}"
@@ -337,19 +340,19 @@ export const EnhancedCSVUpload = ({ onComplete, onBack }) => {
                   ${isDarkMode ? 'border-gray-800' : 'border-gray-200'}
                 `}>
                   <div className="flex-1">
-                    <div className={`text-base font-light ${
+                    <div className={`text-xl font-light ${
                       isDarkMode ? 'text-white' : 'text-black'
                     }`}>
                       {row[columnMapping.description]}
                     </div>
-                    <div className={`text-sm font-light mt-1 ${
+                    <div className={`text-base font-light mt-1 ${
                       isDarkMode ? 'text-gray-500' : 'text-gray-400'
                     }`}>
                       {row[columnMapping.date]}
                     </div>
                   </div>
                   <div className={`
-                    text-base font-mono
+                    text-xl font-mono
                     ${parseFloat(row[columnMapping.amount]) >= 0 
                       ? 'text-green-500' 
                       : 'text-red-500'
@@ -360,7 +363,7 @@ export const EnhancedCSVUpload = ({ onComplete, onBack }) => {
                 </div>
               ))}
               {csvData.length > 3 && (
-                <div className={`text-center py-4 text-sm font-light ${
+                <div className={`text-center py-4 text-base font-light ${
                   isDarkMode ? 'text-gray-500' : 'text-gray-400'
                 }`}>
                   ... and {csvData.length - 3} more transactions
@@ -400,7 +403,7 @@ const SaveMappingOption = ({ onSave }) => {
         <button
           onClick={() => setShowSave(true)}
           className={`
-            text-sm font-light border-b border-transparent hover:border-current pb-1
+            text-base font-light border-b border-transparent hover:border-current pb-1
             ${isDarkMode 
               ? 'text-gray-500 hover:text-gray-300' 
               : 'text-gray-500 hover:text-gray-700'
@@ -421,6 +424,7 @@ const SaveMappingOption = ({ onSave }) => {
           value={mappingName}
           onChange={setMappingName}
           placeholder="Chase Credit Card, Bank of America, etc."
+          className="[&_label]:text-2xl [&_label]:font-medium [&_input]:text-2xl [&_input]:font-medium [&_input]:pb-4"
         />
       </FormField>
       <FormField span={4}>
@@ -429,7 +433,7 @@ const SaveMappingOption = ({ onSave }) => {
             onClick={handleSave}
             disabled={!mappingName.trim()}
             className={`
-              text-base font-light border-b-2 pb-2 transition-all
+              text-xl font-light border-b-2 pb-2 transition-all
               ${mappingName.trim()
                 ? isDarkMode
                   ? 'text-white border-white hover:border-gray-400'
@@ -443,7 +447,7 @@ const SaveMappingOption = ({ onSave }) => {
           <button
             onClick={() => setShowSave(false)}
             className={`
-              text-base font-light border-b border-transparent hover:border-current pb-1
+              text-xl font-light border-b border-transparent hover:border-current pb-1
               ${isDarkMode 
                 ? 'text-gray-400 hover:text-white' 
                 : 'text-gray-600 hover:text-black'
