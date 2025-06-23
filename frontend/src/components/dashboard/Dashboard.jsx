@@ -77,6 +77,9 @@ export const Dashboard = ({ onNavigate }) => {
         break;
       case 'dashboard':
         break;
+      case 'gifts':
+        onNavigate('gifts');
+      break;
       default:
         console.log(`Action ${actionId} not implemented`);
     }

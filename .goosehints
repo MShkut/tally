@@ -1,0 +1,226 @@
+Product name: Stash
+
+Development Rules
+
+For deployment on self hosted servers, like start9, umbrel, etc. Desktop First design. Never expose API Keys
+
+1. Editorial Design Philosophy
+Visual Design
+
+Typography: Use light font weights (font-light, font-extralight) with large sizes (text-5xl for headings)
+Color Palette: Strictly black/white/gray - NO accent colors (blue, green, orange)
+Layout: Generous whitespace, clean separators with 1px borders
+No Decorative Elements: No rounded corners, shadows, gradients, or card-style layouts
+Clean Interactions: Underlined text links, bottom-border inputs, subtle hover states
+
+Component Styling
+jsx// ✅ Good - Editorial style
+<h1 className="text-5xl font-light leading-tight mb-4">Title</h1>
+<input className="w-full border-0 border-b-2 bg-transparent" />
+
+// ❌ Bad - Traditional SaaS style  
+<h1 className="text-2xl font-bold text-blue-600">Title</h1>
+<input className="rounded-lg border shadow-sm bg-white" />
+2. Import/Export Structure
+Module Exports
+
+Named exports only - No default exports except for main App component
+Consistent import pattern: Always use named imports with curly braces
+
+jsx// ✅ Correct
+export const ComponentName = () => {};
+import { ComponentName } from 'components/path';
+
+// ❌ Incorrect  
+export default ComponentName;
+import ComponentName from 'components/path';
+Import Organization
+jsx// 1. React imports first
+import React, { useState, useEffect } from 'react';
+
+// 2. External libraries
+import { SomeLibrary } from 'external-lib';
+
+// 3. Internal imports with aliases
+import { useTheme } from 'contexts/ThemeContext';
+import { ComponentName } from 'components/shared/ComponentName';
+import { utilityFunction } from 'utils/helpers';
+3. Component Architecture
+FormComponents System
+
+Use the standardized FormComponents.jsx system for all forms
+12-column grid: Use FormGrid, FormField, StandardInput, StandardSelect
+Consistent spacing: FormSection, SectionBorder for layout
+State management: Use useItemManager hook for add/remove patterns
+
+jsx// ✅ Standard pattern
+<FormGrid>
+  <FormField span={8}>
+    <StandardInput label="Name" value={name} onChange={setName} />
+  </FormField>
+  <FormField span={3}>
+    <StandardInput label="Amount" type="currency" value={amount} />
+  </FormField>
+  <RemoveButton onClick={onDelete} />
+</FormGrid>
+Theme Integration
+
+Always use useTheme hook for dark/light mode
+Apply theme classes consistently: isDarkMode ? 'dark-classes' : 'light-classes'
+Never hardcode colors - use conditional theme classes
+
+4. Data Management
+localStorage Pattern
+
+Use dataManager.js for all persistence operations
+Save data after each major step: onboarding, transaction import
+Load data on component mount with proper error handling
+
+jsx// ✅ Standard pattern
+useEffect(() => {
+  const userData = dataManager.loadUserData();
+  if (userData) setOnboardingData(userData);
+}, []);
+State Structure
+
+Onboarding data: household, period, income, expenses, savings, netWorth
+Transactions: separate array with categorization
+Categories: predefined structure with keywords and mappings
+
+5. File Organization
+Directory Structure
+src/
+├── components/
+│   ├── dashboard/          # Dashboard-specific components
+│   ├── onboarding/         # Onboarding flow components  
+│   └── shared/             # Reusable components (FormComponents, etc.)
+├── contexts/               # React contexts (ThemeContext)
+├── hooks/                  # Custom hooks (useOnboarding, etc.)
+└── utils/                  # Utility functions (dataManager, helpers)
+File Naming
+
+PascalCase for component files: TransactionImport.jsx
+camelCase for utility files: dataManager.js
+Clear descriptive names: useTransactionStore.js, editorialStyles.js
+
+6. Navigation & UX
+Menu System
+
+BurgerMenu for main navigation with context-aware items
+Editorial navigation: Underlined text buttons, no traditional nav bars
+Consistent back/next: Use StandardFormLayout navigation pattern
+
+Page Transitions
+
+Clean routing through onNavigate prop pattern
+No complex routing library - simple state-based navigation
+Preserve user progress with localStorage saves
+
+7. Transaction System
+Import Flow
+
+CSV Upload → Column Mapping → Review & Categorize → Save
+Use TransactionHelpers for merchant normalization and confidence scoring
+Support manual entry alongside CSV import
+Auto-categorization with user confirmation required
+
+Data Structure
+jsxconst transaction = {
+  id: 'unique-id',
+  date: 'YYYY-MM-DD',
+  description: 'Merchant Name',
+  amount: -45.67, // negative for expenses
+  category: 'category-object',
+  confidence: 0.8, // 0-1 confidence score
+  confirmed: false // user confirmation status
+};
+8. Onboarding Flow
+Step Structure
+
+Welcome (household name + period duration)
+Income (multiple sources with frequencies)
+Savings Allocation (rate + goals + emergency fund)
+Expenses (budget categories)
+Net Worth (assets + liabilities)
+
+Validation Rules
+
+Each step validates before allowing progression
+Save progress at each step completion
+Use StandardFormLayout for consistent UX
+
+9. Code Quality Standards
+Error Handling
+
+Try/catch blocks for localStorage operations
+Graceful fallbacks for missing data
+Console logging for debugging (development helper included)
+
+Performance
+
+Lazy load components where appropriate
+Minimize re-renders with proper dependency arrays
+Use React.memo for expensive components
+
+Accessibility
+
+Proper semantic HTML structure
+Focus management for forms
+Keyboard navigation support
+ARIA labels where needed
+
+10. Development Workflow
+Component Creation
+
+Start with FormComponents system
+Apply editorial design principles
+Integrate theme support
+Add to proper directory
+Test with both light/dark themes
+
+Data Flow
+
+Define data structure first
+Implement with dataManager persistence
+Add validation and error handling
+Test localStorage behavior
+
+Styling Approach
+
+Editorial first - no traditional SaaS patterns
+Typography-driven hierarchy
+Minimal color palette
+Clean, functional interactions
+
+11. Testing & Debugging
+Development Tools
+
+Use dev-helper.js for localStorage debugging
+Console logging for data flow tracking
+Theme toggle for visual testing
+Export/import for data backup
+
+Common Patterns
+
+Always check for data existence before rendering
+Graceful degradation for missing features
+Consistent loading states
+Clear error messages
+
+12. Future Considerations
+Extensibility
+
+Design for flexible budget periods (1-12 months)
+Support additional transaction sources
+Plan for more sophisticated categorization
+Consider advanced financial features
+
+Maintainability
+
+Keep components focused and single-purpose
+Maintain clear separation between UI and data logic
+Document complex financial calculations
+Regular code style consistency checks
+
+
+Remember: This is a privacy-first application where all data stays local. Every decision should prioritize user control, data security, and editorial sophistication over typical SaaS patterns.

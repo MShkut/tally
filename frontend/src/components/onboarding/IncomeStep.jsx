@@ -27,18 +27,22 @@ import {
   saveCustomCategory 
 } from 'utils/categorySuggestions';
 
+
 // Income Source component using shared utilities
-export const IncomeSource = ({ source, onUpdate, onDelete }) => {
+export const IncomeSource = ({ source, onUpdate, onDelete, incomeSuggestions }) => {
   return (
     <div className="py-8">
       <div className="grid grid-cols-12 gap-8 items-end">
         {/* Income source name: 7 columns - generous space */}
         <div className="col-span-7">
-          <StandardInput
+          <SmartInput
             label="Income Source"
             value={source.name}
             onChange={(value) => onUpdate({ ...source, name: value })}
+            onSuggestionSelect={(suggestion) => onUpdate({ ...source, name: suggestion.name })}
+            suggestions={incomeSuggestions}
             placeholder="Salary, consulting, freelance, investments"
+            className="[&_label]:text-2xl [&_label]:font-medium [&_input]:text-2xl [&_input]:font-medium [&_input]:pb-4"
           />
         </div>
         
@@ -81,6 +85,12 @@ export const IncomeSource = ({ source, onUpdate, onDelete }) => {
 
 export const IncomeStep = ({ onNext, onBack, savedData }) => {
   // Use professional item manager for income sources
+    // Load income suggestions
+const [incomeSuggestions, setIncomeSuggestions] = useState([]);
+
+useEffect(() => {
+  setIncomeSuggestions(loadCategoriesWithCustom('income'));
+}, []);
   const { 
     items: incomeSources, 
     addItem, 
@@ -89,6 +99,7 @@ export const IncomeStep = ({ onNext, onBack, savedData }) => {
     hasItems,
     setItems 
   } = useItemManager();
+ 
   
   useEffect(() => {
     if (savedData?.income?.incomeSources?.length > 0) {
@@ -164,6 +175,7 @@ export const IncomeStep = ({ onNext, onBack, savedData }) => {
                   source={source}
                   onUpdate={(updatedSource) => updateItem(source.id, updatedSource)}
                   onDelete={() => deleteItem(source.id)}
+                  incomeSuggestions={incomeSuggestions}
                 />
               ))}
             </div>
@@ -181,25 +193,23 @@ export const IncomeStep = ({ onNext, onBack, savedData }) => {
         </FormSection>
 
         {/* Summary Section */}
-        {totalYearlyIncome > 0 && (
-          <FormSection>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-              <SummaryCard
-                title="Total Yearly Income"
-                value={totalYearlyIncome}
-                accent={true}
-              />
-              <SummaryCard
-                title="Monthly Income" 
-                value={monthlyIncome}
-              />
-              <SummaryCard
-                title="Income Sources"
-                value={`${incomeSources.length} source${incomeSources.length === 1 ? '' : 's'}`}
-              />
-            </div>
-          </FormSection>
-        )}
+        <FormSection>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+            <SummaryCard
+              title="Total Yearly Income"
+              value={totalYearlyIncome}
+              accent={true}
+            />
+           <SummaryCard
+              title="Monthly Income" 
+              value={monthlyIncome}
+            />
+           <SummaryCard
+              title="Income Sources"
+              value={`${incomeSources.length} source${incomeSources.length === 1 ? '' : 's'}`}
+            />
+         </div>
+</FormSection>
 
       </StandardFormLayout>
     </>
