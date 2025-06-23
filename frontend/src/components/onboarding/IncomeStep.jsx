@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 
 import { ThemeToggle } from 'components/shared/ThemeToggle';
 import { FrequencySelector } from 'components/shared/FrequencySelector';
+import { SmartInput } from 'components/shared/SmartInput';
 import { 
   FormGrid, 
   FormField, 
@@ -21,6 +22,10 @@ import {
   calculateTotalYearlyIncome,
   analyzeIncomeDistribution
 } from 'utils/incomeHelpers';
+import { 
+  loadCategoriesWithCustom, 
+  saveCustomCategory 
+} from 'utils/categorySuggestions';
 
 // Income Source component using shared utilities
 export const IncomeSource = ({ source, onUpdate, onDelete }) => {

@@ -1,6 +1,10 @@
+// frontend/src/components/onboarding/ExpensesStep.jsx
 import React, { useState, useEffect } from 'react';
 
+import { useTheme } from 'contexts/ThemeContext';
 import { ThemeToggle } from 'components/shared/ThemeToggle';
+import { FrequencySelector } from 'components/shared/FrequencySelector';
+import { SmartInput } from 'components/shared/SmartInput';
 import { 
   FormGrid, 
   FormField, 
@@ -13,36 +17,74 @@ import {
   useItemManager,
   validation
 } from '../shared/FormComponents';
+import { 
+  loadCategoriesWithCustom, 
+  saveCustomCategory 
+} from 'utils/categorySuggestions';
+import { convertToYearly } from 'utils/incomeHelpers';
 
 // Clean expense category component matching IncomeSource and SavingsGoal layout
-export const ExpenseCategory = ({ category, onUpdate, onDelete, availableBudget }) => {
-  const categoryAmount = parseFloat(category.amount) || 0;
-  const isOverBudget = categoryAmount > availableBudget;
+export const ExpenseCategory = ({ category, onUpdate, onDelete, availableBudget, suggestions }) => {
+  const { isDarkMode } = useTheme();
+  
+  // Calculate monthly equivalent based on frequency
+  const monthlyAmount = category.frequency ? 
+    convertToYearly(category.amount, category.frequency) / 12 : 
+    parseFloat(category.amount) || 0;
+  
+  const isOverBudget = monthlyAmount > availableBudget;
+  
+  const handleSuggestionSelect = (suggestion) => {
+    // If it's the gifts category, show hint
+    if (suggestion.special === 'gift-management') {
+      // The hint is already shown in the suggestion dropdown
+    }
+    
+    // Update with suggestion's common frequency if current is default
+    if (category.frequency === 'Monthly' && suggestion.commonFrequencies) {
+      onUpdate({ 
+        ...category, 
+        name: suggestion.name,
+        frequency: suggestion.commonFrequencies[0] 
+      });
+    }
+  };
   
   return (
     <div className="py-8">
       <div className="grid grid-cols-12 gap-8 items-end">
-        {/* Category name: 8 columns - generous space */}
-        <div className="col-span-8">
-          <StandardInput
+        {/* Category name: 7 columns */}
+        <div className="col-span-7">
+          <SmartInput
             label="Category Name"
             value={category.name}
             onChange={(value) => onUpdate({ ...category, name: value })}
+            onSuggestionSelect={handleSuggestionSelect}
+            suggestions={suggestions}
             placeholder="Housing, groceries, transportation, healthcare"
             className="[&_label]:text-2xl [&_label]:font-medium [&_input]:text-2xl [&_input]:font-medium [&_input]:pb-4"
           />
         </div>
         
-        {/* Monthly budget: 3 columns */}
+        {/* Amount: 3 columns */}
         <div className="col-span-3">
           <StandardInput
-            label="Monthly Budget"
+            label="Amount"
             type="currency"
             value={category.amount}
             onChange={(value) => onUpdate({ ...category, amount: value })}
             prefix="$"
-            error={isOverBudget ? `Exceeds available budget by $${(categoryAmount - availableBudget).toLocaleString()}` : null}
+            error={isOverBudget ? `Exceeds available budget by $${(monthlyAmount - availableBudget).toLocaleString()}` : null}
             className="[&_label]:text-2xl [&_label]:font-medium [&_input]:text-2xl [&_input]:font-medium [&_input]:pb-4"
+          />
+        </div>
+        
+        {/* Frequency: 2 columns */}
+        <div className="col-span-2">
+          <FrequencySelector
+            frequency={category.frequency || 'Monthly'}
+            onChange={(value) => onUpdate({ ...category, frequency: value })}
+            allowOneTime={true}
           />
         </div>
         
@@ -64,6 +106,7 @@ export const ExpenseCategory = ({ category, onUpdate, onDelete, availableBudget 
 };
 
 export const ExpensesStep = ({ onNext, onBack, incomeData, savingsData, savedData = null }) => {
+  const { isDarkMode } = useTheme();
   const { 
     items: expenseCategories, 
     addItem, 
@@ -72,6 +115,13 @@ export const ExpensesStep = ({ onNext, onBack, incomeData, savingsData, savedDat
     hasItems,
     setItems
   } = useItemManager();
+  
+  // Load category suggestions including custom ones
+  const [suggestions, setSuggestions] = useState([]);
+
+  useEffect(() => {
+    setSuggestions(loadCategoriesWithCustom('expenses'));
+  }, []);
 
   // Load saved data on mount
   useEffect(() => {
@@ -90,20 +140,24 @@ export const ExpensesStep = ({ onNext, onBack, incomeData, savingsData, savedDat
   const addExpenseCategory = () => {
     addItem({
       name: '', 
-      amount: ''
+      amount: '',
+      frequency: 'Monthly' // Default frequency
     });
   };
 
-  // Calculate totals
-  const totalExpenses = expenseCategories.reduce((total, category) => {
-    return total + (parseFloat(category.amount) || 0);
+  // Calculate totals - convert all to monthly for budgeting
+  const totalMonthlyExpenses = expenseCategories.reduce((total, category) => {
+    const monthlyEquivalent = category.frequency ? 
+      convertToYearly(category.amount, category.frequency) / 12 : 
+      parseFloat(category.amount) || 0;
+    return total + monthlyEquivalent;
   }, 0);
 
-  const remainingBudget = availableForExpenses - totalExpenses;
+  const remainingBudget = availableForExpenses - totalMonthlyExpenses;
   const isOverBudget = remainingBudget < 0;
 
   // Validation
-  const canContinue = totalExpenses > 0 && 
+  const canContinue = totalMonthlyExpenses > 0 && 
                      !isOverBudget && 
                      expenseCategories.every(category => 
                        validation.hasValidString(category.name) && 
@@ -112,9 +166,16 @@ export const ExpensesStep = ({ onNext, onBack, incomeData, savingsData, savedDat
 
   const handleNext = () => {
     if (onNext && canContinue) {
+      // Save any custom categories
+      expenseCategories.forEach(category => {
+        if (!suggestions.find(s => s.name.toLowerCase() === category.name.toLowerCase())) {
+          saveCustomCategory('expenses', category);
+        }
+      });
+      
       onNext({
         expenseCategories,
-        totalExpenses,
+        totalExpenses: totalMonthlyExpenses,
         availableForExpenses,
         remainingBudget
       });
@@ -143,6 +204,7 @@ export const ExpensesStep = ({ onNext, onBack, incomeData, savingsData, savedDat
                   onUpdate={(updatedCategory) => updateItem(category.id, updatedCategory)}
                   onDelete={() => deleteItem(category.id)}
                   availableBudget={availableForExpenses}
+                  suggestions={suggestions}
                 />
               ))}
             </div>
@@ -157,6 +219,13 @@ export const ExpensesStep = ({ onNext, onBack, incomeData, savingsData, savedDat
             onClick={addExpenseCategory}
             children={!hasItems ? 'Add your first expense category' : 'Add another expense category'}
           />
+          
+          {/* Gift Category Note */}
+          <div className={`text-center mt-6 text-sm font-light ${
+            isDarkMode ? 'text-gray-500' : 'text-gray-400'
+          }`}>
+            💡 Add a "Gifts" category to enable detailed gift planning and tracking
+          </div>
         </FormSection>
 
         {/* Expense Allocation Summary - Always visible */}
@@ -170,8 +239,8 @@ export const ExpensesStep = ({ onNext, onBack, incomeData, savingsData, savedDat
             />
             <SummaryCard
               title="Currently Allocated"
-              value={totalExpenses}
-              subtitle="Assigned to categories"
+              value={totalMonthlyExpenses}
+              subtitle="Monthly equivalent"
             />
             <SummaryCard
               title="Remaining to Allocate"

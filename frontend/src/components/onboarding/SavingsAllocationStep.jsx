@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 
 import { useTheme } from 'contexts/ThemeContext';
 import { ThemeToggle } from 'components/shared/ThemeToggle';
+import { FrequencySelector } from 'components/shared/FrequencySelector';
+import { SmartInput } from 'components/shared/SmartInput';
 import { 
   StandardInput,
   AddItemButton,
@@ -11,6 +13,11 @@ import {
   useItemManager,
   validation
 } from '../shared/FormComponents';
+import { 
+  loadCategoriesWithCustom, 
+  saveCustomCategory 
+} from 'utils/categorySuggestions';
+import { convertToYearly } from 'utils/incomeHelpers';
 
 // Horizontal savings goal component matching IncomeSource layout
 export const SavingsGoal = ({ goal, onUpdate, onDelete }) => {

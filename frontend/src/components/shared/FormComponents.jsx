@@ -736,3 +736,6 @@ export const DataSection = ({
     </section>
   );
 };
+
+// Re-export SmartInput for convenience
+export { SmartInput } from './SmartInput';

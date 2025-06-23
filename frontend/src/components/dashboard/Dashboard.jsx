@@ -54,12 +54,15 @@ export const Dashboard = ({ onNavigate }) => {
     }
   }, [onNavigate]);
 
-  const handleMenuAction = (actionId) => {
+    const handleMenuAction = (actionId) => {
     setMenuOpen(false);
     
     switch (actionId) {
       case 'import':
         onNavigate('import');
+        break;
+      case 'gifts':
+        onNavigate('gifts');
         break;
       case 'start-next-period':
         onNavigate('onboarding');
