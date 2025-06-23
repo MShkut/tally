@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 
 import { useTheme } from 'contexts/ThemeContext';
 import { ConfirmationModal } from 'components/shared/FormComponents';
+import { dataManager } from 'utils/dataManager';
 
 export const BurgerMenu = ({ isOpen, onClose, onAction, currentPage = 'dashboard' }) => {
   const { isDarkMode } = useTheme();
@@ -203,3 +204,41 @@ const MenuSection = ({ title, items, onAction, isDarkMode, currentPage }) => (
     </div>
   </div>
 );
+
+const getMenuItems = () => {
+  // Check if user has gifts category
+  const userData = dataManager.loadUserData();
+  const hasGiftsCategory = userData?.expenses?.expenseCategories?.some(
+    cat => cat.name.toLowerCase() === 'gifts'
+  ) || false;
+
+  const baseActions = [
+    { id: 'import', label: 'Import transactions', primary: currentPage !== 'import' },
+    { id: 'start-next-period', label: 'Start next period' }
+  ];
+
+  const baseNavigate = [
+    { id: 'dashboard', label: 'Dashboard', active: currentPage === 'dashboard' },
+    { id: 'import', label: 'Transaction Import', active: currentPage === 'import' }
+  ];
+  
+  // Add gifts navigation if user has gifts category
+  if (hasGiftsCategory) {
+    baseNavigate.push({ 
+      id: 'gifts', 
+      label: 'Gift Management', 
+      active: currentPage === 'gifts' 
+    });
+  }
+
+  const baseSettings = [
+    { id: 'export', label: 'Export data' },
+    { id: 'reset-data', label: 'Reset all data', danger: true }
+  ];
+
+  return {
+    actions: baseActions,
+    navigate: baseNavigate,
+    settings: baseSettings
+  };
+};

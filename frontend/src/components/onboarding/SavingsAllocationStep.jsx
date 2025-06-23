@@ -19,17 +19,20 @@ import {
 } from 'utils/categorySuggestions';
 import { convertToYearly } from 'utils/incomeHelpers';
 
+
 // Horizontal savings goal component matching IncomeSource layout
-export const SavingsGoal = ({ goal, onUpdate, onDelete }) => {
+export const SavingsGoal = ({ goal, onUpdate, onDelete, savingsSuggestions }) => {
   return (
     <div className="py-8">
       <div className="grid grid-cols-12 gap-8 items-end">
         {/* Goal name: 8 columns - generous space */}
         <div className="col-span-8">
-          <StandardInput
-            label="Savings Goal"
+          <SmartInput
+           label="Savings Goal"
             value={goal.name}
             onChange={(value) => onUpdate({ ...goal, name: value })}
+            onSuggestionSelect={(suggestion) => onUpdate({ ...goal, name: suggestion.name })}
+            suggestions={savingsSuggestions}
             placeholder="Down payment, vacation, retirement"
             className="[&_label]:text-2xl [&_label]:font-medium [&_input]:text-2xl [&_input]:font-medium [&_input]:pb-4"
           />
@@ -63,6 +66,9 @@ export const SavingsGoal = ({ goal, onUpdate, onDelete }) => {
     </div>
   );
 };
+
+
+  
 
 // Compact savings rate section with dual input - % or $ amount
 export const SavingsRateSection = ({ savingsRate, monthlySavings, onSavingsRateChange, onMonthlySavingsChange, totalIncome }) => {
@@ -225,7 +231,11 @@ export const EmergencyFundSection = ({ emergencyFund, setEmergencyFund, savingsR
 
 export const SavingsAllocationStep = ({ onNext, onBack, incomeData, savedData = null }) => {
   const { isDarkMode } = useTheme();
-  
+   const [savingsSuggestions, setSavingsSuggestions] = useState([]);
+
+useEffect(() => {
+  setSavingsSuggestions(loadCategoriesWithCustom('savings'));
+}, []);
   // Calculate initial values based on income
   const totalIncome = incomeData?.totalYearlyIncome || 0;
   
@@ -411,6 +421,7 @@ export const SavingsAllocationStep = ({ onNext, onBack, incomeData, savedData = 
                   goal={goal}
                   onUpdate={(updatedGoal) => updateItem(goal.id, updatedGoal)}
                   onDelete={() => deleteItem(goal.id)}
+                  savingsSuggestions={savingsSuggestions}
                 />
               ))}
             </div>

@@ -53,8 +53,8 @@ export const ExpenseCategory = ({ category, onUpdate, onDelete, availableBudget,
   return (
     <div className="py-8">
       <div className="grid grid-cols-12 gap-8 items-end">
-        {/* Category name: 7 columns */}
-        <div className="col-span-7">
+        {/* Category name: 6 columns */}
+        <div className="col-span-6">
           <SmartInput
             label="Category Name"
             value={category.name}
@@ -219,13 +219,6 @@ export const ExpensesStep = ({ onNext, onBack, incomeData, savingsData, savedDat
             onClick={addExpenseCategory}
             children={!hasItems ? 'Add your first expense category' : 'Add another expense category'}
           />
-          
-          {/* Gift Category Note */}
-          <div className={`text-center mt-6 text-sm font-light ${
-            isDarkMode ? 'text-gray-500' : 'text-gray-400'
-          }`}>
-            💡 Add a "Gifts" category to enable detailed gift planning and tracking
-          </div>
         </FormSection>
 
         {/* Expense Allocation Summary - Always visible */}

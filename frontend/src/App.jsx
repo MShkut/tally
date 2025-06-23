@@ -10,6 +10,7 @@ import { NetWorthStep } from 'components/onboarding/NetWorthStep'
 import { Dashboard } from 'components/dashboard/Dashboard'
 import { TransactionImport } from 'components/dashboard/TransactionImport'
 import {dataManager } from 'utils/dataManager'
+import { GiftManagement } from 'components/gifts/GiftManagement';
 
 function OnboardingFlow({ onComplete, onBack }) {
   const { currentStep, nextStep, prevStep, formData, updateFormData, setHouseholdAndPeriod } = useOnboarding();
@@ -196,6 +197,13 @@ function App() {
       case 'import':
         return (
           <TransactionImport 
+            onNavigate={handleNavigate}
+          />
+        );
+        
+      case 'gifts':
+        return (
+          <GiftManagement 
             onNavigate={handleNavigate}
           />
         );
