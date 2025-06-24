@@ -33,6 +33,12 @@ export const BurgerMenu = ({ isOpen, onClose, onAction, currentPage = 'dashboard
 
   // Define menu items based on current page context
   const getMenuItems = () => {
+    // Check if user has gifts category
+    const userData = dataManager.loadUserData();
+    const hasGiftsCategory = userData?.expenses?.expenseCategories?.some(
+      cat => cat.name.toLowerCase() === 'gifts'
+    ) || false;
+
     const baseActions = [
       { id: 'import', label: 'Import transactions', primary: currentPage !== 'import' },
       { id: 'start-next-period', label: 'Start next period' }
@@ -42,6 +48,15 @@ export const BurgerMenu = ({ isOpen, onClose, onAction, currentPage = 'dashboard
       { id: 'dashboard', label: 'Dashboard', active: currentPage === 'dashboard' },
       { id: 'import', label: 'Transaction Import', active: currentPage === 'import' }
     ];
+
+    // Add gifts to navigation if gifts category exists
+    if (hasGiftsCategory) {
+      baseNavigate.push({
+        id: 'gifts',
+        label: 'Gift Management',
+        active: currentPage === 'gifts'
+      });
+    }
 
     const baseSettings = [
       { id: 'export', label: 'Export data' },
@@ -205,40 +220,4 @@ const MenuSection = ({ title, items, onAction, isDarkMode, currentPage }) => (
   </div>
 );
 
-const getMenuItems = () => {
-  // Check if user has gifts category
-  const userData = dataManager.loadUserData();
-  const hasGiftsCategory = userData?.expenses?.expenseCategories?.some(
-    cat => cat.name.toLowerCase() === 'gifts'
-  ) || false;
 
-  const baseActions = [
-    { id: 'import', label: 'Import transactions', primary: currentPage !== 'import' },
-    { id: 'start-next-period', label: 'Start next period' }
-  ];
-
-  const baseNavigate = [
-    { id: 'dashboard', label: 'Dashboard', active: currentPage === 'dashboard' },
-    { id: 'import', label: 'Transaction Import', active: currentPage === 'import' }
-  ];
-  
-  // Add gifts navigation if user has gifts category
-  if (hasGiftsCategory) {
-    baseNavigate.push({ 
-      id: 'gifts', 
-      label: 'Gift Management', 
-      active: currentPage === 'gifts' 
-    });
-  }
-
-  const baseSettings = [
-    { id: 'export', label: 'Export data' },
-    { id: 'reset-data', label: 'Reset all data', danger: true }
-  ];
-
-  return {
-    actions: baseActions,
-    navigate: baseNavigate,
-    settings: baseSettings
-  };
-};

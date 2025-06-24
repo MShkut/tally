@@ -4,6 +4,7 @@
 const STORAGE_KEYS = {
   USER_DATA: 'financeTracker_userData',
   TRANSACTIONS: 'financeTracker_transactions',
+  GIFT_DATA: 'financeTracker_giftData',
   APP_VERSION: 'financeTracker_version'
 };
 
@@ -120,6 +121,43 @@ class DataManager {
     return filtered.length < transactions.length;
   }
 
+  // ==================== GIFT DATA ====================
+
+  saveGiftData(data) {
+    try {
+      const giftData = {
+        ...data,
+        lastUpdated: new Date().toISOString(),
+        version: this.currentVersion
+      };
+      localStorage.setItem(STORAGE_KEYS.GIFT_DATA, JSON.stringify(giftData));
+      console.log('💾 Gift data saved:', giftData);
+      return true;
+    } catch (error) {
+      console.error('❌ Failed to save gift data:', error);
+      return false;
+    }
+  }
+
+  loadGiftData() {
+    try {
+      const savedData = localStorage.getItem(STORAGE_KEYS.GIFT_DATA);
+      if (!savedData) return null;
+      
+      const giftData = JSON.parse(savedData);
+      console.log('📖 Gift data loaded:', giftData);
+      return giftData;
+    } catch (error) {
+      console.error('❌ Failed to load gift data:', error);
+      return null;
+    }
+  }
+
+  clearGiftData() {
+    localStorage.removeItem(STORAGE_KEYS.GIFT_DATA);
+    console.log('🗑️ Gift data cleared');
+  }
+
   // ==================== HELPER METHODS ====================
 
   isOnboardingComplete() {
@@ -172,6 +210,7 @@ class DataManager {
     try {
       localStorage.removeItem(STORAGE_KEYS.USER_DATA);
       localStorage.removeItem(STORAGE_KEYS.TRANSACTIONS);
+      localStorage.removeItem(STORAGE_KEYS.GIFT_DATA);
       localStorage.removeItem(STORAGE_KEYS.APP_VERSION);
       console.log('🗑️ All application data cleared');
       return true;
