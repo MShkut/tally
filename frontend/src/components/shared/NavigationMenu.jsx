@@ -30,6 +30,12 @@ export const NavigationMenu = ({ isOpen, onClose, onNavigate, currentPage = 'tra
       status: 'soon'
     },
     {
+      id: 'gifts',
+      label: 'Gifts',
+      icon: X, // Placeholder icon, you might want to choose a relevant one
+      status: 'active'
+    },
+    {
       id: 'settings',
       label: 'Settings',
       icon: Settings,

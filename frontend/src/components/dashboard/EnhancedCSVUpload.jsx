@@ -46,39 +46,34 @@ export const EnhancedCSVUpload = ({ onComplete, onBack }) => {
     const lines = text.split('\n').filter(line => line.trim());
     const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
     
-    const data = lines.slice(1).map(line => {
-      // Better CSV parsing that handles quoted values
-      const parseCSVLine = (line) => {
-  const result = [];
-  let current = '';
-  let inQuotes = false;
-  
-  for (let i = 0; i < line.length; i++) {
-    const char = line[i];
-    
-    if (char === '"') {
-      inQuotes = !inQuotes;
-    } else if (char === ',' && !inQuotes) {
-      result.push(current.trim());
-      current = '';
-    } else {
-      current += char;
-    }
-  }
-  
-  if (current) {
-    result.push(current.trim());
-  }
-  
-  return result;
-};
+    // Better CSV parsing that handles quoted values
+    const parseCSVLine = (line) => {
+      const result = [];
+      let current = '';
+      let inQuotes = false;
+      
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        
+        if (char === '"') {
+          inQuotes = !inQuotes;
+        } else if (char === ',' && !inQuotes) {
+          result.push(current.trim());
+          current = '';
+        } else {
+          current += char;
+        }
+      }
+      
+      if (current) {
+        result.push(current.trim());
+      }
+      
+      return result;
+    };
 
-const data = lines.slice(1).map(line => {
-  const values = parseCSVLine(line);
-  return Object.fromEntries(
-    headers.map((h, i) => [h, values[i] || ''])
-  );
-});
+    const data = lines.slice(1).map(line => {
+      const values = parseCSVLine(line);
       return Object.fromEntries(
         headers.map((h, i) => [h, values[i]?.replace(/"/g, '') || ''])
       );
