@@ -88,43 +88,49 @@ export const EnhancedCSVUpload = ({ onComplete, onBack }) => {
   };
 
   const autoDetectColumns = (headers) => {
-    const mapping = { date: '', description: '', amount: '' };
+  const mapping = { date: '', description: '', amount: '' };
+  
+  headers.forEach(header => {
+    const col = header.toLowerCase().trim();
     
-    headers.forEach(header => {
-      const lower = header.toLowerCase();
-      
-      // Date detection
-      if (!mapping.date && (
-        lower.includes('date') || 
-        lower.includes('posted') || 
-        lower.includes('transaction date')
-      )) {
-        mapping.date = header;
-      }
-      
-      // Description detection
-      if (!mapping.description && (
-        lower.includes('description') || 
-        lower.includes('merchant') || 
-        lower.includes('payee') ||
-        lower.includes('details')
-      )) {
-        mapping.description = header;
-      }
-      
-      // Amount detection
-      if (!mapping.amount && (
-        lower.includes('amount') || 
-        lower.includes('value') || 
-        lower.includes('debit') ||
-        lower.includes('charge')
-      )) {
-        mapping.amount = header;
-      }
-    });
+    // Enhanced date detection
+    if (!mapping.date && (
+      col.includes('date') || 
+      col.includes('posted') || 
+      col.includes('transaction date') ||
+      col === 'date' ||
+      col.includes('trans date')
+    )) {
+      mapping.date = header;
+    }
     
-    setColumnMapping(mapping);
-  };
+    // Enhanced description detection
+    if (!mapping.description && (
+      col.includes('description') || 
+      col.includes('merchant') || 
+      col.includes('payee') ||
+      col.includes('details') ||
+      col.includes('name') ||
+      col === 'description'
+    )) {
+      mapping.description = header;
+    }
+    
+    // Enhanced amount detection
+    if (!mapping.amount && (
+      col.includes('amount') || 
+      col.includes('value') || 
+      col.includes('debit') ||
+      col.includes('charge') ||
+      col === 'amount' ||
+      col.includes('transaction amount')
+    )) {
+      mapping.amount = header;
+    }
+  });
+  
+  return mapping;
+};
 
   const dragHandlers = {
     onDragEnter: (e) => { 
