@@ -12,7 +12,6 @@ export const useTheme = () => {
   return context;
 };
 
-// Default export for the provider (following your import policy)
 export const ThemeProvider = ({ children }) => {
   const [isDarkMode, setIsDarkMode] = useState(true); // Default to dark mode
 
