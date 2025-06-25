@@ -20,6 +20,15 @@ export const Dashboard = ({ onNavigate }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [onboardingData, setOnboardingData] = useState(null);
   const [transactions, setTransactions] = useState([]);
+    
+  // Process data based on current view mode
+  const dashboardData = useMemo(() => 
+  processDashboardData(onboardingData, transactions, viewMode, selectedMonth),
+  [onboardingData, transactions, viewMode, selectedMonth]
+    );
+  const performanceData = calculateBudgetPerformance(onboardingData, transactions, viewMode, selectedMonth);
+  const netWorthData = calculateNetWorthData(onboardingData, viewMode);
+  const availableMonths = generateAvailableMonths(onboardingData, transactions);
   
   // Global view state
   const [viewMode, setViewMode] = useState('month'); // 'month' or 'period'
@@ -64,7 +73,6 @@ export const Dashboard = ({ onNavigate }) => {
   // Load selected month on mount
   useEffect(() => {
     const savedMonth = sessionStorage.getItem('tally_selectedMonth');
-    const availableMonths = generateAvailableMonths(onboardingData, transactions);
     if (savedMonth && availableMonths.some(m => m.value === savedMonth)) {
       setSelectedMonth(savedMonth);
     }
@@ -125,15 +133,6 @@ export const Dashboard = ({ onNavigate }) => {
       </div>
     );
   }
-
-  // Process data based on current view mode
-  const dashboardData = useMemo(() => 
-  processDashboardData(onboardingData, transactions, viewMode, selectedMonth),
-  [onboardingData, transactions, viewMode, selectedMonth]
-);
-  const performanceData = calculateBudgetPerformance(onboardingData, transactions, viewMode, selectedMonth);
-  const netWorthData = calculateNetWorthData(onboardingData, viewMode);
-  const availableMonths = generateAvailableMonths(onboardingData, transactions);
 
   // Get current view label for display
   const getCurrentViewLabel = () => {
