@@ -301,11 +301,4 @@ function App() {
   );
 }
 
-  return (
-    <ThemeProvider>
-      <AppRouter />
-    </ThemeProvider>
-  );
-}
-
 export { App };
