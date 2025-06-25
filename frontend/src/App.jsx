@@ -1,5 +1,5 @@
 // frontend/src/App.jsx
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 
 import { ThemeProvider } from 'contexts/ThemeContext';
 import { useOnboarding } from 'hooks/useOnboarding';
@@ -15,6 +15,8 @@ import { GiftManagement } from 'components/gifts/GiftManagement';
 import { PlanNextPeriod } from 'components/onboarding/PlanNextPeriod';
 import { EditWrapper } from 'components/overviews/EditWrapper';
 import { dataManager } from 'utils/dataManager';
+import { AppRouter } from 'components/routing/AppRouter';
+
 
 function OnboardingFlow({ onComplete, onBack }) {
   const { currentStep, nextStep, prevStep, formData, updateFormData, setHouseholdAndPeriod } = useOnboarding();
@@ -299,5 +301,11 @@ function App() {
   );
 }
 
+  return (
+    <ThemeProvider>
+      <AppRouter />
+    </ThemeProvider>
+  );
+}
 
 export { App };
