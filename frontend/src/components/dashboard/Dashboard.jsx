@@ -53,7 +53,22 @@ export const Dashboard = ({ onNavigate }) => {
       onNavigate('onboarding');
     }
   }, [onNavigate]);
-
+  
+  // Save selected month to sessionStorage
+  useEffect(() => {
+    if (selectedMonth) {
+      sessionStorage.setItem('tally_selectedMonth', selectedMonth);
+    }
+  }, [selectedMonth]);
+  
+  // Load selected month on mount
+  useEffect(() => {
+    const savedMonth = sessionStorage.getItem('tally_selectedMonth');
+    if (savedMonth && availableMonths.some(m => m.value === savedMonth)) {
+      setSelectedMonth(savedMonth);
+    }
+  }, [availableMonths]);
+  
     const handleMenuAction = (actionId) => {
     setMenuOpen(false);
     
