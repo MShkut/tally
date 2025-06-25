@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { dataManager } from 'utils/dataManager';
-import { OnboardingFlow } from 'App';
+import { OnboardingFlow } from 'components/onboarding/OnboardingFlow';
 import { Dashboard } from 'components/dashboard/Dashboard';
 import { NetWorthDashboard } from 'components/dashboard/NetWorthDashboard';
 import { TransactionImport } from 'components/dashboard/TransactionImport';
