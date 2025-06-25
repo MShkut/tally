@@ -69,7 +69,7 @@ export const WelcomeStep = ({ onNext, savedData = null }) => {
     <>
       <ThemeToggle />
       <StandardFormLayout
-        title="Welcome to Stash"
+        title="Welcome to Tally"
         subtitle="A privacy-first approach to organizing your financial life. All data stays on your device, giving you complete control over your financial information."
         onNext={handleNext}
         canGoNext={canContinue}
