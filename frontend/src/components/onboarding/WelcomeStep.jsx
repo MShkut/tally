@@ -1,7 +1,9 @@
+// frontend/src/components/onboarding/WelcomeStep.jsx
 import React, { useState, useEffect } from 'react';
 
 import { useTheme } from 'contexts/ThemeContext';
 import { ThemeToggle } from 'components/shared/ThemeToggle';
+import { PeriodSelector } from 'components/shared/PeriodSelector';
 import { 
   FormGrid, 
   FormField, 
@@ -13,17 +15,16 @@ import {
 
 export const WelcomeStep = ({ onNext, savedData = null }) => {
   const [formData, setFormData] = useState({
-    householdName: '',
-    periodDuration: ''
+    householdName: ''
   });
+  const [periodData, setPeriodData] = useState(null);
 
   // Pre-populate form with saved data
   useEffect(() => {
     if (savedData) {
       console.log('🔄 Pre-populating welcome step:', savedData);
       setFormData({
-        householdName: savedData.household?.name || '',
-        periodDuration: savedData.period?.duration_months?.toString() || ''
+        householdName: savedData.household?.name || ''
       });
     }
   }, [savedData]);
@@ -35,19 +36,8 @@ export const WelcomeStep = ({ onNext, savedData = null }) => {
     }));
   };
 
-  const handleDurationChange = (inputValue) => {
-    // Only allow numbers 1-12
-    const cleanValue = inputValue.replace(/[^0-9]/g, '');
-    
-    if (cleanValue === '') {
-      handleInputChange('periodDuration', '');
-      return;
-    }
-    
-    const numValue = parseInt(cleanValue);
-    if (numValue >= 1 && numValue <= 12) {
-      handleInputChange('periodDuration', cleanValue);
-    }
+  const handlePeriodChange = (period) => {
+    setPeriodData(period);
   };
 
   const handleNext = () => {
@@ -58,8 +48,9 @@ export const WelcomeStep = ({ onNext, savedData = null }) => {
           created_date: new Date().toISOString().split('T')[0]
         },
         period: {
-          duration_months: parseInt(formData.periodDuration),
-          start_date: new Date().toISOString().split('T')[0],
+          duration_months: periodData.durationMonths,
+          start_date: periodData.startDate,
+          end_date: periodData.endDate,
           period_number: 1
         }
       };
@@ -68,60 +59,53 @@ export const WelcomeStep = ({ onNext, savedData = null }) => {
     }
   };
 
-  const getMonthText = () => {
-    return 'months';
-  };
-
-  // Validation: need valid name and valid period duration (1-12)
+  // Validation: need valid name and valid period
   const canContinue = validation.hasValidString(formData.householdName) && 
-                     formData.periodDuration && 
-                     parseInt(formData.periodDuration) >= 1 && 
-                     parseInt(formData.periodDuration) <= 12;
+                     periodData && 
+                     periodData.durationMonths >= 1 && 
+                     periodData.durationMonths <= 12;
 
   return (
     <>
       <ThemeToggle />
       <StandardFormLayout
-        title="Welcome to Tally"
+        title="Welcome to Stash"
         subtitle="A privacy-first approach to organizing your financial life. All data stays on your device, giving you complete control over your financial information."
         onNext={handleNext}
         canGoNext={canContinue}
         nextLabel="Begin Financial Setup"
         showBack={false}
-        className="flex items-center justify-center [&_h1]:text-6xl [&_h1]:font-medium [&_p]:text-2xl [&_p]:font-medium [&_button]:text-2xl [&_button]:font-medium"
+        className="flex items-center justify-center"
       >
-        <div className="max-w-2xl mx-auto transform scale-125 origin-center">
+        <div className="max-w-3xl mx-auto">
           <FormSection>
             <FormGrid>
-              {/* Name Input - Takes majority of space */}
-              <FormField span={8}>
+              {/* Name Input - Full width */}
+              <FormField span={12}>
                 <StandardInput
                   label="Your name(s)"
                   value={formData.householdName}
                   onChange={(value) => handleInputChange('householdName', value)}
                   placeholder="John, Jane & John, Smith Family"
                   required
-                  className="[&_label]:text-2xl [&_label]:font-medium [&_input]:text-2xl [&_input]:font-medium [&_input]:pb-4 [&_span]:text-2xl [&_span]:font-medium"
-                />
-              </FormField>
-              
-              {/* Duration Input - Compact */}
-              <FormField span={4}>
-                <StandardInput
-                  label="Budget period"
-                  value={formData.periodDuration}
-                  onChange={handleDurationChange}
-                  placeholder="6"
-                  suffix={getMonthText()}
-                  required
                   className="[&_label]:text-2xl [&_label]:font-medium [&_input]:text-2xl [&_input]:font-medium [&_input]:pb-4"
                 />
               </FormField>
             </FormGrid>
+          </FormSection>
+          
+          {/* Budget Period Selector */}
+          <FormSection title="Select Your Budget Period">
+            <PeriodSelector 
+              onPeriodChange={handlePeriodChange}
+              initialStartDate={savedData?.period?.start_date}
+              initialEndDate={savedData?.period?.end_date}
+              maxMonths={12}
+            />
           </FormSection>
         </div>
 
       </StandardFormLayout>
     </>
   );
-}
+};
