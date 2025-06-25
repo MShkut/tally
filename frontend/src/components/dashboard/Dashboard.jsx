@@ -64,6 +64,7 @@ export const Dashboard = ({ onNavigate }) => {
   // Load selected month on mount
   useEffect(() => {
     const savedMonth = sessionStorage.getItem('tally_selectedMonth');
+    const availableMonths = generateAvailableMonths(onboardingData, transactions);
     if (savedMonth && availableMonths.some(m => m.value === savedMonth)) {
       setSelectedMonth(savedMonth);
     }
