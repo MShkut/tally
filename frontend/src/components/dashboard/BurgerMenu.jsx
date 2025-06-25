@@ -81,9 +81,12 @@ export const BurgerMenu = ({ isOpen, onClose, onAction, currentPage = 'dashboard
   const menuItems = getMenuItems();
 
   const handleResetConfirm = () => {
-    onAction('reset-data');
+    dataManager.resetAllData();
     setShowResetConfirm(false);
     onClose();
+    
+    // Force reload to ensure clean state
+    window.location.reload();
   };
 
   const handleMenuItemClick = (actionId) => {
