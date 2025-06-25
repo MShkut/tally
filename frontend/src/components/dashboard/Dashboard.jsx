@@ -127,7 +127,10 @@ export const Dashboard = ({ onNavigate }) => {
   }
 
   // Process data based on current view mode
-  const dashboardData = processDashboardData(onboardingData, transactions, viewMode, selectedMonth);
+  const dashboardData = useMemo(() => 
+  processDashboardData(onboardingData, transactions, viewMode, selectedMonth),
+  [onboardingData, transactions, viewMode, selectedMonth]
+);
   const performanceData = calculateBudgetPerformance(onboardingData, transactions, viewMode, selectedMonth);
   const netWorthData = calculateNetWorthData(onboardingData, viewMode);
   const availableMonths = generateAvailableMonths(onboardingData, transactions);
