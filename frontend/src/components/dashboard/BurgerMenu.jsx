@@ -31,7 +31,7 @@ export const BurgerMenu = ({ isOpen, onClose, onAction, currentPage = 'dashboard
 
   if (!isOpen) return null;
 
-  // Define menu items based on current page context
+  // Define menu items with new structure
   const getMenuItems = () => {
     // Check if user has gifts category
     const userData = dataManager.loadUserData();
@@ -39,34 +39,42 @@ export const BurgerMenu = ({ isOpen, onClose, onAction, currentPage = 'dashboard
       cat => cat.name.toLowerCase() === 'gifts'
     ) || false;
 
-    const baseActions = [
-      { id: 'import', label: 'Import transactions', primary: currentPage !== 'import' },
-      { id: 'start-next-period', label: 'Start next period' }
-    ];
-
-    const baseNavigate = [
+    const overviewItems = [
       { id: 'dashboard', label: 'Dashboard', active: currentPage === 'dashboard' },
-      { id: 'import', label: 'Transaction Import', active: currentPage === 'import' }
+      { id: 'networth', label: 'Net Worth', active: currentPage === 'networth' }
     ];
 
-    // Add gifts to navigation if gifts category exists
+    const actionsItems = [
+      { id: 'import', label: 'Transaction Import', active: currentPage === 'import' },
+      { id: 'edit-income', label: 'Edit Income Sources' },
+      { id: 'edit-savings', label: 'Edit Savings Plan' },
+      { id: 'edit-expenses', label: 'Edit Expenses' },
+      { id: 'plan-next-period', label: 'Plan Next Period' }
+    ];
+
+    // Add gift management if category exists
     if (hasGiftsCategory) {
-      baseNavigate.push({
+      actionsItems.splice(1, 0, {
         id: 'gifts',
         label: 'Gift Management',
         active: currentPage === 'gifts'
       });
     }
 
-    const baseSettings = [
-      { id: 'export', label: 'Export data' },
-      { id: 'reset-data', label: 'Reset all data', danger: true }
+    const toolsItems = [
+      // Empty for now - TBD
+    ];
+
+    const settingsItems = [
+      { id: 'export', label: 'Export Data' },
+      { id: 'reset-data', label: 'Reset All Data', danger: true }
     ];
 
     return {
-      actions: baseActions,
-      navigate: baseNavigate,
-      settings: baseSettings
+      overview: overviewItems,
+      actions: actionsItems,
+      tools: toolsItems,
+      settings: settingsItems
     };
   };
 
@@ -103,7 +111,7 @@ export const BurgerMenu = ({ isOpen, onClose, onAction, currentPage = 'dashboard
           {/* Header */}
           <div className="flex items-center justify-between mb-12 pb-6 border-b border-current border-opacity-10">
             <h2 className={`text-lg font-medium ${isDarkMode ? 'text-white' : 'text-black'}`}>
-              Stash
+              Tilly
             </h2>
             <button 
               onClick={onClose}
@@ -118,19 +126,28 @@ export const BurgerMenu = ({ isOpen, onClose, onAction, currentPage = 'dashboard
           {/* Menu Sections */}
           <div className="space-y-10">
             <MenuSection 
+              title="Overview" 
+              items={menuItems.overview} 
+              onAction={handleMenuItemClick}
+              isDarkMode={isDarkMode}
+              currentPage={currentPage}
+            />
+            <MenuSection 
               title="Actions" 
               items={menuItems.actions} 
               onAction={handleMenuItemClick}
               isDarkMode={isDarkMode}
               currentPage={currentPage}
             />
-            <MenuSection 
-              title="Navigate" 
-              items={menuItems.navigate} 
-              onAction={handleMenuItemClick}
-              isDarkMode={isDarkMode}
-              currentPage={currentPage}
-            />
+            {menuItems.tools.length > 0 && (
+              <MenuSection 
+                title="Tools" 
+                items={menuItems.tools} 
+                onAction={handleMenuItemClick}
+                isDarkMode={isDarkMode}
+                currentPage={currentPage}
+              />
+            )}
             <MenuSection 
               title="Settings" 
               items={menuItems.settings} 
@@ -145,14 +162,13 @@ export const BurgerMenu = ({ isOpen, onClose, onAction, currentPage = 'dashboard
             isDarkMode ? 'text-gray-500' : 'text-gray-400'
           }`}>
             <p className="text-xs font-light">
-              {currentPage === 'dashboard' ? 'Dashboard View' : 
-               currentPage === 'import' ? 'Transaction Import' : 'Current Page'}
+              All data stored locally
             </p>
           </div>
         </div>
       </div>
 
-      {/* Reset Confirmation Modal using FormComponents */}
+      {/* Reset Confirmation Modal */}
       <ConfirmationModal
         isOpen={showResetConfirm}
         title="Reset All Data?"
@@ -161,6 +177,7 @@ export const BurgerMenu = ({ isOpen, onClose, onAction, currentPage = 'dashboard
           'Onboarding setup and budget configuration',
           'All imported and manual transactions',
           'Savings goals and net worth data',
+          'Gift management data',
           'Theme preferences'
         ]}
         warningText="This action cannot be undone."
@@ -184,9 +201,7 @@ const MenuSection = ({ title, items, onAction, isDarkMode, currentPage }) => (
     </h3>
     <div className="space-y-1">
       {items.map(item => {
-        const isCurrentPage = item.active || 
-          (item.id === 'dashboard' && currentPage === 'dashboard') ||
-          (item.id === 'import' && currentPage === 'import');
+        const isCurrentPage = item.active;
         
         return (
           <button
@@ -199,9 +214,7 @@ const MenuSection = ({ title, items, onAction, isDarkMode, currentPage }) => (
                 ? 'text-red-500 hover:text-red-400' 
                 : isCurrentPage
                   ? isDarkMode ? 'text-white font-medium border-gray-600' : 'text-black font-medium border-gray-400'
-                  : item.primary 
-                    ? isDarkMode ? 'text-white font-medium' : 'text-black font-medium'
-                    : isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-black'
+                  : isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-black'
               }
             `}
           >
@@ -219,5 +232,3 @@ const MenuSection = ({ title, items, onAction, isDarkMode, currentPage }) => (
     </div>
   </div>
 );
-
-
