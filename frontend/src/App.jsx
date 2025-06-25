@@ -288,4 +288,15 @@ function App() {
   );
 }
 
+useEffect(() => {
+  if (window.innerWidth < 768) {
+    document.body.innerHTML = `
+      <div style="padding: 20px; text-align: center;">
+        <h1>Desktop Required</h1>
+        <p>Tally is designed for desktop use. Please access from a computer.</p>
+      </div>
+    `;
+  }
+}, []);
+
 export { App };
