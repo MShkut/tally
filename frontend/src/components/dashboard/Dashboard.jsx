@@ -21,6 +21,7 @@ export const Dashboard = ({ onNavigate }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [onboardingData, setOnboardingData] = useState(null);
   const [transactions, setTransactions] = useState([]);
+  const [categories, setCategories] = useState([]);
     
   // Process data based on current view mode
   const dashboardData = useMemo(() => 
@@ -51,7 +52,35 @@ export const Dashboard = ({ onNavigate }) => {
       document.body.style.overflow = '';
     };
   }, [menuOpen]);
+  useEffect(() => {
+  const userData = dataManager.loadUserData();
+  const userTransactions = dataManager.loadTransactions();
+  
+  setOnboardingData(userData);
+  setTransactions(userTransactions);
+  
+  // Build categories from user data
+  if (userData?.expenses?.expenseCategories) {
+    const expenseCategories = userData.expenses.expenseCategories.map(cat => ({
+      id: cat.name.toLowerCase().replace(/\s+/g, '-'),
+      name: cat.name,
+      type: 'expense'
+    }));
+    
+    const incomeCategories = userData.income?.incomeSources?.map(source => ({
+      id: source.name.toLowerCase().replace(/\s+/g, '-'),
+      name: source.name,
+      type: 'income'
+    })) || [];
+    
+    setCategories([...incomeCategories, ...expenseCategories]);
+  }
 
+  if (!userData || !userData.onboardingComplete) {
+    onNavigate('onboarding');
+  }
+}, [onNavigate]);
+  
   useEffect(() => {
     const userData = dataManager.loadUserData();
     const userTransactions = dataManager.loadTransactions();
@@ -286,6 +315,17 @@ export const Dashboard = ({ onNavigate }) => {
               </FormSection>
             </div>
           </div>
+
+          <FormSection title="Quick Add Transaction">
+              <ManualTransactionEntry 
+                categories={categories}
+                onAddTransaction={(transaction) => {
+                  const newTransactions = [...transactions, transaction];
+                  dataManager.saveTransactions(newTransactions);
+                  setTransactions(newTransactions);
+                }}
+              />
+            </FormSection>
 
           <div className="h-24"></div>
         </div>
