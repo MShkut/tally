@@ -1,16 +1,20 @@
+// frontend/src/App.jsx
 import { useState, useEffect } from 'react';
 
-import { ThemeProvider } from 'contexts/ThemeContext'
-import { useOnboarding } from 'hooks/useOnboarding'
-import { WelcomeStep } from 'components/onboarding/WelcomeStep'
-import { IncomeStep } from 'components/onboarding/IncomeStep'
-import { SavingsAllocationStep } from 'components/onboarding/SavingsAllocationStep'
-import { ExpensesStep } from 'components/onboarding/ExpensesStep'
-import { NetWorthStep } from 'components/onboarding/NetWorthStep'
-import { Dashboard } from 'components/dashboard/Dashboard'
-import { TransactionImport } from 'components/dashboard/TransactionImport'
-import {dataManager } from 'utils/dataManager'
+import { ThemeProvider } from 'contexts/ThemeContext';
+import { useOnboarding } from 'hooks/useOnboarding';
+import { WelcomeStep } from 'components/onboarding/WelcomeStep';
+import { IncomeStep } from 'components/onboarding/IncomeStep';
+import { SavingsAllocationStep } from 'components/onboarding/SavingsAllocationStep';
+import { ExpensesStep } from 'components/onboarding/ExpensesStep';
+import { NetWorthStep } from 'components/onboarding/NetWorthStep';
+import { Dashboard } from 'components/dashboard/Dashboard';
+import { NetWorthDashboard } from 'components/dashboard/NetWorthDashboard';
+import { TransactionImport } from 'components/dashboard/TransactionImport';
 import { GiftManagement } from 'components/gifts/GiftManagement';
+import { PlanNextPeriod } from 'components/onboarding/PlanNextPeriod';
+import { EditWrapper } from 'components/overviews/EditWrapper';
+import { dataManager } from 'utils/dataManager';
 
 function OnboardingFlow({ onComplete, onBack }) {
   const { currentStep, nextStep, prevStep, formData, updateFormData, setHouseholdAndPeriod } = useOnboarding();
@@ -100,7 +104,6 @@ function OnboardingFlow({ onComplete, onBack }) {
             onNext={handleIncomeNext}
             onBack={handleBack}
             savedData={formData}
-            
           />
         );
       case 2:
@@ -145,6 +148,7 @@ export { OnboardingFlow };
 
 function App() {
   const [currentView, setCurrentView] = useState('loading');
+  const [previousView, setPreviousView] = useState('dashboard');
   const [onboardingData, setOnboardingData] = useState(null);
 
   useEffect(() => {
@@ -165,6 +169,10 @@ function App() {
   };
 
   const handleNavigate = (view) => {
+    // Store the current view as previous before changing (except for edit views)
+    if (!view.startsWith('edit-') && currentView !== 'loading') {
+      setPreviousView(currentView);
+    }
     setCurrentView(view);
   };
 
@@ -194,17 +202,72 @@ function App() {
           />
         );
       
+      case 'networth':
+        return (
+          <NetWorthDashboard 
+            onNavigate={handleNavigate}
+          />
+        );
+      
       case 'import':
         return (
           <TransactionImport 
             onNavigate={handleNavigate}
           />
         );
-        
+      
       case 'gifts':
         return (
           <GiftManagement 
             onNavigate={handleNavigate}
+          />
+        );
+      
+      case 'edit-income':
+        return (
+          <EditWrapper 
+            editType="income"
+            onComplete={(returnTo) => handleNavigate(returnTo || previousView)}
+            onCancel={(returnTo) => handleNavigate(returnTo || previousView)}
+            returnTo={previousView}
+          />
+        );
+      
+      case 'edit-savings':
+        return (
+          <EditWrapper 
+            editType="savingsAllocation"
+            onComplete={(returnTo) => handleNavigate(returnTo || previousView)}
+            onCancel={(returnTo) => handleNavigate(returnTo || previousView)}
+            returnTo={previousView}
+          />
+        );
+      
+      case 'edit-expenses':
+        return (
+          <EditWrapper 
+            editType="expenses"
+            onComplete={(returnTo) => handleNavigate(returnTo || previousView)}
+            onCancel={(returnTo) => handleNavigate(returnTo || previousView)}
+            returnTo={previousView}
+          />
+        );
+      
+      case 'edit-networth':
+        return (
+          <EditWrapper 
+            editType="netWorth"
+            onComplete={(returnTo) => handleNavigate(returnTo || previousView)}
+            onCancel={(returnTo) => handleNavigate(returnTo || previousView)}
+            returnTo={previousView}
+          />
+        );
+      
+      case 'plan-next-period':
+        return (
+          <PlanNextPeriod 
+            onComplete={() => handleNavigate('dashboard')}
+            onCancel={() => handleNavigate('dashboard')}
           />
         );
       
@@ -222,7 +285,7 @@ function App() {
     <ThemeProvider>
       {renderCurrentView()}
     </ThemeProvider>
-  )
+  );
 }
 
 export { App };
