@@ -156,21 +156,3 @@ const DefaultRedirect = () => {
   
   return loading ? <div>Loading...</div> : null;
 };
-
-// 3. Update App.jsx to use the router
-// Replace the entire App component in App.jsx with:
-import React from 'react';
-import { ThemeProvider } from 'contexts/ThemeContext';
-import { AppRouter } from 'components/routing/AppRouter';
-
-export { OnboardingFlow }; // Keep this export for the router
-
-function App() {
-  return (
-    <ThemeProvider>
-      <AppRouter />
-    </ThemeProvider>
-  );
-}
-
-export { App };
