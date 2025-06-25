@@ -14,6 +14,7 @@ import {
 import { BurgerMenu } from 'components/dashboard/BurgerMenu';
 import { BudgetPerformanceSection, calculateBudgetPerformance, calculateNetWorthData } from 'components/dashboard/BudgetPerformanceSection';
 import { DashboardViewSelector, generateAvailableMonths } from 'components/dashboard/DashboardViewSelector';
+import { ManualTransactionEntry } from './ManualTransactionEntry';
 
 export const Dashboard = ({ onNavigate }) => {
   const { isDarkMode, toggleTheme } = useTheme();
