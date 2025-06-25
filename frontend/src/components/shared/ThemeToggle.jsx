@@ -2,11 +2,11 @@ import React from 'react';
 
 import { useTheme } from 'contexts/ThemeContext';
 
-export const ThemeToggle = () => {
+export const ThemeToggle = ({ className = '' }) => {
   const { isDarkMode, toggleTheme } = useTheme();
 
   return (
-    <div className="fixed top-8 right-8 z-50">
+    <div className={`fixed top-8 right-8 z-50 ${className}`}>
       <button
         onClick={toggleTheme}
         className={`
