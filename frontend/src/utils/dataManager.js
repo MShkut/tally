@@ -180,6 +180,26 @@ class DataManager {
     return filtered.length < transactions.length;
   }
 
+  saveCategoryMappings(mappings) {
+  try {
+    localStorage.setItem('tally_categoryMappings', JSON.stringify(mappings));
+    return true;
+  } catch (error) {
+    console.error('Failed to save category mappings:', error);
+    return false;
+  }
+}
+
+  loadCategoryMappings() {
+    try {
+      const saved = localStorage.getItem('tally_categoryMappings');
+      return saved ? JSON.parse(saved) : {};
+    } catch (error) {
+      console.error('Failed to load category mappings:', error);
+      return {};
+    }
+  }
+
   // ==================== NET WORTH ====================
 
   loadNetWorthItems() {
