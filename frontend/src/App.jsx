@@ -1,5 +1,5 @@
 // frontend/src/App.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 
 import { ThemeProvider } from 'contexts/ThemeContext';
 import { useOnboarding } from 'hooks/useOnboarding';
