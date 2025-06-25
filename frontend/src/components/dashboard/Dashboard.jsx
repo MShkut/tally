@@ -79,7 +79,22 @@ export const Dashboard = ({ onNavigate }) => {
         break;
       case 'gifts':
         onNavigate('gifts');
-      break;
+        break;
+      case 'networth':
+        onNavigate('networth');
+        break;
+      case 'edit-income':
+        onNavigate('edit-income');
+        break;
+      case 'edit-savings':
+        onNavigate('edit-savings');
+        break;
+      case 'edit-expenses':
+        onNavigate('edit-expenses');
+        break;
+      case 'plan-next-period':
+        onNavigate('plan-next-period');
+        break;
       default:
         console.log(`Action ${actionId} not implemented`);
     }
