@@ -581,4 +581,80 @@ const NetWorthCharts = ({ history, assets, liabilities, view, isDarkMode }) => {
             <p className="mt-2 text-sm">Assets</p>
           </div>
           <div className="text-center">
-            <div className="w-24 h-24 rounded-full border-4 border-red-500 flex items-center justify-
+            <div className="w-24 h-24 rounded-full border-4 border-red-500 flex items-center justify-center">
+              [Liabilities]
+            </div>
+            <p className="mt-2 text-sm">Liabilities</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// UpdateValuesModal component (missing)
+const UpdateValuesModal = ({ assets, liabilities, onSave, onClose, isDarkMode }) => {
+  const [updates, setUpdates] = useState({});
+  
+  const handleValueChange = (itemId, value) => {
+    setUpdates(prev => ({
+      ...prev,
+      [itemId]: value ? parseFloat(value) : null
+    }));
+  };
+  
+  const handleSave = () => {
+    onSave(updates);
+  };
+  
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+      <div className={`max-w-2xl w-full p-8 m-4 max-h-[80vh] overflow-y-auto ${
+        isDarkMode ? 'bg-black text-white' : 'bg-white text-black'
+      }`}>
+        <h2 className="text-3xl font-light mb-8">Update Net Worth Values</h2>
+        
+        <FormSection title="Assets">
+          {assets.map(asset => (
+            <div key={asset.id} className="mb-4">
+              <StandardInput
+                label={asset.name}
+                type="currency"
+                value={updates[asset.id] ?? asset.currentValue}
+                onChange={(value) => handleValueChange(asset.id, value)}
+                prefix="$"
+              />
+            </div>
+          ))}
+        </FormSection>
+        
+        <FormSection title="Liabilities">
+          {liabilities.map(liability => (
+            <div key={liability.id} className="mb-4">
+              <StandardInput
+                label={liability.name}
+                type="currency"
+                value={updates[liability.id] ?? liability.currentValue}
+                onChange={(value) => handleValueChange(liability.id, value)}
+                prefix="$"
+              />
+            </div>
+          ))}
+        </FormSection>
+        
+        <div className="flex justify-between mt-8">
+          <button onClick={onClose} className={`text-lg font-light ${
+            isDarkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-black'
+          }`}>
+            Cancel
+          </button>
+          <button onClick={handleSave} className={`text-xl font-light border-b-2 ${
+            isDarkMode ? 'text-white border-white' : 'text-black border-black'
+          }`}>
+            Save Updates
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
