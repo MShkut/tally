@@ -1,5 +1,5 @@
 // Updated Dashboard component with requested changes
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 
 import { useTheme } from 'contexts/ThemeContext';
 import { dataManager } from 'utils/dataManager';
