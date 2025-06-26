@@ -1,5 +1,7 @@
-// src/utils/incomeHelpers.js
-// Centralized income calculation utilities
+// frontend/src/utils/incomeHelpers.js
+// Updated income calculation utilities using centralized currency system
+
+import { Currency } from './currency';
 
 export const FREQUENCY_MULTIPLIERS = {
   'Weekly': 52,
@@ -17,45 +19,45 @@ export const FREQUENCY_DESCRIPTIONS = {
   'One-time': 'Single occurrence'
 };
 
-// Convert any frequency to yearly amount
+// Convert any frequency to yearly amount using currency system
 export const convertToYearly = (amount, frequency) => {
-  const num = parseFloat(amount) || 0;
-  const multiplier = FREQUENCY_MULTIPLIERS[frequency] || 1;
-  return num * multiplier;
+  return Currency.toYearly(amount, frequency);
 };
 
-// Convert yearly to specific frequency
+// Convert yearly to specific frequency using currency system
 export const convertFromYearly = (yearlyAmount, targetFrequency) => {
-  const yearly = parseFloat(yearlyAmount) || 0;
-  const multiplier = FREQUENCY_MULTIPLIERS[targetFrequency] || 1;
-  return multiplier > 0 ? yearly / multiplier : 0;
+  return Currency.fromYearly(yearlyAmount, targetFrequency);
 };
 
-// Calculate total yearly income from multiple sources
+// Calculate total yearly income from multiple sources using currency system
 export const calculateTotalYearlyIncome = (incomeSources = []) => {
   return incomeSources.reduce((total, source) => {
-    return total + convertToYearly(source.amount, source.frequency);
+    const yearlyAmount = Currency.toYearly(source.amount, source.frequency);
+    return Currency.add(total, yearlyAmount);
   }, 0);
 };
 
-// Analyze income diversification
+// Analyze income diversification with proper currency calculations
 export const analyzeIncomeDistribution = (incomeSources = []) => {
   if (!incomeSources.length) return null;
 
   const totalYearly = calculateTotalYearlyIncome(incomeSources);
-  if (totalYearly === 0) return null;
+  if (Currency.compare(totalYearly, 0) === 0) return null;
 
-  // Find primary source
+  // Find primary source using currency comparisons
   const sourcesWithYearly = incomeSources.map(source => ({
     ...source,
-    yearlyAmount: convertToYearly(source.amount, source.frequency)
+    yearlyAmount: Currency.toYearly(source.amount, source.frequency)
   }));
 
   const primarySource = sourcesWithYearly.reduce((max, source) => 
-    source.yearlyAmount > max.yearlyAmount ? source : max
+    Currency.compare(source.yearlyAmount, max.yearlyAmount) > 0 ? source : max
   );
 
-  const primaryPercentage = Math.round((primarySource.yearlyAmount / totalYearly) * 100);
+  // Calculate percentage using currency division
+  const primaryPercentage = Math.round(
+    (Currency.divide(primarySource.yearlyAmount, totalYearly)) * 100
+  );
 
   return {
     totalSources: incomeSources.length,
@@ -63,11 +65,11 @@ export const analyzeIncomeDistribution = (incomeSources = []) => {
     primaryPercentage,
     isDiversified: incomeSources.length > 1 && primaryPercentage < 80,
     totalYearly,
-    monthlyAverage: totalYearly / 12
+    monthlyAverage: Currency.fromYearly(totalYearly, 'Monthly')
   };
 };
 
-// Validate income source data
+// Validate income source data with currency validation
 export const validateIncomeSource = (source) => {
   const errors = [];
   
@@ -75,8 +77,9 @@ export const validateIncomeSource = (source) => {
     errors.push('Income source name is required');
   }
   
-  if (!source.amount || parseFloat(source.amount) <= 0) {
-    errors.push('Amount must be greater than 0');
+  const validation = Currency.validate(source.amount);
+  if (!validation.isValid) {
+    errors.push(validation.error || 'Amount must be greater than 0');
   }
   
   if (!source.frequency || !FREQUENCY_MULTIPLIERS.hasOwnProperty(source.frequency)) {
