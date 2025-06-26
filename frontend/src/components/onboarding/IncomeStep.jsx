@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { ThemeToggle } from 'components/shared/ThemeToggle';
 import { FrequencySelector } from 'components/shared/FrequencySelector';
 import { SmartInput } from 'components/shared/SmartInput';
+import { Currency } from 'utils/currency';
 import { 
   FormGrid, 
   FormField, 
@@ -118,13 +119,15 @@ useEffect(() => {
 
   // Use utility functions for calculations
   const totalYearlyIncome = calculateTotalYearlyIncome(incomeSources);
-  const monthlyIncome = totalYearlyIncome / 12;
+  const monthlyIncome = Currency.fromYearly(totalYearlyIncome, 'Monthly');
   const insights = analyzeIncomeDistribution(incomeSources);
   
   // Simple validation - just check if we have valid data
-  const canContinue = totalYearlyIncome > 0 && incomeSources.every(source => 
-    validation.hasValidString(source.name) && validation.isPositiveNumber(source.amount)
-  );
+  const canContinue = Currency.compare(totalYearlyIncome, 0) > 0 && 
+                   incomeSources.every(source => 
+                     validation.hasValidString(source.name) && 
+                     validation.isValidCurrency(source.amount)
+                   );
 
   const handleNext = () => {
     if (onNext && canContinue) {
