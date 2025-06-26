@@ -110,14 +110,14 @@ export const NetWorthStep = ({ onNext, onBack, incomeData, savingsData, expenses
 
   // Calculate totals
   const totalAssets = assets.reduce((sum, asset) => 
-    Currency.add(sum, asset.amount || 0), 0
-  );
+  Currency.add(sum, asset.amount || 0), 0
+);
 
-  const totalLiabilities = liabilities.reduce((sum, liability) => 
-    Currency.add(sum, liability.amount || 0), 0
-  );
+const totalLiabilities = liabilities.reduce((sum, liability) => 
+  Currency.add(sum, liability.amount || 0), 0
+);
 
-  const netWorth = Currency.subtract(totalAssets, totalLiabilities);
+const netWorth = Currency.subtract(totalAssets, totalLiabilities);
 
   const handleNext = () => {
     if (onNext) {
@@ -212,9 +212,9 @@ export const NetWorthStep = ({ onNext, onBack, incomeData, savingsData, expenses
             />
             <SummaryCard
               title="Net Worth"
-              value={`${netWorth >= 0 ? '' : '-'}${Math.abs(netWorth).toLocaleString()}`}
-              subtitle={netWorth >= 0 ? 'Positive net worth' : 'Room to grow'}
-              accent={netWorth >= 0}
+              value={Currency.format(netWorth, { showCents: false })}
+              subtitle={Currency.compare(netWorth, 0) >= 0 ? 'Positive net worth' : 'Room to grow'}
+              accent={Currency.compare(netWorth, 0) >= 0}
             />
           </div>
         </FormSection>
