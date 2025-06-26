@@ -4,7 +4,7 @@
 import React from 'react';
 
 import { useTheme } from 'contexts/ThemeContext';
-import { Currency } from '.utils/currency';
+import { Currency } from 'utils/currency';
 
 // ==================== CORE GRID SYSTEM ====================
 
@@ -33,9 +33,7 @@ export const FormField = ({
 
 // ==================== INPUT COMPONENTS ====================
 
-// Standardized input field with consistent styling
-// Update FormComponents.jsx - StandardInput with larger base fonts
-
+// Standardized input field with consistent styling and fixed currency handling
 export const StandardInput = ({ 
   label, 
   type = 'text', 
@@ -53,29 +51,17 @@ export const StandardInput = ({
 
   const handleChange = (e) => {
     if (type === 'currency') {
-      // Let users type naturally - only clean up bad characters
-      let inputValue = e.target.value;
-      
-      // Remove everything except numbers and one decimal point
-      inputValue = inputValue.replace(/[^0-9.]/g, '');
-      
-      // Prevent multiple decimal points
-      const parts = inputValue.split('.');
-      if (parts.length > 2) {
-        inputValue = parts[0] + '.' + parts[1];
-      }
-      
-      // Limit decimal places to 2, but only if user has typed more than 2
-      if (parts.length === 2 && parts[1].length > 2) {
-        inputValue = parts[0] + '.' + parts[1].substring(0, 2);
-      }
-      
-      // Pass the clean value back - no formatting while typing
-      onChange(inputValue);
+      // Use centralized currency parsing
+      const cleaned = Currency.parseInput(e.target.value);
+      onChange(cleaned);
     } else {
       onChange(e.target.value);
     }
   };
+
+  // Format currency value for display
+  const displayValue = type === 'currency' ? 
+    Currency.formatInput(value) : value;
 
   return (
     <div className={className}>
@@ -96,7 +82,7 @@ export const StandardInput = ({
         )}
         <input
           type="text"
-          value={value}
+          value={displayValue}
           onChange={handleChange}
           placeholder={placeholder}
           inputMode={type === 'currency' ? 'decimal' : undefined}
@@ -369,7 +355,7 @@ export const StandardFormLayout = ({
   );
 };
 
-// Summary card with consistent styling
+// Summary card with consistent styling and fixed currency formatting
 export const SummaryCard = ({ 
   title, 
   value, 
@@ -379,8 +365,9 @@ export const SummaryCard = ({
 }) => {
   const { isDarkMode } = useTheme();
   
-  // Format value if it's a number (currency)
-  const displayValue = typeof value === 'number' ? formatCurrency(value) : value;
+  // Format value using centralized currency system
+  const displayValue = typeof value === 'number' ? 
+    Currency.formatSummary(value) : value;
   
   return (
     <div className={`text-center ${className}`}>
@@ -461,11 +448,13 @@ export const SectionBorder = ({ className = '' }) => {
   );
 };
 
-// Validation helpers
+// Validation helpers - Updated to use currency system
 export const validation = {
   hasValidInput: (value, min = 0) => {
-    const num = parseFloat(value);
-    return value && value.toString().trim() && !isNaN(num) && num > min;
+    if (!value || !value.toString().trim()) return false;
+    const validation = Currency.validate(value);
+    if (!validation.isValid) return false;
+    return Currency.toCents(value) > Currency.toCents(min);
   },
   
   hasValidString: (value, minLength = 1) => {
@@ -473,21 +462,22 @@ export const validation = {
   },
   
   isPositiveNumber: (value) => {
-    const num = parseFloat(value);
-    return !isNaN(num) && num > 0;
+    return Currency.isPositive(value);
+  },
+  
+  isValidCurrency: (value) => {
+    return Currency.validate(value).isValid;
+  },
+  
+  currencyError: (value) => {
+    const result = Currency.validate(value);
+    return result.error;
   }
 };
 
-// Currency formatting
-// Currency formatting - Standard 2 decimal places
+// Currency formatting - Updated to use centralized system
 export const formatCurrency = (amount) => {
-  const numValue = parseFloat(amount) || 0;
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  }).format(numValue);
+  return Currency.format(amount);
 };
 
 // Additional components to add to FormComponents.jsx
