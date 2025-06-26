@@ -24,16 +24,18 @@ import {
 } from 'utils/categorySuggestions';
 import { convertToYearly } from 'utils/incomeHelpers';
 
-// Clean expense category component matching IncomeSource and SavingsGoal layout
+// Clean expense category component with fixed currency calculations
 export const ExpenseCategory = ({ category, onUpdate, onDelete, availableBudget, suggestions }) => {
   const { isDarkMode } = useTheme();
   
-  // Calculate monthly equivalent based on frequency
+  // Calculate monthly equivalent based on frequency using currency system
   const monthlyAmount = category.frequency ? 
-    convertToYearly(category.amount, category.frequency) / 12 : 
+    Currency.fromYearly(Currency.toYearly(category.amount, category.frequency), 'Monthly') : 
     parseFloat(category.amount) || 0;
   
-  const isOverBudget = monthlyAmount > availableBudget;
+  const isOverBudget = Currency.compare(monthlyAmount, availableBudget) > 0;
+  const overBudgetAmount = isOverBudget ? 
+    Currency.subtract(monthlyAmount, availableBudget) : 0;
   
   const handleSuggestionSelect = (suggestion) => {
     // If it's the gifts category, show hint
@@ -75,7 +77,9 @@ export const ExpenseCategory = ({ category, onUpdate, onDelete, availableBudget,
             value={category.amount}
             onChange={(value) => onUpdate({ ...category, amount: value })}
             prefix="$"
-            error={isOverBudget ? `Exceeds available budget by $${(monthlyAmount - availableBudget).toLocaleString()}` : null}
+            error={isOverBudget ? 
+              `Exceeds available budget by ${Currency.format(overBudgetAmount)}` : null
+            }
             className="[&_label]:text-2xl [&_label]:font-medium [&_input]:text-2xl [&_input]:font-medium [&_input]:pb-4"
           />
         </div>
@@ -132,11 +136,11 @@ export const ExpensesStep = ({ onNext, onBack, incomeData, savingsData, savedDat
     }
   }, [savedData, setItems]);
 
-  // Calculate available budget for expenses
+  // Calculate available budget for expenses using currency system
   const totalIncome = incomeData?.totalYearlyIncome || 0;
-  const monthlyIncome = totalIncome / 12;
+  const monthlyIncome = Currency.fromYearly(totalIncome, 'Monthly');
   const monthlySavings = savingsData?.monthlySavings || 0;
-  const availableForExpenses = monthlyIncome - monthlySavings;
+  const availableForExpenses = Currency.subtract(monthlyIncome, monthlySavings);
 
   const addExpenseCategory = () => {
     addItem({
@@ -146,23 +150,23 @@ export const ExpensesStep = ({ onNext, onBack, incomeData, savingsData, savedDat
     });
   };
 
-  // Calculate totals - convert all to monthly for budgeting
+  // Calculate totals using currency system
   const totalMonthlyExpenses = expenseCategories.reduce((total, category) => {
     const monthlyEquivalent = category.frequency ? 
-      convertToYearly(category.amount, category.frequency) / 12 : 
+      Currency.fromYearly(Currency.toYearly(category.amount, category.frequency), 'Monthly') : 
       parseFloat(category.amount) || 0;
-    return total + monthlyEquivalent;
+    return Currency.add(total, monthlyEquivalent);
   }, 0);
 
-  const remainingBudget = availableForExpenses - totalMonthlyExpenses;
-  const isOverBudget = remainingBudget < 0;
+  const remainingBudget = Currency.subtract(availableForExpenses, totalMonthlyExpenses);
+  const isOverBudget = Currency.compare(remainingBudget, 0) < 0;
 
-  // Validation
+  // Enhanced validation using currency system
   const canContinue = totalMonthlyExpenses > 0 && 
                      !isOverBudget && 
                      expenseCategories.every(category => 
                        validation.hasValidString(category.name) && 
-                       validation.isPositiveNumber(category.amount)
+                       validation.isValidCurrency(category.amount)
                      );
 
   const handleNext = () => {
@@ -222,7 +226,7 @@ export const ExpensesStep = ({ onNext, onBack, incomeData, savingsData, savedDat
           />
         </FormSection>
 
-        {/* Expense Allocation Summary - Always visible */}
+        {/* Expense Allocation Summary - Fixed currency formatting */}
         <FormSection>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
             <SummaryCard
@@ -238,9 +242,10 @@ export const ExpensesStep = ({ onNext, onBack, incomeData, savingsData, savedDat
             />
             <SummaryCard
               title="Remaining to Allocate"
-              value={remainingBudget}
-              subtitle={remainingBudget < 0 ? `Over by $${Math.abs(remainingBudget).toLocaleString()}` : 
-                       remainingBudget === 0 ? 'Fully allocated' : 'Available for new categories'}
+              value={Currency.abs(remainingBudget)}
+              subtitle={isOverBudget ? 
+                       `Over by ${Currency.format(Currency.abs(remainingBudget))}` : 
+                       Currency.isEqual(remainingBudget, 0) ? 'Fully allocated' : 'Available for new categories'}
             />
           </div>
         </FormSection>
