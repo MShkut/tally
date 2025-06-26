@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
 import { ThemeToggle } from 'components/shared/ThemeToggle';
+import { Currency } from 'utils/currency';
 import { 
   FormGrid, 
   FormField, 
@@ -109,14 +110,14 @@ export const NetWorthStep = ({ onNext, onBack, incomeData, savingsData, expenses
 
   // Calculate totals
   const totalAssets = assets.reduce((sum, asset) => 
-    sum + (parseFloat(asset.amount) || 0), 0
+    Currency.add(sum, asset.amount || 0), 0
   );
 
   const totalLiabilities = liabilities.reduce((sum, liability) => 
-    sum + (parseFloat(liability.amount) || 0), 0
+    Currency.add(sum, liability.amount || 0), 0
   );
 
-  const netWorth = totalAssets - totalLiabilities;
+  const netWorth = Currency.subtract(totalAssets, totalLiabilities);
 
   const handleNext = () => {
     if (onNext) {
