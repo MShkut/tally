@@ -16,6 +16,7 @@ import {
   useItemManager
 } from '../shared/FormComponents';
 import { TransactionHelpers } from 'utils/transactionHelpers';
+import { Currency } from 'utils/currency';
 
 export const ReviewTransactions = ({ 
   transactions, 
@@ -36,15 +37,15 @@ export const ReviewTransactions = ({
   // Filter and sort transactions
   const filteredTransactions = transactions.filter(t => {
     if (filter === 'needs-review') return t.needsReview || t.confidence < 0.8;
-    if (filter === 'income') return t.amount > 0;
-    if (filter === 'expense') return t.amount < 0;
+    if (filter === 'income') return Currency.compare(t.amount, 0) > 0;
+    if (filter === 'expense') return Currency.compare(t.amount, 0) < 0;
     return true;
   });
 
   const sortedTransactions = [...filteredTransactions].sort((a, b) => {
     if (sortBy === 'confidence') return a.confidence - b.confidence;
     if (sortBy === 'date') return new Date(b.date) - new Date(a.date);
-    if (sortBy === 'amount') return Math.abs(b.amount) - Math.abs(a.amount);
+    if (sortBy === 'amount') return Currency.compare(Currency.abs(b.amount), Currency.abs(a.amount));
     return 0;
   });
 
@@ -330,9 +331,10 @@ const TransactionReviewItem = ({
 
       {/* Amount - 2 columns */}
       <div className={`col-span-2 text-base font-mono text-right ${
-        transaction.amount >= 0 ? 'text-green-500' : 'text-red-500'
+        Currency.compare(transaction.amount, 0) >= 0 ? 'text-green-500' : 'text-red-500'
       }`}>
-        {transaction.amount >= 0 ? '+' : ''}${Math.abs(transaction.amount).toFixed(2)}
+        {Currency.compare(transaction.amount, 0) >= 0 ? '+' : ''}
+        {Currency.format(Currency.abs(transaction.amount))}
       </div>
 
       {/* Category - 3 columns, inline dropdown */}
@@ -420,17 +422,21 @@ const TransactionSplitter = ({ transaction, categories, onComplete, onCancel }) 
     {
       id: 1,
       description: transaction.description,
-      amount: Math.abs(transaction.amount).toFixed(2),
+      amount: Currency.formatInput(Currency.abs(transaction.amount)),
       categoryId: transaction.category?.id || categories[0]?.id || ''
     }
   ]);
 
-  const originalAmount = Math.abs(transaction.amount);
-  const totalAllocated = splits.reduce((sum, split) => 
-    sum + (parseFloat(split.amount) || 0), 0
-  );
-  const remaining = originalAmount - totalAllocated;
-  const isValid = Math.abs(remaining) < 0.01;
+  const originalAmount = Currency.abs(transaction.amount);
+  
+  // Calculate total allocated using Currency system
+  const totalAllocated = splits.reduce((sum, split) => {
+    const splitAmount = Currency.parseCurrencyInput(split.amount) || '0';
+    return Currency.add(sum, splitAmount);
+  }, 0);
+  
+  const remaining = Currency.subtract(originalAmount, totalAllocated);
+  const isValid = Currency.isEqual(remaining, 0);
 
   const categoryOptions = categories.map(cat => ({
     value: cat.id,
@@ -438,9 +444,12 @@ const TransactionSplitter = ({ transaction, categories, onComplete, onCancel }) 
   }));
 
   const handleAddSplit = () => {
+    const remainingFormatted = Currency.compare(remaining, 0) > 0 ? 
+      Currency.formatInput(remaining) : '';
+      
     addItem({
       description: '',
-      amount: remaining > 0 ? remaining.toFixed(2) : '',
+      amount: remainingFormatted,
       categoryId: categories[0]?.id || ''
     });
   };
@@ -448,34 +457,41 @@ const TransactionSplitter = ({ transaction, categories, onComplete, onCancel }) 
   const handleComplete = () => {
     if (!isValid) return;
 
-    const splitTransactions = splits.map((split, index) => ({
-      ...transaction,
-      id: `${transaction.id}-split-${index + 1}`,
-      description: split.description || transaction.description,
-      amount: transaction.amount < 0 ? -parseFloat(split.amount) : parseFloat(split.amount),
-      category: categories.find(c => c.id === split.categoryId),
-      confidence: 1.0,
-      needsReview: false,
-      originalData: {
-        ...transaction.originalData,
-        splitFrom: transaction.id,
-        splitIndex: index + 1,
-        splitTotal: splits.length
-      }
-    }));
+    const splitTransactions = splits.map((split, index) => {
+      const splitAmount = Currency.parseCurrencyInput(split.amount) || '0';
+      const finalAmount = Currency.compare(transaction.amount, 0) < 0 ? 
+        Currency.multiply(splitAmount, -1) : splitAmount;
+        
+      return {
+        ...transaction,
+        id: `${transaction.id}-split-${index + 1}`,
+        description: split.description || transaction.description,
+        amount: finalAmount,
+        category: categories.find(c => c.id === split.categoryId),
+        confidence: 1.0,
+        needsReview: false,
+        originalData: {
+          ...transaction.originalData,
+          splitFrom: transaction.id,
+          splitIndex: index + 1,
+          splitTotal: splits.length
+        }
+      };
+    });
 
     onComplete(splitTransactions);
   };
 
   const autoDistribute = () => {
     const count = splits.length;
-    const perItem = (originalAmount / count).toFixed(2);
-    const lastItem = (originalAmount - (perItem * (count - 1))).toFixed(2);
+    const perItem = Currency.divide(originalAmount, count);
+    const lastItemAmount = Currency.subtract(originalAmount, Currency.multiply(perItem, count - 1));
     
     splits.forEach((split, index) => {
+      const amount = index === count - 1 ? lastItemAmount : perItem;
       updateItem(split.id, {
         ...split,
-        amount: index === count - 1 ? lastItem : perItem
+        amount: Currency.formatInput(amount)
       });
     });
   };
@@ -489,7 +505,7 @@ const TransactionSplitter = ({ transaction, categories, onComplete, onCancel }) 
         <ThemeToggle />
         <StandardFormLayout
           title="Split Transaction"
-          subtitle={`Original: ${transaction.description} - $${originalAmount.toFixed(2)}`}
+          subtitle={`Original: ${transaction.description} - ${Currency.format(originalAmount)}`}
           onBack={onCancel}
           onNext={handleComplete}
           canGoNext={isValid}
@@ -515,7 +531,7 @@ const TransactionSplitter = ({ transaction, categories, onComplete, onCancel }) 
               <div className={`text-lg font-light ${
                 isDarkMode ? 'text-gray-500' : 'text-gray-400'
               }`}>
-                Remaining: ${remaining.toFixed(2)}
+                Remaining: {Currency.format(remaining)}
               </div>
             </div>
           </FormSection>
@@ -562,7 +578,7 @@ const TransactionSplitter = ({ transaction, categories, onComplete, onCancel }) 
             `}>
               {isValid 
                 ? 'Split amounts match original transaction' 
-                : `Split amounts must equal $${originalAmount.toFixed(2)}`
+                : `Split amounts must equal ${Currency.format(originalAmount)}`
               }
             </div>
           </FormSection>
@@ -576,6 +592,12 @@ const TransactionSplitter = ({ transaction, categories, onComplete, onCancel }) 
 // Split item component
 const SplitItem = ({ split, categoryOptions, onUpdate, onDelete, canDelete }) => {
   const { isDarkMode } = useTheme();
+
+  const handleAmountChange = (value) => {
+    // Use Currency.parseCurrencyInput to clean the input
+    const cleanedValue = Currency.parseCurrencyInput(value);
+    onUpdate({ ...split, amount: cleanedValue });
+  };
 
   return (
     <div className={`py-8 border-b ${
@@ -596,7 +618,7 @@ const SplitItem = ({ split, categoryOptions, onUpdate, onDelete, canDelete }) =>
             label="Amount"
             type="currency"
             value={split.amount}
-            onChange={(value) => onUpdate({ ...split, amount: value })}
+            onChange={handleAmountChange}
             prefix="$"
             className="[&_label]:text-2xl [&_label]:font-medium [&_input]:text-2xl [&_input]:font-medium [&_input]:pb-4"
           />
