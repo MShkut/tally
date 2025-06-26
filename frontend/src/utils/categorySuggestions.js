@@ -1,5 +1,5 @@
 // frontend/src/utils/categorySuggestions.js
-// Contextual category suggestions for smart autocomplete
+// Contextual category suggestions for smart autocomplete - ALL CATEGORIES
 
 export const EXPENSE_SUGGESTIONS = [
   {
@@ -172,7 +172,112 @@ export const INCOME_SUGGESTIONS = [
   }
 ];
 
-// Helper function to get suggestions by context
+// ==================== NEW: NET WORTH SUGGESTIONS ====================
+
+export const ASSET_SUGGESTIONS = [
+  {
+    name: 'Checking Account',
+    keywords: ['checking', 'bank', 'account', 'cash'],
+    hint: 'Primary checking account balance'
+  },
+  {
+    name: 'Savings Account',
+    keywords: ['savings', 'emergency fund', 'cash reserves'],
+    hint: 'High-yield savings or emergency fund'
+  },
+  {
+    name: 'Investment Account',
+    keywords: ['brokerage', 'stocks', 'bonds', 'mutual funds', 'etf'],
+    hint: 'Taxable investment accounts'
+  },
+  {
+    name: '401(k)',
+    keywords: ['401k', 'retirement', 'employer', 'workplace'],
+    hint: 'Employer-sponsored retirement account'
+  },
+  {
+    name: 'IRA',
+    keywords: ['ira', 'roth', 'traditional', 'retirement'],
+    hint: 'Individual Retirement Account'
+  },
+  {
+    name: 'Home Value',
+    keywords: ['house', 'home', 'property', 'real estate', 'condo'],
+    hint: 'Current market value of primary residence'
+  },
+  {
+    name: 'Vehicle',
+    keywords: ['car', 'truck', 'motorcycle', 'auto', 'vehicle'],
+    hint: 'Current value of vehicles owned'
+  },
+  {
+    name: 'Cryptocurrency',
+    keywords: ['crypto', 'bitcoin', 'ethereum', 'digital'],
+    hint: 'Digital currency holdings'
+  },
+  {
+    name: 'Cash',
+    keywords: ['cash', 'physical', 'wallet'],
+    hint: 'Physical cash on hand'
+  },
+  {
+    name: 'Other Assets',
+    keywords: ['other', 'misc', 'miscellaneous'],
+    hint: 'Art, collectibles, business equity, etc.'
+  }
+];
+
+export const LIABILITY_SUGGESTIONS = [
+  {
+    name: 'Mortgage',
+    keywords: ['mortgage', 'home loan', 'house payment'],
+    hint: 'Outstanding mortgage balance'
+  },
+  {
+    name: 'Auto Loan',
+    keywords: ['car loan', 'auto loan', 'vehicle loan'],
+    hint: 'Outstanding auto loan balance'
+  },
+  {
+    name: 'Student Loans',
+    keywords: ['student', 'education', 'college', 'university'],
+    hint: 'Federal and private student loans'
+  },
+  {
+    name: 'Credit Card',
+    keywords: ['credit card', 'visa', 'mastercard', 'amex'],
+    hint: 'Total credit card balances'
+  },
+  {
+    name: 'Personal Loan',
+    keywords: ['personal loan', 'unsecured', 'signature'],
+    hint: 'Personal or signature loans'
+  },
+  {
+    name: 'Home Equity Loan',
+    keywords: ['heloc', 'home equity', 'second mortgage'],
+    hint: 'Home equity line of credit'
+  },
+  {
+    name: 'Medical Debt',
+    keywords: ['medical', 'hospital', 'doctor', 'healthcare'],
+    hint: 'Outstanding medical bills'
+  },
+  {
+    name: 'Tax Debt',
+    keywords: ['tax', 'irs', 'taxes owed'],
+    hint: 'Outstanding tax obligations'
+  },
+  {
+    name: 'Other Debt',
+    keywords: ['other', 'misc', 'miscellaneous'],
+    hint: 'Any other outstanding debts'
+  }
+];
+
+// ==================== UPDATED: UNIFIED HELPER FUNCTION ====================
+
+// Helper function to get suggestions by context - NOW INCLUDES NET WORTH
 export const getSuggestionsByContext = (context) => {
   switch (context) {
     case 'expenses':
@@ -181,12 +286,16 @@ export const getSuggestionsByContext = (context) => {
       return SAVINGS_SUGGESTIONS;
     case 'income':
       return INCOME_SUGGESTIONS;
+    case 'assets':           // ← NEW: Net worth assets
+      return ASSET_SUGGESTIONS;
+    case 'liabilities':      // ← NEW: Net worth liabilities  
+      return LIABILITY_SUGGESTIONS;
     default:
       return [];
   }
 };
 
-// Store custom categories for future use
+// Store custom categories for future use - WORKS FOR ALL CONTEXTS
 export const saveCustomCategory = (context, category) => {
   const storageKey = `customCategories_${context}`;
   const existing = JSON.parse(localStorage.getItem(storageKey) || '[]');
@@ -201,7 +310,7 @@ export const saveCustomCategory = (context, category) => {
   }
 };
 
-// Load custom categories along with defaults
+// Load custom categories along with defaults - WORKS FOR ALL CONTEXTS
 export const loadCategoriesWithCustom = (context) => {
   const defaults = getSuggestionsByContext(context);
   const storageKey = `customCategories_${context}`;
