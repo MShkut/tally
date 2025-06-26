@@ -5,6 +5,7 @@ import { useTheme } from 'contexts/ThemeContext';
 import { ThemeToggle } from 'components/shared/ThemeToggle';
 import { FrequencySelector } from 'components/shared/FrequencySelector';
 import { SmartInput } from 'components/shared/SmartInput';
+import { Currency } from 'utils/currency';
 import { 
   FormGrid, 
   FormField, 
