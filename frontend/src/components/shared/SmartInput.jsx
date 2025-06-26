@@ -1,256 +1,236 @@
-// frontend/src/components/shared/SmartInput.jsx
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 
-import { useTheme } from 'contexts/ThemeContext';
+import { ThemeToggle } from 'components/shared/ThemeToggle';
+import { SmartInput } from 'components/shared/SmartInput';
+import { 
+  FormGrid, 
+  FormField, 
+  StandardInput,
+  RemoveButton,
+  AddItemButton,
+  FormSection,
+  StandardFormLayout,
+  SummaryCard,
+  SectionBorder,
+  useItemManager,
+  validation
+} from '../shared/FormComponents';
+import { getSuggestionsByType } from 'utils/netWorthSuggestions';
 
-export const SmartInput = ({ 
-  label, 
-  value = '', 
-  onChange, 
-  onSuggestionSelect,
-  suggestions = [],
-  placeholder = '',
-  required = false,
-  className = '',
-  inputClassName = '',
-  ...props 
-}) => {
-  const { isDarkMode } = useTheme();
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [selectedIndex, setSelectedIndex] = useState(-1);
-  const [ghostText, setGhostText] = useState('');
-  const inputRef = useRef(null);
-  const suggestionsRef = useRef(null);
-
-  // Filter suggestions based on input
-  const getFilteredSuggestions = () => {
-    if (!value || value.length < 1) return [];
-    
-    const searchValue = value.toLowerCase();
-    return suggestions.filter(suggestion => {
-      // Check main name
-      if (suggestion.name.toLowerCase().startsWith(searchValue)) {
-        return true;
-      }
-      // Check keywords/aliases
-      if (suggestion.keywords) {
-        return suggestion.keywords.some(keyword => 
-          keyword.toLowerCase().includes(searchValue)
-        );
-      }
-      return false;
-    }).slice(0, 3); // Max 3 suggestions
+// Enhanced net worth item component with smart suggestions
+export const NetWorthItem = ({ item, onUpdate, onDelete, type, placeholder }) => {
+  // Get suggestions based on type (asset or liability)
+  const suggestions = getSuggestionsByType(type);
+  
+  const handleSuggestionSelect = (suggestion) => {
+    // When a suggestion is selected, update the name
+    onUpdate({ ...item, name: suggestion.name });
   };
-
-  const filteredSuggestions = getFilteredSuggestions();
-
-  // Update ghost text
-  useEffect(() => {
-    if (filteredSuggestions.length > 0 && value.length > 0) {
-      const firstMatch = filteredSuggestions[0];
-      const searchValue = value.toLowerCase();
-      
-      // If the suggestion starts with what user typed
-      if (firstMatch.name.toLowerCase().startsWith(searchValue)) {
-        setGhostText(firstMatch.name);
-      } else {
-        setGhostText('');
-      }
-    } else {
-      setGhostText('');
-    }
-  }, [value, filteredSuggestions]);
-
-  // Handle keyboard navigation
-  const handleKeyDown = (e) => {
-    if (!showSuggestions || filteredSuggestions.length === 0) {
-      if (e.key === 'Tab' && ghostText && ghostText !== value) {
-        e.preventDefault();
-        acceptGhostText();
-      }
-      return;
-    }
-
-    switch (e.key) {
-      case 'ArrowDown':
-        e.preventDefault();
-        setSelectedIndex(prev => 
-          prev < filteredSuggestions.length - 1 ? prev + 1 : prev
-        );
-        break;
-      case 'ArrowUp':
-        e.preventDefault();
-        setSelectedIndex(prev => prev > -1 ? prev - 1 : -1);
-        break;
-      case 'Enter':
-        e.preventDefault();
-        if (selectedIndex >= 0) {
-          selectSuggestion(filteredSuggestions[selectedIndex]);
-        } else if (ghostText && ghostText !== value) {
-          acceptGhostText();
-        }
-        break;
-      case 'Tab':
-        if (ghostText && ghostText !== value) {
-          e.preventDefault();
-          acceptGhostText();
-        }
-        break;
-      case 'Escape':
-        setShowSuggestions(false);
-        setSelectedIndex(-1);
-        break;
-    }
-  };
-
-  const acceptGhostText = () => {
-    if (ghostText) {
-      const suggestion = filteredSuggestions.find(s => s.name === ghostText);
-      if (suggestion) {
-        selectSuggestion(suggestion);
-      }
-    }
-  };
-
-  const selectSuggestion = (suggestion) => {
-    onChange(suggestion.name);
-    if (onSuggestionSelect) {
-      onSuggestionSelect(suggestion);
-    }
-    setShowSuggestions(false);
-    setSelectedIndex(-1);
-  };
-
-  const handleInputChange = (e) => {
-    const newValue = e.target.value;
-    onChange(newValue);
-    setShowSuggestions(true);
-    setSelectedIndex(-1);
-  };
-
-  const handleInputFocus = () => {
-    if (filteredSuggestions.length > 0) {
-      setShowSuggestions(true);
-    }
-  };
-
-  const handleInputBlur = (e) => {
-    // Delay to allow click on suggestion
-    setTimeout(() => {
-      if (!suggestionsRef.current?.contains(e.relatedTarget)) {
-        setShowSuggestions(false);
-        setSelectedIndex(-1);
-      }
-    }, 200);
-  };
-
-  // Close suggestions when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (
-        inputRef.current && 
-        !inputRef.current.contains(event.target) &&
-        suggestionsRef.current &&
-        !suggestionsRef.current.contains(event.target)
-      ) {
-        setShowSuggestions(false);
-        setSelectedIndex(-1);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   return (
-    <div className={`relative ${className}`}>
-      {label && (
-        <label className={`block text-2xl font-medium mb-2 ${
-          isDarkMode ? 'text-gray-400' : 'text-gray-500'
-        }`}>
-          {label} {required && <span className="text-red-500">*</span>}
-        </label>
-      )}
-      
-      <div className="relative">
-        {/* Ghost text display */}
-        {ghostText && ghostText !== value && (
-          <div 
-            className={`
-              absolute inset-0 pointer-events-none flex items-center
-              text-2xl font-medium pb-4
-              ${isDarkMode ? 'text-gray-700' : 'text-gray-300'}
-            `}
-            style={{ paddingTop: '12px' }}
-          >
-            <span className="invisible">{value}</span>
-            <span>{ghostText.substring(value.length)}</span>
-          </div>
-        )}
-        
-        {/* Actual input */}
-        <input
-          ref={inputRef}
-          type="text"
-          value={value}
-          onChange={handleInputChange}
-          onFocus={handleInputFocus}
-          onBlur={handleInputBlur}
-          onKeyDown={handleKeyDown}
-          placeholder={placeholder}
-          className={`
-            w-full bg-transparent border-0 border-b-2 pb-4 text-2xl font-medium 
-            focus:outline-none transition-colors px-0 py-3 relative z-10
-            ${isDarkMode 
-              ? 'border-gray-700 text-white placeholder-gray-500 focus:border-white' 
-              : 'border-gray-300 text-black placeholder-gray-400 focus:border-black'
-            } ${inputClassName}
-          `}
-          {...props}
-        />
-      </div>
-      
-      {/* Suggestions dropdown */}
-      {showSuggestions && filteredSuggestions.length > 0 && (
-        <div 
-          ref={suggestionsRef}
-          className={`
-            absolute top-full left-0 right-0 mt-2 border z-50
-            ${isDarkMode 
-              ? 'bg-black border-gray-700' 
-              : 'bg-white border-gray-200'
-            }
-          `}
-        >
-          {filteredSuggestions.map((suggestion, index) => (
-            <button
-              key={suggestion.name}
-              type="button"
-              onClick={() => selectSuggestion(suggestion)}
-              className={`
-                w-full px-4 py-3 text-left transition-colors text-lg font-light
-                ${index === selectedIndex
-                  ? isDarkMode 
-                    ? 'bg-gray-800 text-white' 
-                    : 'bg-gray-100 text-black'
-                  : isDarkMode 
-                    ? 'text-gray-300 hover:bg-gray-900 hover:text-white' 
-                    : 'text-gray-700 hover:bg-gray-50 hover:text-black'
-                }
-              `}
-            >
-              <div>{suggestion.name}</div>
-              {suggestion.hint && (
-                <div className={`text-sm mt-1 ${
-                  isDarkMode ? 'text-gray-500' : 'text-gray-400'
-                }`}>
-                  {suggestion.hint}
-                </div>
-              )}
-            </button>
-          ))}
+    <div className="py-8">
+      <div className="grid grid-cols-12 gap-8 items-end">
+        {/* Asset/Liability name with smart suggestions: 8 columns */}
+        <div className="col-span-8">
+          <SmartInput
+            label={type === 'asset' ? 'Asset' : 'Liability'}
+            value={item.name}
+            onChange={(value) => onUpdate({ ...item, name: value })}
+            onSuggestionSelect={handleSuggestionSelect}
+            suggestions={suggestions}
+            placeholder={placeholder}
+            className="[&_label]:text-2xl [&_label]:font-medium [&_input]:text-2xl [&_input]:font-medium [&_input]:pb-4"
+          />
         </div>
-      )}
+        
+        {/* Amount: 3 columns */}
+        <div className="col-span-3">
+          <StandardInput
+            label={type === 'asset' ? 'Value' : 'Balance Owed'}
+            type="currency"
+            value={item.amount}
+            onChange={(value) => onUpdate({ ...item, amount: value })}
+            prefix="$"
+            className="[&_label]:text-2xl [&_label]:font-medium [&_input]:text-2xl [&_input]:font-medium [&_input]:pb-4"
+          />
+        </div>
+        
+        {/* Remove button: 1 column - matching other steps' pattern */}
+        <div className="col-span-1">
+          <div className="flex items-end h-full pb-4">
+            <button
+              onClick={onDelete}
+              className="w-full text-center text-3xl font-light text-gray-400 hover:text-red-500 transition-colors"
+              title="Remove this item"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
+  );
+};
+
+export const NetWorthStep = ({ onNext, onBack, incomeData, savingsData, expensesData, savedData = null }) => {
+  const { 
+    items: assets, 
+    addItem: addAsset, 
+    updateItem: updateAsset, 
+    deleteItem: deleteAsset,
+    hasItems: hasAssets,
+    setItems: setAssets
+  } = useItemManager();
+
+  const { 
+    items: liabilities, 
+    addItem: addLiability, 
+    updateItem: updateLiability, 
+    deleteItem: deleteLiability,
+    hasItems: hasLiabilities,
+    setItems: setLiabilities
+  } = useItemManager();
+
+  // Pre-populate with saved data
+  useEffect(() => {
+    if (savedData?.netWorth) {
+      console.log('🔄 Loading saved net worth data:', savedData.netWorth);
+      
+      if (savedData.netWorth.assets?.length > 0) {
+        setAssets(savedData.netWorth.assets);
+      }
+      if (savedData.netWorth.liabilities?.length > 0) {
+        setLiabilities(savedData.netWorth.liabilities);
+      }
+    }
+  }, [savedData, setAssets, setLiabilities]);
+
+  const addAssetItem = () => {
+    addAsset({
+      name: '', 
+      amount: ''
+    });
+  };
+
+  const addLiabilityItem = () => {
+    addLiability({
+      name: '', 
+      amount: ''
+    });
+  };
+
+  // Calculate totals
+  const totalAssets = assets.reduce((sum, asset) => 
+    sum + (parseFloat(asset.amount) || 0), 0
+  );
+
+  const totalLiabilities = liabilities.reduce((sum, liability) => 
+    sum + (parseFloat(liability.amount) || 0), 0
+  );
+
+  const netWorth = totalAssets - totalLiabilities;
+
+  const handleNext = () => {
+    if (onNext) {
+      onNext({
+        assets,
+        liabilities,
+        totalAssets,
+        totalLiabilities,
+        netWorth
+      });
+    }
+  };
+
+  return (
+    <>
+      <ThemeToggle />
+      <StandardFormLayout
+        title="Calculate Your Net Worth"
+        subtitle="Add up everything you own and subtract what you owe. This gives you your complete financial picture."
+        onBack={onBack}
+        onNext={handleNext}
+        nextLabel="Complete Setup"
+        canGoNext={true}
+        showBack={true}
+      >
+        {/* Assets Section - Full Width */}
+        <FormSection title="Assets (What You Own)">
+          {hasAssets ? (
+            <div className="space-y-0 mb-8">
+              {assets.map((asset) => (
+                <NetWorthItem
+                  key={asset.id}
+                  item={asset}
+                  onUpdate={(updatedAsset) => updateAsset(asset.id, updatedAsset)}
+                  onDelete={() => deleteAsset(asset.id)}
+                  type="asset"
+                  placeholder="Checking account, savings, investments, home"
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12 text-gray-500">
+              <div className="text-2xl font-light mb-2">No assets yet</div>
+              <div className="text-xl font-light">Add your first asset to get started</div>
+            </div>
+          )}
+          
+          <AddItemButton 
+            onClick={addAssetItem}
+            children={!hasAssets ? 'Add your first asset' : 'Add another asset'}
+          />
+        </FormSection>
+
+        {/* Liabilities Section - Full Width */}
+        <FormSection title="Liabilities (What You Owe)">
+          {hasLiabilities ? (
+            <div className="space-y-0 mb-8">
+              {liabilities.map((liability) => (
+                <NetWorthItem
+                  key={liability.id}
+                  item={liability}
+                  onUpdate={(updatedLiability) => updateLiability(liability.id, updatedLiability)}
+                  onDelete={() => deleteLiability(liability.id)}
+                  type="liability"
+                  placeholder="Mortgage, credit cards, student loans, auto loan"
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12 text-gray-500">
+              <div className="text-2xl font-light mb-2">No liabilities yet</div>
+              <div className="text-xl font-light">Add your first liability to get started</div>
+            </div>
+          )}
+          
+          <AddItemButton 
+            onClick={addLiabilityItem}
+            children={!hasLiabilities ? 'Add your first liability' : 'Add another liability'}
+          />
+        </FormSection>
+
+        {/* Net Worth Summary - Always Visible at Bottom */}
+        <FormSection>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+            <SummaryCard
+              title="Total Assets"
+              value={totalAssets}
+            />
+            <SummaryCard
+              title="Total Liabilities"
+              value={totalLiabilities}
+            />
+            <SummaryCard
+              title="Net Worth"
+              value={`${netWorth >= 0 ? '' : '-'}${Math.abs(netWorth).toLocaleString()}`}
+              subtitle={netWorth >= 0 ? 'Positive net worth' : 'Room to grow'}
+              accent={netWorth >= 0}
+            />
+          </div>
+        </FormSection>
+
+      </StandardFormLayout>
+    </>
   );
 };
