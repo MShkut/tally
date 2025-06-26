@@ -4,6 +4,7 @@
 import React from 'react';
 
 import { useTheme } from 'contexts/ThemeContext';
+import { Currency } from '.utils/currency';
 
 // ==================== CORE GRID SYSTEM ====================
 
