@@ -3,6 +3,7 @@ import React from 'react';
 
 import { useTheme } from 'contexts/ThemeContext';
 import { convertToYearly } from 'utils/incomeHelpers';
+import { Currency } from 'utils/currency';
 
 // Enhanced Budget Performance Section with 2 rows
 export const BudgetPerformanceSection = ({ performanceData, netWorthData }) => {
@@ -207,13 +208,12 @@ const NetWorthCategory = ({ title, data }) => {
 };
 
 // Enhanced data calculation functions
-export const calculateBudgetPerformance = (onboardingData, transactions, viewMode, selectedMonth) => {
-  if (viewMode === 'period') {
-    return calculatePeriodPerformance(onboardingData, transactions);
-  } else {
-    return calculateMonthPerformance(onboardingData, transactions, selectedMonth);
-  }
-};
+const calculateBudgetPerformance = (onboardingData, transactions, viewMode, selectedMonth) => {
+  // Use currency system for all calculations
+  const plannedMonthlyIncome = Currency.fromYearly(
+    onboardingData?.income?.totalYearlyIncome || 0, 
+    'Monthly'
+  );
 
 export const calculateNetWorthData = (onboardingData, viewMode) => {
   const netWorthValue = onboardingData?.netWorth?.netWorth || 0;
