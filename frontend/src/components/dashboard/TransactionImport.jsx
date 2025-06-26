@@ -367,18 +367,14 @@ const ManualTransactionForm = ({ categories, onAdd }) => {
     categoryId: categories[0]?.id || ''
   });
 
+  // Fix manual transaction validation
   const handleSubmit = () => {
-    if (!formData.description || !formData.amount) return;
-    
-    const category = categories.find(c => c.id === formData.categoryId);
-    onAdd({
-      date: formData.date,
-      description: formData.description,
-      amount: parseFloat(formData.amount),
-      category,
-      normalizedMerchant: TransactionHelpers.normalizeMerchantName(formData.description)
-    });
-    
+    const validation = Currency.validate(formData.amount);
+    if (!validation.isValid) {
+      setErrors({ amount: validation.error });
+      return;
+    }
+
     // Reset form
     setFormData({
       date: new Date().toISOString().split('T')[0],
