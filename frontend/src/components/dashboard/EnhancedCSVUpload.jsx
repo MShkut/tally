@@ -389,7 +389,7 @@ export const EnhancedCSVUpload = ({ onComplete, onBack }) => {
                       : 'text-red-500'
                     }
                   `}>
-                    ${Math.abs(parseFloat(row[columnMapping.amount]) || 0).toFixed(2)}
+                    ${Currency.format(Currency.abs(row[columnMapping.amount] || 0))}
                   </div>
                 </div>
               ))}
