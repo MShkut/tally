@@ -1,4 +1,17 @@
-// Add Currency import at the top with other imports:
+// frontend/src/components/dashboard/TransactionImport.jsx
+import React, { useState, useEffect } from 'react';
+
+import { useTheme } from 'contexts/ThemeContext';
+import { ThemeToggle } from 'components/shared/ThemeToggle';
+import { Currency } from 'utils/currency';
+import { BurgerMenu } from './BurgerMenu';
+import { EnhancedCSVUpload } from './EnhancedCSVUpload';
+import { ReviewTransactions } from './ReviewTransactions';
+import { ManualTransactionEntry } from './ManualTransactionEntry';
+import { normalizeMerchantName, suggestCategory } from 'utils/transactionHelpers';
+import { dataManager } from 'utils/dataManager';
+import { EmptyState, SummaryCard, FormSection } from '../shared/FormComponents';
+import { handleMenuAction } from 'utils/navigationHandler';
 import { Currency } from 'utils/currency';
 
 // Replace the ManualTransactionForm component (around line 290):
