@@ -10,7 +10,7 @@ export const ThemeToggle = ({ className = '' }) => {
       <button
         onClick={toggleTheme}
         className={`
-          p-3 transition-colors focus:outline-none
+          p-4 transition-colors focus:outline-none
           ${isDarkMode 
             ? 'text-gray-400 hover:text-gray-300' 
             : 'text-gray-600 hover:text-gray-800'
@@ -18,7 +18,7 @@ export const ThemeToggle = ({ className = '' }) => {
         `}
         title={`Switch to ${isDarkMode ? 'light' : 'dark'} mode`}
       >
-        <span className="text-xl">{isDarkMode ? '◐' : '◑'}</span>
+        <span className="text-3xl">{isDarkMode ? '◐' : '◑'}</span>
       </button>
     </div>
   );
