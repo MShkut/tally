@@ -211,12 +211,13 @@ const NetWorthCategory = ({ title, data }) => {
 };
 
 // Enhanced data calculation functions
-const calculateBudgetPerformance = (onboardingData, transactions, viewMode, selectedMonth) => {
-  // Use currency system for all calculations
-  const plannedMonthlyIncome = Currency.fromYearly(
-    onboardingData?.income?.totalYearlyIncome || 0, 
-    'Monthly'
-  );
+export const calculateBudgetPerformance = (onboardingData, transactions, viewMode, selectedMonth) => {
+  if (viewMode === 'month') {
+    return calculateMonthPerformance(onboardingData, transactions, selectedMonth);
+  } else {
+    return calculatePeriodPerformance(onboardingData, transactions);
+  }
+};
 
 export const calculateNetWorthData = (onboardingData, viewMode) => {
   const netWorthValue = onboardingData?.netWorth?.netWorth || 0;
