@@ -4,6 +4,7 @@ import { useTheme } from 'contexts/ThemeContext';
 import { ThemeToggle } from 'components/shared/ThemeToggle';
 import { FrequencySelector } from 'components/shared/FrequencySelector';
 import { SmartInput } from 'components/shared/SmartInput';
+import { Currency } from 'utils/currency';
 import { 
   StandardInput,
   AddItemButton,
@@ -310,11 +311,15 @@ useEffect(() => {
 
   // Handle savings rate change - update monthly savings when user enters %
   const handleSavingsRateChange = (newRateString) => {
-    if (newRateString === '') {
-      setSavingsRate(0);
-      setMonthlySavings('');
-      return;
-    }
+  // ... existing logic ...
+  if (clampedRate > 0 && totalIncome > 0) {
+    const newMonthlySavings = Currency.fromYearly(
+      Currency.multiply(totalIncome, clampedRate / 100), 
+      'Monthly'
+    );
+    setMonthlySavings(Currency.formatInput(newMonthlySavings));
+  }
+};
     
     const cleanValue = newRateString.replace(/[^0-9]/g, '');
     const newRate = parseInt(cleanValue) || 0;
@@ -356,12 +361,13 @@ useEffect(() => {
 
   // Calculate totals
   const totalAllocatedSavings = () => {
-    const emergency = emergencyFund.hasExisting ? 0 : (parseFloat(emergencyFund.monthlyAmount) || 0);
-    const goals = savingsGoals.reduce((sum, goal) => 
-      sum + (parseFloat(goal.amount) || 0), 0
-    );
-    return emergency + goals;
-  };
+  const emergency = emergencyFund.hasExisting ? 0 : 
+    Currency.toCents(emergencyFund.monthlyAmount) / 100;
+  const goals = savingsGoals.reduce((sum, goal) => 
+    Currency.add(sum, goal.amount || 0), 0
+  );
+  return Currency.add(emergency, goals);
+};
 
   const monthlySavingsAmount = parseFloat(monthlySavings) || 0;
   const remainingAmount = monthlySavingsAmount - totalAllocatedSavings();
