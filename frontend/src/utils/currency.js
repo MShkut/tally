@@ -359,6 +359,3 @@ export const Currency = {
   toYearly: convertToYearly,
   fromYearly: convertFromYearly
 };
-
-// Default export for convenience
-export default Currency;
