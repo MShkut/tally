@@ -3,6 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { ThemeToggle } from 'components/shared/ThemeToggle';
 import { useTheme } from 'contexts/ThemeContext';
 import { dataManager } from 'utils/dataManager';
+import { Currency } from 'utils/currency';
 import { 
   FormSection,
   SummaryCard,
@@ -515,44 +516,18 @@ function getFilteredTransactions(transactions, viewMode, selectedMonth, onboardi
 }
 
 function processBudgetCategories(onboardingData, filteredTransactions, viewMode) {
-  const categories = onboardingData?.expenses?.expenseCategories || [];
-  
   return categories.map(category => {
-    // FIXED: Proper category matching logic
+    // Calculate spent amount using currency precision
     const spent = filteredTransactions
-      .filter(t => {
-        // Handle different category formats
-        if (!t.category) return false;
-        
-        // If category is a string, match directly
-        if (typeof t.category === 'string') {
-          return t.category === category.name || 
-                 t.category.toLowerCase() === category.name.toLowerCase();
-        }
-        
-        // If category is an object, match by name or id
-        if (typeof t.category === 'object') {
-          const categoryId = category.name.toLowerCase().replace(/\s+/g, '-');
-          return t.category.name === category.name || 
-                 t.category.id === categoryId ||
-                 t.category.name?.toLowerCase() === category.name.toLowerCase();
-        }
-        
-        return false;
-      })
-      .filter(t => t.amount < 0) // Only expenses (negative amounts)
-      .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+      .filter(t => matchesCategory(t, category))
+      .filter(t => Currency.compare(t.amount, 0) < 0)
+      .reduce((sum, t) => Currency.add(sum, Currency.abs(t.amount)), 0);
     
     // Adjust budget based on view mode
-    let budget = parseFloat(category.amount) || 0;
+    let budget = Currency.toCents(category.amount) / 100;
     if (viewMode === 'period') {
-      const periodStart = new Date(onboardingData?.period?.start_date || new Date());
-      const now = new Date();
-      const monthsElapsed = Math.max(1, 
-        ((now.getFullYear() - periodStart.getFullYear()) * 12) + 
-        (now.getMonth() - periodStart.getMonth()) + 1
-      );
-      budget = budget * monthsElapsed;
+      const monthsElapsed = calculateMonthsElapsed(onboardingData);
+      budget = Currency.multiply(budget, monthsElapsed);
     }
     
     return {
@@ -562,6 +537,7 @@ function processBudgetCategories(onboardingData, filteredTransactions, viewMode)
     };
   });
 }
+
 function processSavingsGoals(onboardingData, filteredTransactions, viewMode) {
   const goals = onboardingData?.savingsAllocation?.savingsGoals || [];
   
