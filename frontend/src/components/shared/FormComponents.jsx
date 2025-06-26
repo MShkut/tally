@@ -356,6 +356,7 @@ export const StandardFormLayout = ({
 };
 
 // Summary card with consistent styling and fixed currency formatting
+// Summary card with consistent styling and fixed currency formatting
 export const SummaryCard = ({ 
   title, 
   value, 
@@ -365,9 +366,9 @@ export const SummaryCard = ({
 }) => {
   const { isDarkMode } = useTheme();
   
-  // Format value using centralized currency system
+  // Format value using centralized currency system - fix: use Currency.format instead of formatSummary
   const displayValue = typeof value === 'number' ? 
-    Currency.formatSummary(value) : value;
+    Currency.format(value, { showCents: false }) : value;
   
   return (
     <div className={`text-center ${className}`}>
