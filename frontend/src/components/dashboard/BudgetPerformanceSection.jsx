@@ -55,41 +55,43 @@ const PerformanceCategory = ({ title, data, type }) => {
   const { isDarkMode } = useTheme();
   
   const getVarianceColor = (variance, type) => {
-    if (variance === 0) return isDarkMode ? 'text-gray-400' : 'text-gray-600';
+    if (Currency.compare(variance, 0) === 0) return isDarkMode ? 'text-gray-400' : 'text-gray-600';
     
     if (type === 'income') {
-      return variance > 0 ? 'text-green-500' : 'text-yellow-500';
+      return Currency.compare(variance, 0) > 0 ? 'text-green-500' : 'text-yellow-500';
     }
     if (type === 'expenses') {
-      return variance > 0 ? 'text-red-500' : 'text-green-500';
+      return Currency.compare(variance, 0) > 0 ? 'text-red-500' : 'text-green-500';
     }
     if (type === 'savings') {
-      return variance > 0 ? 'text-green-500' : 'text-yellow-500';
+      return Currency.compare(variance, 0) > 0 ? 'text-green-500' : 'text-yellow-500';
     }
     
     return isDarkMode ? 'text-gray-400' : 'text-gray-600';
   };
 
   const getVarianceLabel = (variance, type) => {
-    if (variance === 0) return 'On target';
+    if (Currency.compare(variance, 0) === 0) return 'On target';
     
-    const amount = Math.abs(variance);
+    const amount = Currency.abs(variance);
+    const formattedAmount = Currency.format(amount, { showCents: false });
     
     if (type === 'income') {
-      return variance > 0 ? `+$${amount.toLocaleString()} above expected` : `$${amount.toLocaleString()} below expected`;
+      return Currency.compare(variance, 0) > 0 ? `${formattedAmount} above expected` : `${formattedAmount} below expected`;
     }
     if (type === 'expenses') {
-      return variance > 0 ? `$${amount.toLocaleString()} over budget` : `$${amount.toLocaleString()} under budget`;
+      return Currency.compare(variance, 0) > 0 ? `${formattedAmount} over budget` : `${formattedAmount} under budget`;
     }
     if (type === 'savings') {
-      return variance > 0 ? `+$${amount.toLocaleString()} ahead of plan` : `$${amount.toLocaleString()} behind plan`;
+      return Currency.compare(variance, 0) > 0 ? `${formattedAmount} ahead of plan` : `${formattedAmount} behind plan`;
     }
     
-    return `${variance > 0 ? 'over' : 'under'} by $${amount.toLocaleString()}`;
+    return `${Currency.compare(variance, 0) > 0 ? 'over' : 'under'} by ${formattedAmount}`;
   };
 
-  const percentage = data.planned > 0 ? (data.actual / data.planned) * 100 : 0;
-  const variance = data.actual - data.planned;
+  const percentage = Currency.compare(data.planned, 0) > 0 ? 
+    Currency.multiply(Currency.divide(data.actual, data.planned), 100) : 0;
+  const variance = Currency.subtract(data.actual, data.planned);
 
   return (
     <div>
@@ -105,12 +107,12 @@ const PerformanceCategory = ({ title, data, type }) => {
         <div className={`text-3xl font-light leading-none mb-2 font-mono ${
           isDarkMode ? 'text-white' : 'text-black'
         }`}>
-          ${data.actual.toLocaleString()}
+          {Currency.format(data.actual, { showCents: false })}
         </div>
         <div className={`text-base font-light ${
           isDarkMode ? 'text-gray-400' : 'text-gray-600'
         }`}>
-          of ${data.planned.toLocaleString()} planned
+          of {Currency.format(data.planned, { showCents: false })} planned
         </div>
       </div>
 
@@ -152,20 +154,21 @@ const NetWorthCategory = ({ title, data }) => {
   const { isDarkMode } = useTheme();
   
   const getTrendColor = (trend) => {
-    if (trend > 0) return 'text-green-500';
-    if (trend < 0) return 'text-red-500';
+    if (Currency.compare(trend, 0) > 0) return 'text-green-500';
+    if (Currency.compare(trend, 0) < 0) return 'text-red-500';
     return isDarkMode ? 'text-gray-400' : 'text-gray-600';
   };
 
   const getTrendLabel = (trend) => {
-    if (trend === 0) return 'No change this period';
-    const amount = Math.abs(trend);
-    return trend > 0 
-      ? `+$${amount.toLocaleString()} this period` 
-      : `-$${amount.toLocaleString()} this period`;
+    if (Currency.compare(trend, 0) === 0) return 'No change this period';
+    const amount = Currency.abs(trend);
+    const formattedAmount = Currency.format(amount, { showCents: false });
+    return Currency.compare(trend, 0) > 0 
+      ? `+${formattedAmount} this period` 
+      : `-${formattedAmount} this period`;
   };
 
-  const trendArrow = data.trend > 0 ? '↗' : data.trend < 0 ? '↘' : '→';
+  const trendArrow = Currency.compare(data.trend, 0) > 0 ? '↗' : Currency.compare(data.trend, 0) < 0 ? '↘' : '→';
 
   return (
     <div>
@@ -179,16 +182,16 @@ const NetWorthCategory = ({ title, data }) => {
       {/* Main Number */}
       <div className="mb-6">
         <div className={`text-3xl font-light leading-none mb-2 font-mono ${
-          data.value >= 0 
+          Currency.compare(data.value, 0) >= 0 
             ? isDarkMode ? 'text-white' : 'text-black'
             : 'text-red-500'
         }`}>
-          {data.value >= 0 ? '' : '-'}${Math.abs(data.value).toLocaleString()}
+          {Currency.format(data.value, { showCents: false })}
         </div>
         <div className={`text-base font-light ${
           isDarkMode ? 'text-gray-400' : 'text-gray-600'
         }`}>
-          {data.value >= 0 ? 'Positive net worth' : 'Room to grow'}
+          {Currency.compare(data.value, 0) >= 0 ? 'Positive net worth' : 'Room to grow'}
         </div>
       </div>
 
@@ -250,23 +253,23 @@ function calculateMonthPerformance(onboardingData, transactions, selectedMonth) 
            transactionDate.getFullYear() === targetYear;
   });
 
-  // Income Performance
-  const plannedMonthlyIncome = (onboardingData?.income?.totalYearlyIncome || 0) / 12;
+  // Income Performance - using Currency system
+  const plannedMonthlyIncome = Currency.divide(onboardingData?.income?.totalYearlyIncome || 0, 12);
   const actualMonthlyIncome = monthlyTransactions
-    .filter(t => t.amount > 0)
-    .reduce((sum, t) => sum + t.amount, 0);
+    .filter(t => Currency.isPositive(t.amount))
+    .reduce((sum, t) => Currency.add(sum, t.amount), 0);
 
-  // Savings Performance
+  // Savings Performance - using Currency system
   const plannedMonthlySavings = onboardingData?.savingsAllocation?.monthlySavings || 0;
   const actualMonthlySavings = calculateActualMonthlySavings(monthlyTransactions, onboardingData);
 
-  // Expenses Performance
+  // Expenses Performance - using Currency system
   const expenseCategories = onboardingData?.expenses?.expenseCategories || [];
   const plannedMonthlyExpenses = expenseCategories.reduce((sum, cat) => 
-    sum + (parseFloat(cat.amount) || 0), 0);
+    Currency.add(sum, cat.amount || 0), 0);
   const actualMonthlyExpenses = monthlyTransactions
-    .filter(t => t.amount < 0)
-    .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+    .filter(t => Currency.compare(t.amount, 0) < 0)
+    .reduce((sum, t) => Currency.add(sum, Currency.abs(t.amount)), 0);
 
   return {
     income: {
@@ -300,23 +303,29 @@ function calculatePeriodPerformance(onboardingData, transactions) {
     (now.getMonth() - periodStart.getMonth()) + 1
   );
 
-  // Income Performance (prorated for elapsed months)
-  const plannedPeriodIncome = ((onboardingData?.income?.totalYearlyIncome || 0) / 12) * monthsElapsed;
+  // Income Performance (prorated for elapsed months) - using Currency system
+  const plannedPeriodIncome = Currency.multiply(
+    Currency.divide(onboardingData?.income?.totalYearlyIncome || 0, 12), 
+    monthsElapsed
+  );
   const actualPeriodIncome = periodTransactions
-    .filter(t => t.amount > 0)
-    .reduce((sum, t) => sum + t.amount, 0);
+    .filter(t => Currency.isPositive(t.amount))
+    .reduce((sum, t) => Currency.add(sum, t.amount), 0);
 
-  // Savings Performance (prorated for elapsed months)
-  const plannedPeriodSavings = (onboardingData?.savingsAllocation?.monthlySavings || 0) * monthsElapsed;
+  // Savings Performance (prorated for elapsed months) - using Currency system
+  const plannedPeriodSavings = Currency.multiply(
+    onboardingData?.savingsAllocation?.monthlySavings || 0, 
+    monthsElapsed
+  );
   const actualPeriodSavings = calculateActualPeriodSavings(periodTransactions, onboardingData);
 
-  // Expenses Performance (prorated for elapsed months)
+  // Expenses Performance (prorated for elapsed months) - using Currency system
   const expenseCategories = onboardingData?.expenses?.expenseCategories || [];
   const plannedPeriodExpenses = expenseCategories.reduce((sum, cat) => 
-    sum + ((parseFloat(cat.amount) || 0) * monthsElapsed), 0);
+    Currency.add(sum, Currency.multiply(cat.amount || 0, monthsElapsed)), 0);
   const actualPeriodExpenses = periodTransactions
-    .filter(t => t.amount < 0)
-    .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+    .filter(t => Currency.compare(t.amount, 0) < 0)
+    .reduce((sum, t) => Currency.add(sum, Currency.abs(t.amount)), 0);
 
   return {
     income: {
@@ -334,7 +343,7 @@ function calculatePeriodPerformance(onboardingData, transactions) {
   };
 }
 
-// FIXED: Handle category objects properly
+// FIXED: Handle category objects properly + Currency system
 function calculateActualMonthlySavings(monthlyTransactions, onboardingData) {
   const savingsGoals = onboardingData?.savingsAllocation?.savingsGoals || [];
   const savingsKeywords = ['savings', 'emergency fund', 'investment', ...savingsGoals.map(g => g.name.toLowerCase())];
@@ -355,16 +364,16 @@ function calculateActualMonthlySavings(monthlyTransactions, onboardingData) {
       const descriptionMatches = t.description && 
         savingsKeywords.some(keyword => t.description.toLowerCase().includes(keyword));
       
-      const isPositiveTransfer = t.amount > 0 && (isSavingsCategory || descriptionMatches);
-      const isSavingsTransfer = t.amount < 0 && t.description && 
+      const isPositiveTransfer = Currency.isPositive(t.amount) && (isSavingsCategory || descriptionMatches);
+      const isSavingsTransfer = Currency.compare(t.amount, 0) < 0 && t.description && 
         t.description.toLowerCase().includes('transfer') && (isSavingsCategory || descriptionMatches);
       
       return isPositiveTransfer || isSavingsTransfer;
     })
-    .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+    .reduce((sum, t) => Currency.add(sum, Currency.abs(t.amount)), 0);
 }
 
-// FIXED: Handle category objects properly
+// FIXED: Handle category objects properly + Currency system
 function calculateActualPeriodSavings(periodTransactions, onboardingData) {
   const savingsGoals = onboardingData?.savingsAllocation?.savingsGoals || [];
   const savingsKeywords = ['savings', 'emergency fund', 'investment', ...savingsGoals.map(g => g.name.toLowerCase())];
@@ -385,11 +394,11 @@ function calculateActualPeriodSavings(periodTransactions, onboardingData) {
       const descriptionMatches = t.description && 
         savingsKeywords.some(keyword => t.description.toLowerCase().includes(keyword));
       
-      const isPositiveTransfer = t.amount > 0 && (isSavingsCategory || descriptionMatches);
-      const isSavingsTransfer = t.amount < 0 && t.description && 
+      const isPositiveTransfer = Currency.isPositive(t.amount) && (isSavingsCategory || descriptionMatches);
+      const isSavingsTransfer = Currency.compare(t.amount, 0) < 0 && t.description && 
         t.description.toLowerCase().includes('transfer') && (isSavingsCategory || descriptionMatches);
       
       return isPositiveTransfer || isSavingsTransfer;
     })
-    .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+    .reduce((sum, t) => Currency.add(sum, Currency.abs(t.amount)), 0);
 }
