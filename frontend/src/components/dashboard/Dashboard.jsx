@@ -23,6 +23,10 @@ export const Dashboard = ({ onNavigate }) => {
   const [transactions, setTransactions] = useState([]);
   const [categories, setCategories] = useState([]);
     
+  // Global view state
+  const [viewMode, setViewMode] = useState('month'); // 'month' or 'period'
+  const [selectedMonth, setSelectedMonth] = useState(null); // null = current month
+  
   // Process data based on current view mode
   const dashboardData = useMemo(() => 
   processDashboardData(onboardingData, transactions, viewMode, selectedMonth),
@@ -31,10 +35,6 @@ export const Dashboard = ({ onNavigate }) => {
   const performanceData = calculateBudgetPerformance(onboardingData, transactions, viewMode, selectedMonth);
   const netWorthData = calculateNetWorthData(onboardingData, viewMode);
   const availableMonths = generateAvailableMonths(onboardingData, transactions);
-  
-  // Global view state
-  const [viewMode, setViewMode] = useState('month'); // 'month' or 'period'
-  const [selectedMonth, setSelectedMonth] = useState(null); // null = current month
 
   // Handle menu state changes to prevent layout shift
   useEffect(() => {
@@ -315,17 +315,6 @@ export const Dashboard = ({ onNavigate }) => {
               </FormSection>
             </div>
           </div>
-
-          <FormSection title="Quick Add Transaction">
-              <ManualTransactionEntry 
-                categories={categories}
-                onAddTransaction={(transaction) => {
-                  const newTransactions = [...transactions, transaction];
-                  dataManager.saveTransactions(newTransactions);
-                  setTransactions(newTransactions);
-                }}
-              />
-            </FormSection>
 
           <div className="h-24"></div>
         </div>

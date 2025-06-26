@@ -334,38 +334,60 @@ function calculatePeriodPerformance(onboardingData, transactions) {
   };
 }
 
+// FIXED: Handle category objects properly
 function calculateActualMonthlySavings(monthlyTransactions, onboardingData) {
   const savingsGoals = onboardingData?.savingsAllocation?.savingsGoals || [];
   const savingsKeywords = ['savings', 'emergency fund', 'investment', ...savingsGoals.map(g => g.name.toLowerCase())];
   
   return monthlyTransactions
     .filter(t => {
-      const isSavingsCategory = savingsKeywords.some(keyword => 
-        (t.category && t.category.toLowerCase().includes(keyword)) ||
-        (t.description && t.description.toLowerCase().includes(keyword))
-      );
-      const isPositiveTransfer = t.amount > 0 && isSavingsCategory;
+      // Check if category matches savings keywords
+      const isSavingsCategory = savingsKeywords.some(keyword => {
+        // Handle both string and object categories
+        const categoryName = typeof t.category === 'string' 
+          ? t.category.toLowerCase() 
+          : (t.category && t.category.name ? t.category.name.toLowerCase() : '');
+        
+        return categoryName.includes(keyword);
+      });
+      
+      // Check description for savings keywords
+      const descriptionMatches = t.description && 
+        savingsKeywords.some(keyword => t.description.toLowerCase().includes(keyword));
+      
+      const isPositiveTransfer = t.amount > 0 && (isSavingsCategory || descriptionMatches);
       const isSavingsTransfer = t.amount < 0 && t.description && 
-        t.description.toLowerCase().includes('transfer') && isSavingsCategory;
+        t.description.toLowerCase().includes('transfer') && (isSavingsCategory || descriptionMatches);
       
       return isPositiveTransfer || isSavingsTransfer;
     })
     .reduce((sum, t) => sum + Math.abs(t.amount), 0);
 }
 
+// FIXED: Handle category objects properly
 function calculateActualPeriodSavings(periodTransactions, onboardingData) {
   const savingsGoals = onboardingData?.savingsAllocation?.savingsGoals || [];
   const savingsKeywords = ['savings', 'emergency fund', 'investment', ...savingsGoals.map(g => g.name.toLowerCase())];
   
   return periodTransactions
     .filter(t => {
-      const isSavingsCategory = savingsKeywords.some(keyword => 
-        (t.category && t.category.toLowerCase().includes(keyword)) ||
-        (t.description && t.description.toLowerCase().includes(keyword))
-      );
-      const isPositiveTransfer = t.amount > 0 && isSavingsCategory;
+      // Check if category matches savings keywords
+      const isSavingsCategory = savingsKeywords.some(keyword => {
+        // Handle both string and object categories
+        const categoryName = typeof t.category === 'string' 
+          ? t.category.toLowerCase() 
+          : (t.category && t.category.name ? t.category.name.toLowerCase() : '');
+        
+        return categoryName.includes(keyword);
+      });
+      
+      // Check description for savings keywords
+      const descriptionMatches = t.description && 
+        savingsKeywords.some(keyword => t.description.toLowerCase().includes(keyword));
+      
+      const isPositiveTransfer = t.amount > 0 && (isSavingsCategory || descriptionMatches);
       const isSavingsTransfer = t.amount < 0 && t.description && 
-        t.description.toLowerCase().includes('transfer') && isSavingsCategory;
+        t.description.toLowerCase().includes('transfer') && (isSavingsCategory || descriptionMatches);
       
       return isPositiveTransfer || isSavingsTransfer;
     })
