@@ -89,6 +89,24 @@ export const formatCurrencyInput = (amount) => {
 };
 
 /**
+ * Format percentage for display
+ * @param {string|number} percentage - Percentage value
+ * @param {object} options - Formatting options
+ * @returns {string} - Formatted percentage string
+ */
+export const formatPercentage = (percentage, options = {}) => {
+  const {
+    decimals = 1,
+    symbol = '%'
+  } = options;
+  
+  const num = typeof percentage === 'string' ? parseFloat(percentage) : percentage;
+  if (isNaN(num)) return `0${symbol}`;
+  
+  return `${num.toFixed(decimals)}${symbol}`;
+};
+
+/**
  * Parse user input for currency - handles various input formats
  * @param {string} input - User input string
  * @returns {string} - Clean decimal string
@@ -340,6 +358,7 @@ export const Currency = {
   format: formatCurrency,
   formatInput: formatCurrencyInput,
   parseInput: parseCurrencyInput,
+  formatPercentage,
   
   // Calculations
   add: addCurrency,
