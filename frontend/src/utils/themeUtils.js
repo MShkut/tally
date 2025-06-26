@@ -105,19 +105,3 @@ export const createAccentHover = () => {
   console.warn('Accent colors violate editorial design principles.');
   return {};
 };
-
-// Currency formatting
-export const formatCurrency = (amount, options = {}) => {
-  const {
-    minimumFractionDigits = 0,
-    maximumFractionDigits = 0,
-    currency = 'USD'
-  } = options;
-  
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency,
-    minimumFractionDigits,
-    maximumFractionDigits
-  }).format(amount);
-};
