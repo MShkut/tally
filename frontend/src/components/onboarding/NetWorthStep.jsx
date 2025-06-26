@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
 import { ThemeToggle } from 'components/shared/ThemeToggle';
+import { SmartInput } from 'components/shared/SmartInput';
 import { Currency } from 'utils/currency';
 import { 
   FormGrid, 
@@ -15,18 +16,29 @@ import {
   useItemManager,
   validation
 } from '../shared/FormComponents';
+import { loadCategoriesWithCustom } from 'utils/categorySuggestions';
 
-// Clean net worth item component using 12-column grid with large fonts
+// Enhanced net worth item component with smart suggestions
 export const NetWorthItem = ({ item, onUpdate, onDelete, type, placeholder }) => {
+  // Get suggestions from unified categorySuggestions system
+  const suggestions = loadCategoriesWithCustom(type === 'asset' ? 'assets' : 'liabilities');
+  
+  const handleSuggestionSelect = (suggestion) => {
+    // When a suggestion is selected, update the name
+    onUpdate({ ...item, name: suggestion.name });
+  };
+
   return (
     <div className="py-8">
       <div className="grid grid-cols-12 gap-8 items-end">
-        {/* Asset/Liability name: 8 columns */}
+        {/* Asset/Liability name with smart suggestions: 8 columns */}
         <div className="col-span-8">
-          <StandardInput
+          <SmartInput
             label={type === 'asset' ? 'Asset' : 'Liability'}
             value={item.name}
             onChange={(value) => onUpdate({ ...item, name: value })}
+            onSuggestionSelect={handleSuggestionSelect}
+            suggestions={suggestions}
             placeholder={placeholder}
             className="[&_label]:text-2xl [&_label]:font-medium [&_input]:text-2xl [&_input]:font-medium [&_input]:pb-4"
           />
@@ -108,16 +120,16 @@ export const NetWorthStep = ({ onNext, onBack, incomeData, savingsData, expenses
     });
   };
 
-  // Calculate totals
+  // Calculate totals using Currency system
   const totalAssets = assets.reduce((sum, asset) => 
-  Currency.add(sum, asset.amount || 0), 0
-);
+    Currency.add(sum, asset.amount || 0), 0
+  );
 
-const totalLiabilities = liabilities.reduce((sum, liability) => 
-  Currency.add(sum, liability.amount || 0), 0
-);
+  const totalLiabilities = liabilities.reduce((sum, liability) => 
+    Currency.add(sum, liability.amount || 0), 0
+  );
 
-const netWorth = Currency.subtract(totalAssets, totalLiabilities);
+  const netWorth = Currency.subtract(totalAssets, totalLiabilities);
 
   const handleNext = () => {
     if (onNext) {
