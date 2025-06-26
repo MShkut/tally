@@ -1,6 +1,8 @@
 // frontend/src/utils/transactionHelpers.js
 // Helper Functions for Transaction Processing
 
+import { Currency } from './currency';
+
 export const normalizeMerchantName = (description) => {
   return description
     .replace(/\s+\d{4,}.*$/, '')
@@ -26,7 +28,7 @@ export const isSplitWorthy = (transaction) => {
   if (!transaction || !transaction.description) return false;
   
   const description = transaction.description.toLowerCase();
-  const amount = Math.abs(transaction.amount || 0);
+  const amount = Currency.abs(transaction.amount || 0);
   
   const splitKeywords = [
     'amazon', 'walmart', 'target', 'costco', 'sam\'s club',
@@ -34,7 +36,7 @@ export const isSplitWorthy = (transaction) => {
   ];
   
   const hasKeyword = splitKeywords.some(keyword => description.includes(keyword));
-  const isLargeAmount = amount > 100;
+  const isLargeAmount = Currency.compare(amount, 100) > 0;
   const hasNumbers = /\d+\s*(items?|pcs?|pieces?)/.test(description);
   
   return hasKeyword || (isLargeAmount && !transaction.category?.id?.includes('rent'));
