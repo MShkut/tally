@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 
 import { useTheme } from 'contexts/ThemeContext';
 import { ThemeToggle } from 'components/shared/ThemeToggle';
+import { Currency } from 'utils/currency';
 import { 
   FormSection,
   StandardFormLayout,
@@ -120,25 +121,25 @@ export const GiftManagement = ({ onNavigate }) => {
 
   // Calculate gift budget allocation
   const calculateBudgetAllocation = () => {
-    const totalPlanned = people.reduce((sum, person) => {
-      const personTotal = Object.values(person.budgets || {}).reduce(
-        (pSum, amount) => pSum + (parseFloat(amount) || 0), 0
-      );
-      return sum + personTotal;
-    }, 0);
-    
-    const monthlyGiftBudget = giftBudget;
-    const yearlyGiftBudget = monthlyGiftBudget * 12;
-    const remaining = yearlyGiftBudget - totalPlanned;
-    
-    return {
-      monthlyBudget: monthlyGiftBudget,
-      yearlyBudget: yearlyGiftBudget,
-      allocated: totalPlanned,
-      remaining: remaining,
-      peopleCount: people.length
-    };
+  const totalPlanned = people.reduce((sum, person) => {
+    const personTotal = Object.values(person.budgets || {}).reduce(
+      (pSum, amount) => Currency.add(pSum, amount || 0), 0
+    );
+    return Currency.add(sum, personTotal);
+  }, 0);
+  
+  const monthlyGiftBudget = Currency.toCents(giftBudget) / 100;
+  const yearlyGiftBudget = Currency.multiply(monthlyGiftBudget, 12);
+  const remaining = Currency.subtract(yearlyGiftBudget, totalPlanned);
+  
+  return {
+    monthlyBudget: monthlyGiftBudget,
+    yearlyBudget: yearlyGiftBudget,
+    allocated: totalPlanned,
+    remaining: remaining,
+    peopleCount: people.length
   };
+};
 
   const budgetInfo = calculateBudgetAllocation();
 
