@@ -1,5 +1,6 @@
-// Updated Dashboard component with requested changes
+// frontend/src/components/dashboard/Dashboard.jsx
 import React, { useState, useEffect, useMemo } from 'react';
+
 import { ThemeToggle } from 'components/shared/ThemeToggle';
 import { useTheme } from 'contexts/ThemeContext';
 import { dataManager } from 'utils/dataManager';
@@ -11,11 +12,9 @@ import {
   TransactionListItem,
   EmptyState
 } from 'components/shared/FormComponents';
-
 import { BurgerMenu } from 'components/dashboard/BurgerMenu';
 import { BudgetPerformanceSection, calculateBudgetPerformance, calculateNetWorthData } from 'components/dashboard/BudgetPerformanceSection';
 import { DashboardViewSelector, generateAvailableMonths } from 'components/dashboard/DashboardViewSelector';
-import { ManualTransactionEntry } from './ManualTransactionEntry';
 import { handleMenuAction } from 'utils/navigationHandler';
 
 export const Dashboard = ({ onNavigate }) => {
@@ -31,9 +30,10 @@ export const Dashboard = ({ onNavigate }) => {
   
   // Process data based on current view mode
   const dashboardData = useMemo(() => 
-  processDashboardData(onboardingData, transactions, viewMode, selectedMonth),
-  [onboardingData, transactions, viewMode, selectedMonth]
-    );
+    processDashboardData(onboardingData, transactions, viewMode, selectedMonth, categories),
+    [onboardingData, transactions, viewMode, selectedMonth, categories]
+  );
+  
   const performanceData = calculateBudgetPerformance(onboardingData, transactions, viewMode, selectedMonth);
   const netWorthData = calculateNetWorthData(onboardingData, viewMode);
   const availableMonths = generateAvailableMonths(onboardingData, transactions);
@@ -55,51 +55,36 @@ export const Dashboard = ({ onNavigate }) => {
     };
   }, [menuOpen]);
   
-  
-  useEffect(() => {
-  const userData = dataManager.loadUserData();
-  const userTransactions = dataManager.loadTransactions();
-  
-  setOnboardingData(userData);
-  setTransactions(userTransactions);
-  
-  // Build categories from user data - FIXED VERSION
-  if (userData?.expenses?.expenseCategories) {
-    const expenseCategories = userData.expenses.expenseCategories.map(cat => ({
-      id: cat.name.toLowerCase().replace(/\s+/g, '-'),
-      name: cat.name,
-      type: 'expense',
-      // Add budget for reference
-      budget: parseFloat(cat.amount) || 0
-    }));
-    
-    const incomeCategories = userData.income?.incomeSources?.map(source => ({
-      id: source.name.toLowerCase().replace(/\s+/g, '-'),
-      name: source.name,
-      type: 'income'
-    })) || [];
-    
-    // Add uncategorized as fallback
-    const allCategories = [
-      { id: 'uncategorized', name: 'Uncategorized', type: 'unknown' },
-      ...incomeCategories,
-      ...expenseCategories
-    ];
-    
-    setCategories(allCategories);
-  }
-
-  if (!userData || !userData.onboardingComplete) {
-    onNavigate('onboarding');
-  }
-}, [onNavigate]);
-  
   useEffect(() => {
     const userData = dataManager.loadUserData();
     const userTransactions = dataManager.loadTransactions();
     
     setOnboardingData(userData);
     setTransactions(userTransactions);
+    
+    // Build categories from user data
+    if (userData?.expenses?.expenseCategories) {
+      const expenseCategories = userData.expenses.expenseCategories.map(cat => ({
+        id: cat.name.toLowerCase().replace(/\s+/g, '-'),
+        name: cat.name,
+        type: 'expense',
+        amount: parseFloat(cat.amount) || 0
+      }));
+      
+      const incomeCategories = userData.income?.incomeSources?.map(source => ({
+        id: source.name.toLowerCase().replace(/\s+/g, '-'),
+        name: source.name,
+        type: 'income'
+      })) || [];
+      
+      const allCategories = [
+        { id: 'uncategorized', name: 'Uncategorized', type: 'unknown' },
+        ...incomeCategories,
+        ...expenseCategories
+      ];
+      
+      setCategories(allCategories);
+    }
 
     if (!userData || !userData.onboardingComplete) {
       onNavigate('onboarding');
@@ -121,9 +106,9 @@ export const Dashboard = ({ onNavigate }) => {
     }
   }, [availableMonths]);
   
-const handleMenuActionWrapper = (actionId) => {
-  handleMenuAction(actionId, onNavigate, () => setMenuOpen(false));
-};
+  const handleMenuActionWrapper = (actionId) => {
+    handleMenuAction(actionId, onNavigate, () => setMenuOpen(false));
+  };
 
   // Get current view label for display
   const getCurrentViewLabel = () => {
@@ -139,12 +124,12 @@ const handleMenuActionWrapper = (actionId) => {
 
   return (
     <>
-<BurgerMenu 
-  isOpen={menuOpen} 
-  onClose={() => setMenuOpen(false)}
-  onAction={handleMenuActionWrapper}  // Use the wrapper
-  currentPage="gifts"
-/>
+      <BurgerMenu 
+        isOpen={menuOpen} 
+        onClose={() => setMenuOpen(false)}
+        onAction={handleMenuActionWrapper}
+        currentPage="dashboard"
+      />
       
       <div className={`min-h-screen transition-colors duration-300 ${
         isDarkMode ? 'bg-black text-white' : 'bg-gray-50 text-gray-900'
@@ -245,7 +230,7 @@ const handleMenuActionWrapper = (actionId) => {
 
             {/* Right Column */}
             <div className="space-y-16">
-              {/* Savings Progress - Cleaned up without comments */}
+              {/* Savings Progress */}
               <FormSection title="Savings Goals">
                 {dashboardData.savingsGoals.length > 0 ? (
                   <div className="space-y-4">
@@ -320,7 +305,6 @@ const BudgetCategoryItem = ({ category }) => {
   );
 };
 
-// New Income Source Item component
 const IncomeSourceItem = ({ source, viewMode }) => {
   const { isDarkMode } = useTheme();
   
@@ -344,7 +328,6 @@ const IncomeSourceItem = ({ source, viewMode }) => {
   );
 };
 
-// Cleaned up Savings Goal component without comments
 const CleanSavingsGoalItem = ({ goal }) => {
   const { isDarkMode } = useTheme();
   const percentage = goal.target > 0 ? (goal.current / goal.target) * 100 : 0;
@@ -384,15 +367,15 @@ const CleanSavingsGoalItem = ({ goal }) => {
   );
 };
 
-// Enhanced data processing that includes income breakdown
-function processDashboardData(onboardingData, transactions, viewMode, selectedMonth) {
+// Enhanced data processing function
+function processDashboardData(onboardingData, transactions, viewMode, selectedMonth, categories) {
   const household = onboardingData?.household?.name || 'Your Budget';
   const period = formatPeriodInfo(onboardingData);
   
   // Filter transactions based on view mode
   const filteredTransactions = getFilteredTransactions(transactions, viewMode, selectedMonth, onboardingData);
   
-  const budgetCategories = processBudgetCategories(onboardingData, filteredTransactions, viewMode);
+  const budgetCategories = processBudgetCategories(onboardingData, filteredTransactions, viewMode, categories);
   const savingsGoals = processSavingsGoals(onboardingData, filteredTransactions, viewMode);
   const netWorth = processNetWorth(onboardingData);
   const incomeBreakdown = processIncomeBreakdown(onboardingData, filteredTransactions, viewMode);
@@ -430,7 +413,7 @@ function processIncomeBreakdown(onboardingData, filteredTransactions, viewMode) 
         case 'Bi-weekly': yearlyAmount = sourceAmount * 26; break;
         case 'Monthly': yearlyAmount = sourceAmount * 12; break;
         case 'Yearly': yearlyAmount = sourceAmount; break;
-        default: yearlyAmount = sourceAmount * 12; // Default to monthly
+        default: yearlyAmount = sourceAmount * 12;
       }
       
       expectedAmount = (yearlyAmount / 12) * monthsElapsed;
@@ -441,11 +424,11 @@ function processIncomeBreakdown(onboardingData, filteredTransactions, viewMode) 
         case 'Bi-weekly': expectedAmount = sourceAmount * 2.17; break;
         case 'Monthly': expectedAmount = sourceAmount; break;
         case 'Yearly': expectedAmount = sourceAmount / 12; break;
-        default: expectedAmount = sourceAmount; // Assume monthly
+        default: expectedAmount = sourceAmount;
       }
     }
     
-    // FIXED: Better income matching from transactions
+    // Better income matching from transactions
     const actualAmount = filteredTransactions
       .filter(t => {
         if (t.amount <= 0) return false; // Only positive amounts for income
@@ -467,7 +450,6 @@ function processIncomeBreakdown(onboardingData, filteredTransactions, viewMode) 
           const desc = t.description.toLowerCase();
           const sourceName = source.name.toLowerCase();
           
-          // Direct name match
           if (desc.includes(sourceName)) return true;
           
           // Common income keywords
@@ -515,27 +497,29 @@ function getFilteredTransactions(transactions, viewMode, selectedMonth, onboardi
   }
 }
 
-function processBudgetCategories(onboardingData, filteredTransactions, viewMode) {
-  return categories.map(category => {
-    // Calculate spent amount using currency precision
-    const spent = filteredTransactions
-      .filter(t => matchesCategory(t, category))
-      .filter(t => Currency.compare(t.amount, 0) < 0)
-      .reduce((sum, t) => Currency.add(sum, Currency.abs(t.amount)), 0);
-    
-    // Adjust budget based on view mode
-    let budget = Currency.toCents(category.amount) / 100;
-    if (viewMode === 'period') {
-      const monthsElapsed = calculateMonthsElapsed(onboardingData);
-      budget = Currency.multiply(budget, monthsElapsed);
-    }
-    
-    return {
-      name: category.name,
-      spent: spent,
-      budget: budget
-    };
-  });
+function processBudgetCategories(onboardingData, filteredTransactions, viewMode, categories) {
+  return categories
+    .filter(category => category.type === 'expense')
+    .map(category => {
+      // Calculate spent amount using currency precision
+      const spent = filteredTransactions
+        .filter(t => matchesCategory(t, category))
+        .filter(t => Currency.compare(t.amount, 0) < 0)
+        .reduce((sum, t) => Currency.add(sum, Currency.abs(t.amount)), 0);
+      
+      // Adjust budget based on view mode
+      let budget = category.amount || 0;
+      if (viewMode === 'period') {
+        const monthsElapsed = calculateMonthsElapsed(onboardingData);
+        budget = Currency.multiply(budget, monthsElapsed);
+      }
+      
+      return {
+        name: category.name,
+        spent: spent,
+        budget: budget
+      };
+    });
 }
 
 function processSavingsGoals(onboardingData, filteredTransactions, viewMode) {
@@ -608,4 +592,28 @@ function processNetWorth(onboardingData) {
     value: netWorthValue,
     subtitle: netWorthValue >= 0 ? 'Positive net worth' : 'Room to grow'
   };
+}
+
+// Helper functions
+function matchesCategory(transaction, category) {
+  if (!transaction.category || !category) return false;
+  
+  // Handle both string and object categories
+  const transactionCategoryName = typeof transaction.category === 'string' 
+    ? transaction.category 
+    : transaction.category.name;
+  
+  return transactionCategoryName?.toLowerCase() === category.name.toLowerCase();
+}
+
+function calculateMonthsElapsed(onboardingData) {
+  if (!onboardingData?.period?.start_date) return 1;
+  
+  const periodStart = new Date(onboardingData.period.start_date);
+  const now = new Date();
+  
+  return Math.max(1, 
+    ((now.getFullYear() - periodStart.getFullYear()) * 12) + 
+    (now.getMonth() - periodStart.getMonth()) + 1
+  );
 }
