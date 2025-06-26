@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 
 import { useTheme } from 'contexts/ThemeContext';
 import { ThemeToggle } from 'components/shared/ThemeToggle';
+import { handleMenuAction } from 'utils/navigationHandler';
 import { 
   FormGrid, 
   FormField, 
@@ -86,29 +87,8 @@ export const TransactionImport = ({ onNavigate }) => {
     }
   }, []);
 
-  const handleMenuAction = (actionId) => {
-    setMenuOpen(false);
-    switch (actionId) {
-      case 'dashboard':
-        onNavigate('dashboard');
-        break;
-      case 'import':
-        break; // Already here
-      case 'start-next-period':
-        onNavigate('onboarding');
-        break;
-      case 'export':
-        const exportData = dataManager.exportData();
-        console.log('Export data:', exportData);
-        // TODO: Implement actual export download
-        break;
-      case 'reset-data':
-        dataManager.resetAllData();
-        onNavigate('onboarding');
-        break;
-      default:
-        console.log(`Action ${actionId} not implemented`);
-    }
+  const handleMenuActionWrapper = (actionId) => {
+    handleMenuAction(actionId, onNavigate, () => setMenuOpen(false));
   };
 
   const handleCSVUpload = (csvData, columnMapping) => {
@@ -235,8 +215,8 @@ export const TransactionImport = ({ onNavigate }) => {
       <BurgerMenu 
         isOpen={menuOpen} 
         onClose={() => setMenuOpen(false)}
-        onAction={handleMenuAction}
-        currentPage="import"
+        onAction={handleMenuActionWrapper}  // Use the wrapper
+        currentPage="gifts"
       />
       
       <ThemeToggle />

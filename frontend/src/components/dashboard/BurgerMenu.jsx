@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 
 import { useTheme } from 'contexts/ThemeContext';
 import { ConfirmationModal } from 'components/shared/FormComponents';
-import { dataManager } from 'utils/dataManager';
+import { handleMenuAction, getMenuItems, isCurrentPage } from 'utils/navigationHandler';
 
 export const BurgerMenu = ({ isOpen, onClose, onAction, currentPage = 'dashboard' }) => {
   const { isDarkMode } = useTheme();
@@ -31,70 +31,18 @@ export const BurgerMenu = ({ isOpen, onClose, onAction, currentPage = 'dashboard
 
   if (!isOpen) return null;
 
-  // Define menu items with new structure
-  const getMenuItems = () => {
-    // Check if user has gifts category
-    const userData = dataManager.loadUserData();
-    const hasGiftsCategory = userData?.expenses?.expenseCategories?.some(
-      cat => cat.name.toLowerCase() === 'gifts'
-    ) || false;
-
-    const overviewItems = [
-      { id: 'dashboard', label: 'Dashboard', active: currentPage === 'dashboard' },
-      { id: 'networth', label: 'Net Worth', active: currentPage === 'networth' }
-    ];
-
-    const actionsItems = [
-      { id: 'import', label: 'Transaction Import', active: currentPage === 'import' },
-      { id: 'edit-income', label: 'Edit Income Sources' },
-      { id: 'edit-savings', label: 'Edit Savings Plan' },
-      { id: 'edit-expenses', label: 'Edit Expenses' },
-      { id: 'plan-next-period', label: 'Plan Next Period' }
-    ];
-
-    // Add gift management if category exists
-    if (hasGiftsCategory) {
-      actionsItems.splice(1, 0, {
-        id: 'gifts',
-        label: 'Gift Management',
-        active: currentPage === 'gifts'
-      });
-    }
-
-    const toolsItems = [
-      // Empty for now - TBD
-    ];
-
-    const settingsItems = [
-      { id: 'export', label: 'Export Data' },
-      { id: 'reset-data', label: 'Reset All Data', danger: true }
-    ];
-
-    return {
-      overview: overviewItems,
-      actions: actionsItems,
-      tools: toolsItems,
-      settings: settingsItems
-    };
-  };
-
+  // Get menu items from universal handler
   const menuItems = getMenuItems();
 
   const handleResetConfirm = () => {
-    dataManager.resetAllData();
+    // Handle the actual reset
+    handleMenuAction('reset-data', onAction, () => {}, null);
     setShowResetConfirm(false);
-    onClose();
-    
-    // Force reload to ensure clean state
-    window.location.reload();
   };
 
   const handleMenuItemClick = (actionId) => {
-    if (actionId === 'reset-data') {
-      setShowResetConfirm(true);
-    } else {
-      onAction(actionId);
-    }
+    // Use universal navigation handler
+    handleMenuAction(actionId, onAction, onClose, setShowResetConfirm);
   };
 
   return (
@@ -114,7 +62,7 @@ export const BurgerMenu = ({ isOpen, onClose, onAction, currentPage = 'dashboard
           {/* Header */}
           <div className="flex items-center justify-between mb-12 pb-6 border-b border-current border-opacity-10">
             <h2 className={`text-lg font-medium ${isDarkMode ? 'text-white' : 'text-black'}`}>
-              Tally
+              Stash
             </h2>
             <button 
               onClick={onClose}
@@ -204,7 +152,7 @@ const MenuSection = ({ title, items, onAction, isDarkMode, currentPage }) => (
     </h3>
     <div className="space-y-1">
       {items.map(item => {
-        const isCurrentPage = item.active;
+        const isActive = isCurrentPage(item.id, currentPage);
         
         return (
           <button
@@ -215,14 +163,14 @@ const MenuSection = ({ title, items, onAction, isDarkMode, currentPage }) => (
               border-b border-transparent hover:border-current
               ${item.danger 
                 ? 'text-red-500 hover:text-red-400' 
-                : isCurrentPage
+                : isActive
                   ? isDarkMode ? 'text-white font-medium border-gray-600' : 'text-black font-medium border-gray-400'
                   : isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-black'
               }
             `}
           >
             {item.label}
-            {isCurrentPage && (
+            {isActive && (
               <span className={`ml-2 text-xs ${
                 isDarkMode ? 'text-gray-500' : 'text-gray-400'
               }`}>
