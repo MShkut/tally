@@ -17,6 +17,7 @@ import { PersonCard } from './PersonCard';
 import { GiftBudgetOverview } from './GiftBudgetOverview';
 import { PersonEdit } from './PersonEdit';
 import { AddPersonManually } from './AddPersonManually';
+import { handleMenuAction } from 'utils/navigationHandler';
 
 export const GiftManagement = ({ onNavigate }) => {
   const { isDarkMode } = useTheme();
@@ -46,24 +47,8 @@ export const GiftManagement = ({ onNavigate }) => {
     }
   }, []);
 
-  const handleMenuAction = (actionId) => {
-    setMenuOpen(false);
-    switch (actionId) {
-      case 'dashboard':
-        onNavigate('dashboard');
-        break;
-      case 'import':
-        onNavigate('import');
-        break;
-      case 'gifts':
-        break; // Already here
-      case 'reset-data':
-        dataManager.resetAllData();
-        onNavigate('onboarding');
-        break;
-      default:
-        console.log(`Action ${actionId} not implemented`);
-    }
+  const handleMenuActionWrapper = (actionId) => {
+    handleMenuAction(actionId, onNavigate, () => setMenuOpen(false));
   };
 
   const handleContactsImported = (importedContacts) => {
@@ -197,10 +182,9 @@ export const GiftManagement = ({ onNavigate }) => {
       <BurgerMenu 
         isOpen={menuOpen} 
         onClose={() => setMenuOpen(false)}
-        onAction={handleMenuAction}
+        onAction={handleMenuActionWrapper}  // Use the wrapper
         currentPage="gifts"
       />
-      
       <ThemeToggle />
       
       {/* Fixed burger menu button */}

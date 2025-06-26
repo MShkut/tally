@@ -15,6 +15,7 @@ import { BurgerMenu } from 'components/dashboard/BurgerMenu';
 import { BudgetPerformanceSection, calculateBudgetPerformance, calculateNetWorthData } from 'components/dashboard/BudgetPerformanceSection';
 import { DashboardViewSelector, generateAvailableMonths } from 'components/dashboard/DashboardViewSelector';
 import { ManualTransactionEntry } from './ManualTransactionEntry';
+import { handleMenuAction } from 'utils/navigationHandler';
 
 export const Dashboard = ({ onNavigate }) => {
   const { isDarkMode } = useTheme();
@@ -119,61 +120,9 @@ export const Dashboard = ({ onNavigate }) => {
     }
   }, [availableMonths]);
   
-    const handleMenuAction = (actionId) => {
-    setMenuOpen(false);
-    
-    switch (actionId) {
-      case 'import':
-        onNavigate('import');
-        break;
-      case 'gifts':
-        onNavigate('gifts');
-        break;
-      case 'start-next-period':
-        onNavigate('onboarding');
-        break;
-      case 'export':
-        const exportData = dataManager.exportData();
-        console.log('Export data:', exportData);
-        break;
-      case 'reset-data':
-        dataManager.resetAllData();
-        onNavigate('onboarding');
-        break;
-      case 'dashboard':
-        break;
-      case 'gifts':
-        onNavigate('gifts');
-        break;
-      case 'networth':
-        onNavigate('networth');
-        break;
-      case 'edit-income':
-        onNavigate('edit-income');
-        break;
-      case 'edit-savings':
-        onNavigate('edit-savings');
-        break;
-      case 'edit-expenses':
-        onNavigate('edit-expenses');
-        break;
-      case 'plan-next-period':
-        onNavigate('plan-next-period');
-        break;
-      default:
-        console.log(`Action ${actionId} not implemented`);
-    }
-  };
-
-  if (!onboardingData) {
-    return (
-      <div className={`min-h-screen flex items-center justify-center transition-colors duration-300 ${
-        isDarkMode ? 'bg-black text-white' : 'bg-gray-50 text-gray-900'
-      }`}>
-        <div className="text-xl font-light">Loading your dashboard...</div>
-      </div>
-    );
-  }
+const handleMenuActionWrapper = (actionId) => {
+  handleMenuAction(actionId, onNavigate, () => setMenuOpen(false));
+};
 
   // Get current view label for display
   const getCurrentViewLabel = () => {
@@ -189,12 +138,12 @@ export const Dashboard = ({ onNavigate }) => {
 
   return (
     <>
-      <BurgerMenu 
-        isOpen={menuOpen} 
-        onClose={() => setMenuOpen(false)}
-        onAction={handleMenuAction}
-        currentPage="dashboard"
-      />
+<BurgerMenu 
+  isOpen={menuOpen} 
+  onClose={() => setMenuOpen(false)}
+  onAction={handleMenuActionWrapper}  // Use the wrapper
+  currentPage="gifts"
+/>
       
       <div className={`min-h-screen transition-colors duration-300 ${
         isDarkMode ? 'bg-black text-white' : 'bg-gray-50 text-gray-900'
