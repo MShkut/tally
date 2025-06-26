@@ -25,13 +25,33 @@ const STEP_ORDER = [
 
 export const OnboardingFlow = ({ onComplete }) => {
   const [currentStep, setCurrentStep] = useState(STEPS.WELCOME);
-  const [onboardingData, setOnboardingData] = useState({});
+  const [onboardingData, setOnboardingData] = useState({
+    household: null,
+    period: null,
+    income: null,
+    savingsAllocation: null,
+    expenses: null,
+    netWorth: null
+  });
 
   // Load any existing onboarding data on mount
   useEffect(() => {
     const userData = dataManager.loadUserData();
     if (userData && !userData.onboardingComplete) {
       setOnboardingData(userData);
+      
+      // Determine which step to start on based on completed data
+      if (userData.netWorth) {
+        setCurrentStep(STEPS.NETWORTH);
+      } else if (userData.expenses) {
+        setCurrentStep(STEPS.EXPENSES);
+      } else if (userData.savingsAllocation) {
+        setCurrentStep(STEPS.SAVINGS);
+      } else if (userData.income) {
+        setCurrentStep(STEPS.INCOME);
+      } else if (userData.household && userData.period) {
+        setCurrentStep(STEPS.INCOME);
+      }
     }
   }, []);
 
@@ -40,30 +60,67 @@ export const OnboardingFlow = ({ onComplete }) => {
   };
 
   const handleStepNext = (stepData) => {
-    const updatedData = {
-      ...onboardingData,
-      ...stepData
-    };
     
-    setOnboardingData(updatedData);
+    // Determine which section this step data belongs to
+    let sectionKey;
+    switch (currentStep) {
+      case STEPS.WELCOME:
+        // Welcome step returns { household, period }
+        const updatedWelcomeData = {
+          ...onboardingData,
+          household: stepData.household,
+          period: stepData.period
+        };
+        setOnboardingData(updatedWelcomeData);
+        dataManager.saveUserData(updatedWelcomeData);
+        break;
+        
+      case STEPS.INCOME:
+        sectionKey = 'income';
+        break;
+        
+      case STEPS.SAVINGS:
+        sectionKey = 'savingsAllocation';
+        break;
+        
+      case STEPS.EXPENSES:
+        sectionKey = 'expenses';
+        break;
+        
+      case STEPS.NETWORTH:
+        sectionKey = 'netWorth';
+        break;
+    }
     
-    // Save progress after each step
-    dataManager.saveUserData(updatedData);
+    // For non-welcome steps, update the specific section
+    if (sectionKey) {
+      const updatedData = {
+        ...onboardingData,
+        [sectionKey]: stepData
+      };
+      setOnboardingData(updatedData);
+      dataManager.saveUserData(updatedData);
+    }
     
-    // Move to next step
+    // Move to next step or complete
     const currentIndex = getCurrentStepIndex();
     if (currentIndex < STEP_ORDER.length - 1) {
-      setCurrentStep(STEP_ORDER[currentIndex + 1]);
+      const nextStep = STEP_ORDER[currentIndex + 1];
+      setCurrentStep(nextStep);
     } else {
       // Complete onboarding
-      handleOnboardingComplete(updatedData);
+      handleOnboardingComplete(currentStep === STEPS.WELCOME ? 
+        { ...onboardingData, household: stepData.household, period: stepData.period } : 
+        { ...onboardingData, [sectionKey]: stepData }
+      );
     }
   };
 
   const handleStepBack = () => {
     const currentIndex = getCurrentStepIndex();
     if (currentIndex > 0) {
-      setCurrentStep(STEP_ORDER[currentIndex - 1]);
+      const prevStep = STEP_ORDER[currentIndex - 1];
+      setCurrentStep(prevStep);
     }
   };
 
@@ -71,11 +128,10 @@ export const OnboardingFlow = ({ onComplete }) => {
     const completedData = {
       ...finalData,
       onboardingComplete: true,
-      completedAt: new Date().toISOString()
+      completedAt: new Date().toISOString(),
+      onboardingStep: null // Clear step tracking
     };
-    
     dataManager.saveUserData(completedData);
-    console.log('🎉 Onboarding completed:', completedData);
     
     if (onComplete) {
       onComplete(completedData);
@@ -126,6 +182,7 @@ export const OnboardingFlow = ({ onComplete }) => {
         );
         
       default:
+        console.error('❌ Unknown step:', currentStep);
         return <WelcomeStep {...commonProps} />;
     }
   };

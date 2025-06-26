@@ -161,7 +161,7 @@ useEffect(() => {
         onBack={onBack}
         onNext={handleNext}
         canGoNext={canContinue}
-        nextLabel="Continue to Savings"
+        nextLabel="Continue"
         showBack={true}
       >
         
