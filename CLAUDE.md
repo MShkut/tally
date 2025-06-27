@@ -101,6 +101,10 @@ cargo check        # Check code without building
 - Import ordering rules configured
 - Tailwind CSS for styling with editorial theme focus
 
+### Git Commit Messages
+- Always end commit messages with "Generated with Claude Code" (no emoji, no additional text)
+- Use this exact format for all commits made by Claude Code
+
 ## Common Issues
 - Onboarding data must be complete for protected routes to work
 - Household URL formatting is strict (lowercase, hyphens only)
