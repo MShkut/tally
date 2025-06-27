@@ -28,3 +28,7 @@ yarn-debug.log*
 .env
 .env.local
 .env.*.local
+
+# Claude Code working files
+CLAUDE.md
+CURRENT-TASK.md

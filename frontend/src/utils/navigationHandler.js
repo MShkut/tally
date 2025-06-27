@@ -101,7 +101,7 @@ const handleDataExport = () => {
     const url = URL.createObjectURL(dataBlob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `stash-export-${new Date().toISOString().split('T')[0]}.json`;
+    link.download = `tally-export-${new Date().toISOString().split('T')[0]}.json`;
     
     // Trigger download
     document.body.appendChild(link);
