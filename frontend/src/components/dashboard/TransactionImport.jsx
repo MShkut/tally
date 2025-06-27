@@ -10,11 +10,17 @@ import { ReviewTransactions } from './ReviewTransactions';
 import { ManualTransactionEntry } from './ManualTransactionEntry';
 import { normalizeMerchantName, suggestCategory } from 'utils/transactionHelpers';
 import { dataManager } from 'utils/dataManager';
-import { EmptyState, SummaryCard, FormSection } from '../shared/FormComponents';
+import { 
+  EmptyState, 
+  SummaryCard, 
+  FormSection, 
+  FormGrid, 
+  FormField, 
+  StandardInput, 
+  StandardSelect 
+} from '../shared/FormComponents';
 import { handleMenuAction } from 'utils/navigationHandler';
-import { Currency } from 'utils/currency';
 
-// Replace the ManualTransactionForm component (around line 290):
 const ManualTransactionForm = ({ categories, onAdd }) => {
   const { isDarkMode } = useTheme();
   const [formData, setFormData] = useState({
@@ -137,6 +143,193 @@ const ManualTransactionForm = ({ categories, onAdd }) => {
         >
           Add Transaction
         </button>
+      </div>
+    </div>
+  );
+};
+
+export const TransactionImport = ({ onNavigate }) => {
+  const { isDarkMode } = useTheme();
+  const [activeView, setActiveView] = useState('upload'); // 'upload', 'manual', 'review'
+  const [transactions, setTransactions] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  useEffect(() => {
+    // Load existing transactions and categories
+    const userData = dataManager.loadUserData();
+    if (userData?.transactions) {
+      setTransactions(userData.transactions);
+    }
+    
+    // Load categories from onboarding data
+    if (userData?.expenses?.categories) {
+      setCategories(userData.expenses.categories);
+    }
+  }, []);
+
+  const handleCSVUpload = async (csvTransactions) => {
+    setIsProcessing(true);
+    try {
+      // Process and categorize transactions
+      const processedTransactions = csvTransactions.map(transaction => ({
+        ...transaction,
+        id: `${Date.now()}_${Math.random()}`,
+        category: suggestCategory(transaction, categories),
+        confirmed: false
+      }));
+      
+      setTransactions(processedTransactions);
+      setActiveView('review');
+    } catch (error) {
+      console.error('Error processing CSV:', error);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleManualAdd = (transaction) => {
+    const newTransaction = {
+      ...transaction,
+      id: `${Date.now()}_${Math.random()}`,
+      confirmed: true
+    };
+    
+    const updatedTransactions = [...transactions, newTransaction];
+    setTransactions(updatedTransactions);
+    
+    // Save to localStorage
+    const userData = dataManager.loadUserData();
+    dataManager.saveUserData({
+      ...userData,
+      transactions: updatedTransactions
+    });
+  };
+
+  const handleTransactionsSave = (finalTransactions) => {
+    const userData = dataManager.loadUserData();
+    dataManager.saveUserData({
+      ...userData,
+      transactions: finalTransactions
+    });
+    
+    setTransactions(finalTransactions);
+    onNavigate('dashboard');
+  };
+
+  return (
+    <div className={`min-h-screen transition-colors ${
+      isDarkMode ? 'bg-black text-white' : 'bg-white text-black'
+    }`}>
+      <BurgerMenu onNavigate={onNavigate} currentPage="transactions" />
+      <ThemeToggle />
+      
+      <div className="max-w-6xl mx-auto px-8 py-12">
+        {/* Header */}
+        <div className="mb-12">
+          <h1 className="text-5xl font-light leading-tight mb-4">
+            Import Transactions
+          </h1>
+          <p className={`text-xl ${
+            isDarkMode ? 'text-gray-400' : 'text-gray-600'
+          }`}>
+            Upload a CSV file or manually enter transactions to track your spending
+          </p>
+        </div>
+
+        {/* View Toggle */}
+        <div className="flex space-x-8 mb-12">
+          <button
+            onClick={() => setActiveView('upload')}
+            className={`text-xl font-light border-b-2 pb-2 transition-all ${
+              activeView === 'upload'
+                ? isDarkMode
+                  ? 'text-white border-white'
+                  : 'text-black border-black'
+                : isDarkMode
+                  ? 'text-gray-400 border-transparent hover:border-gray-400'
+                  : 'text-gray-600 border-transparent hover:border-gray-600'
+            }`}
+          >
+            CSV Upload
+          </button>
+          <button
+            onClick={() => setActiveView('manual')}
+            className={`text-xl font-light border-b-2 pb-2 transition-all ${
+              activeView === 'manual'
+                ? isDarkMode
+                  ? 'text-white border-white'
+                  : 'text-black border-black'
+                : isDarkMode
+                  ? 'text-gray-400 border-transparent hover:border-gray-400'
+                  : 'text-gray-600 border-transparent hover:border-gray-600'
+            }`}
+          >
+            Manual Entry
+          </button>
+          {transactions.length > 0 && (
+            <button
+              onClick={() => setActiveView('review')}
+              className={`text-xl font-light border-b-2 pb-2 transition-all ${
+                activeView === 'review'
+                  ? isDarkMode
+                    ? 'text-white border-white'
+                    : 'text-black border-black'
+                  : isDarkMode
+                    ? 'text-gray-400 border-transparent hover:border-gray-400'
+                    : 'text-gray-600 border-transparent hover:border-gray-600'
+              }`}
+            >
+              Review ({transactions.length})
+            </button>
+          )}
+        </div>
+
+        {/* Content */}
+        {activeView === 'upload' && (
+          <EnhancedCSVUpload
+            onUpload={handleCSVUpload}
+            isProcessing={isProcessing}
+          />
+        )}
+
+        {activeView === 'manual' && (
+          <ManualTransactionForm
+            categories={categories}
+            onAdd={handleManualAdd}
+          />
+        )}
+
+        {activeView === 'review' && transactions.length > 0 && (
+          <ReviewTransactions
+            transactions={transactions}
+            categories={categories}
+            onSave={handleTransactionsSave}
+            onBack={() => setActiveView('upload')}
+          />
+        )}
+
+        {/* Summary */}
+        {transactions.length > 0 && (
+          <div className="mt-12">
+            <SummaryCard
+              title="Transaction Summary"
+              items={[
+                { label: 'Total Transactions', value: transactions.length },
+                { 
+                  label: 'Total Amount', 
+                  value: Currency.format(
+                    transactions.reduce((sum, t) => sum + Math.abs(t.amount || 0), 0)
+                  )
+                },
+                { 
+                  label: 'Categorized', 
+                  value: `${transactions.filter(t => t.category).length}/${transactions.length}`
+                }
+              ]}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

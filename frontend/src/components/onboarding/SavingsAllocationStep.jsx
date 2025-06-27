@@ -1,3 +1,4 @@
+// frontend/src/components/onboarding/SavingsAllocationStep.jsx
 import React, { useState, useEffect } from 'react';
 
 import { useTheme } from 'contexts/ThemeContext';
@@ -20,7 +21,6 @@ import {
 } from 'utils/categorySuggestions';
 import { convertToYearly } from 'utils/incomeHelpers';
 
-
 // Horizontal savings goal component matching IncomeSource layout
 export const SavingsGoal = ({ goal, onUpdate, onDelete, savingsSuggestions }) => {
   return (
@@ -29,7 +29,7 @@ export const SavingsGoal = ({ goal, onUpdate, onDelete, savingsSuggestions }) =>
         {/* Goal name: 8 columns - generous space */}
         <div className="col-span-8">
           <SmartInput
-           label="Savings Goal"
+            label="Savings Goal"
             value={goal.name}
             onChange={(value) => onUpdate({ ...goal, name: value })}
             onSuggestionSelect={(suggestion) => onUpdate({ ...goal, name: suggestion.name })}
@@ -68,9 +68,6 @@ export const SavingsGoal = ({ goal, onUpdate, onDelete, savingsSuggestions }) =>
   );
 };
 
-
-  
-
 // Compact savings rate section with dual input - % or $ amount
 export const SavingsRateSection = ({ savingsRate, monthlySavings, onSavingsRateChange, onMonthlySavingsChange, totalIncome }) => {
   const { isDarkMode } = useTheme();
@@ -82,132 +79,109 @@ export const SavingsRateSection = ({ savingsRate, monthlySavings, onSavingsRateC
         <div className="col-span-3">
           <StandardInput
             label="Savings Rate"
-            value={savingsRate > 0 ? savingsRate.toString() : ''}
+            value={savingsRate > 0 ? `${savingsRate}%` : ''}
             onChange={onSavingsRateChange}
-            placeholder="20"
-            suffix="%"
+            placeholder="20%"
             className="[&_label]:text-2xl [&_label]:font-medium [&_input]:text-2xl [&_input]:font-medium [&_input]:pb-4"
           />
+        </div>
+        
+        {/* OR divider: 1 column */}
+        <div className="col-span-1 text-center">
+          <div className={`text-xl font-light pb-4 ${
+            isDarkMode ? 'text-gray-500' : 'text-gray-400'
+          }`}>
+            or
+          </div>
         </div>
         
         {/* Monthly savings amount: 4 columns */}
         <div className="col-span-4">
           <StandardInput
-            label="Monthly Savings"
+            label="Monthly Savings Amount"
             type="currency"
             value={monthlySavings}
             onChange={onMonthlySavingsChange}
             prefix="$"
-            placeholder=""
+            placeholder="0.00"
             className="[&_label]:text-2xl [&_label]:font-medium [&_input]:text-2xl [&_input]:font-medium [&_input]:pb-4"
           />
         </div>
         
-        {/* Description: 5 columns */}
-        <div className="col-span-5">
-          <div className="flex items-end h-full pb-3">
-            <div>
-              <p className={`text-lg font-light ${
-                isDarkMode ? 'text-gray-400' : 'text-gray-600'
-              }`}>
-                to allocate to emergency fund and savings goals
-              </p>
+        {/* Spacer: 4 columns */}
+        <div className="col-span-4">
+          {totalIncome > 0 && monthlySavings && (
+            <div className={`text-base font-light pb-4 ${
+              isDarkMode ? 'text-gray-400' : 'text-gray-600'
+            }`}>
+              Monthly income: ${(totalIncome / 12).toLocaleString()}
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>
   );
 };
 
-// Custom checkbox component that fits editorial theme
-const EditorialCheckbox = ({ checked, onChange, label, isDarkMode }) => {
-  return (
-    <label className="flex items-center gap-4 cursor-pointer group">
-      <div className="relative">
-        <input
-          type="checkbox"
-          checked={checked}
-          onChange={onChange}
-          className="sr-only"
-        />
-        {/* Fixed size container to prevent movement */}
-        <div className={`
-          w-6 h-6 border-2 transition-colors duration-200 flex items-center justify-center
-          ${checked 
-            ? isDarkMode ? 'border-white bg-white' : 'border-black bg-black'
-            : isDarkMode ? 'border-gray-600 bg-transparent' : 'border-gray-300 bg-transparent'
-          }
-        `}>
-          {/* Checkmark positioned absolutely to not affect layout */}
-          {checked && (
-            <span className={`
-              text-sm font-light leading-none
-              ${isDarkMode ? 'text-black' : 'text-white'}
-            `}>
-              ✓
-            </span>
-          )}
-        </div>
-      </div>
-      <span className={`text-2xl font-medium transition-colors duration-200 ${
-        isDarkMode ? 'text-white group-hover:text-gray-300' : 'text-black group-hover:text-gray-700'
-      }`}>
-        {label}
-      </span>
-    </label>
-  );
-};
-
-// Compact horizontal emergency fund section
-export const EmergencyFundSection = ({ emergencyFund, setEmergencyFund, savingsRate, totalIncome }) => {
+// Emergency fund section with conditional monthly amount
+export const EmergencyFundSection = ({ emergencyFund, onUpdate, monthlyExpenses = 0 }) => {
   const { isDarkMode } = useTheme();
   
-  // Calculate monthly expenses based on their savings rate
-  const expenseRate = 100 - savingsRate; // If 20% savings, then 80% expenses
-  const monthlyExpenses = totalIncome > 0 ? (totalIncome * expenseRate / 100) / 12 : 0;
   const emergencyFundMin = monthlyExpenses * 3;
   const emergencyFundMax = monthlyExpenses * 6;
 
   return (
-    <FormSection title="Emergency Fund">
-      <div>
-        {/* Top row - checkbox and input field - always same height */}
-        <div className="grid grid-cols-12 gap-8 items-end min-h-[80px]">
-          {/* Checkbox: 8 columns - fixed position */}
-          <div className="col-span-8 flex items-end pb-4">
-            <EditorialCheckbox
-              checked={emergencyFund.hasExisting}
-              onChange={(e) => setEmergencyFund(prev => ({ 
-                ...prev, 
-                hasExisting: e.target.checked,
-                monthlyAmount: e.target.checked ? '' : prev.monthlyAmount
-              }))}
-              label="I already have a sufficient emergency fund"
-              isDarkMode={isDarkMode}
-            />
+    <FormSection>
+      <h3 className="text-3xl font-light leading-tight mb-8">Emergency Fund</h3>
+      
+      <div className="py-8">
+        <div className="grid grid-cols-12 gap-8 items-end">
+          {/* Checkbox: 2 columns */}
+          <div className="col-span-2">
+            <div className="flex items-end h-full pb-4">
+              <input
+                type="checkbox"
+                checked={emergencyFund.hasExisting}
+                onChange={(e) => onUpdate({ 
+                  ...emergencyFund, 
+                  hasExisting: e.target.checked,
+                  monthlyAmount: e.target.checked ? '' : emergencyFund.monthlyAmount
+                })}
+                className="w-6 h-6"
+              />
+            </div>
           </div>
           
-          {/* Monthly contribution: 4 columns - always present but conditionally visible */}
-          <div className={`col-span-4 transition-opacity duration-200 ${
-            emergencyFund.hasExisting ? 'opacity-0 pointer-events-none' : 'opacity-100'
-          }`}>
-            <StandardInput
-              label="Monthly Contribution"
-              type="currency"
-              value={emergencyFund.monthlyAmount}
-              onChange={(value) => setEmergencyFund(prev => ({ 
-                ...prev, 
-                monthlyAmount: value 
-              }))}
-              prefix="$"
-              className="[&_label]:text-2xl [&_label]:font-medium [&_input]:text-2xl [&_input]:font-medium [&_input]:pb-4"
-            />
+          {/* Label: 4 columns */}
+          <div className="col-span-4">
+            <label className={`text-2xl font-medium ${
+              isDarkMode ? 'text-gray-400' : 'text-gray-500'
+            }`}>
+              I already have an emergency fund
+            </label>
           </div>
+          
+          {/* Monthly amount (conditional): 3 columns */}
+          <div className="col-span-3">
+            {!emergencyFund.hasExisting && (
+              <StandardInput
+                label="Monthly Amount"
+                type="currency"
+                value={emergencyFund.monthlyAmount}
+                onChange={(value) => onUpdate({ ...emergencyFund, monthlyAmount: value })}
+                prefix="$"
+                placeholder="0.00"
+                className="[&_label]:text-2xl [&_label]:font-medium [&_input]:text-2xl [&_input]:font-medium [&_input]:pb-4"
+              />
+            )}
+          </div>
+          
+          {/* Spacer: 3 columns */}
+          <div className="col-span-3"></div>
         </div>
-
-        {/* Recommendation row - fixed height container, content fades in/out */}
-        <div className={`min-h-[24px] transition-opacity duration-200 ${
+        
+        {/* Recommendation text (conditional) */}
+        <div className={`transition-opacity duration-300 ${
           !emergencyFund.hasExisting && monthlyExpenses > 0 
             ? 'opacity-100' 
             : 'opacity-0'
@@ -232,15 +206,16 @@ export const EmergencyFundSection = ({ emergencyFund, setEmergencyFund, savingsR
 
 export const SavingsAllocationStep = ({ onNext, onBack, incomeData, savedData = null }) => {
   const { isDarkMode } = useTheme();
-   const [savingsSuggestions, setSavingsSuggestions] = useState([]);
+  const [savingsSuggestions, setSavingsSuggestions] = useState([]);
 
-useEffect(() => {
-  setSavingsSuggestions(loadCategoriesWithCustom('savings'));
-}, []);
+  useEffect(() => {
+    setSavingsSuggestions(loadCategoriesWithCustom('savings'));
+  }, []);
+
   // Calculate initial values based on income
   const totalIncome = incomeData?.totalYearlyIncome || 0;
   
-  // ✅ FIX: Initialize with calculated default values
+  // Initialize with calculated default values
   const getInitialSavingsRate = () => {
     if (savedData?.savingsAllocation?.savingsRate) {
       return savedData.savingsAllocation.savingsRate;
@@ -277,7 +252,7 @@ useEffect(() => {
     setItems
   } = useItemManager();
 
-  // ✅ FIX: Handle income changes and initialization properly
+  // Handle income changes and initialization properly
   useEffect(() => {
     // Only set defaults if we haven't initialized and there's no saved data
     if (!hasInitialized && totalIncome > 0 && !savedData?.savingsAllocation) {
@@ -293,7 +268,7 @@ useEffect(() => {
     }
   }, [totalIncome, hasInitialized, savingsRate, savedData]);
 
-  // ✅ FIX: Load saved data properly
+  // Load saved data properly
   useEffect(() => {
     if (savedData?.savingsAllocation) {
       const saved = savedData.savingsAllocation;
@@ -311,16 +286,6 @@ useEffect(() => {
 
   // Handle savings rate change - update monthly savings when user enters %
   const handleSavingsRateChange = (newRateString) => {
-  // ... existing logic ...
-  if (clampedRate > 0 && totalIncome > 0) {
-    const newMonthlySavings = Currency.fromYearly(
-      Currency.multiply(totalIncome, clampedRate / 100), 
-      'Monthly'
-    );
-    setMonthlySavings(Currency.formatInput(newMonthlySavings));
-  }
-};
-    
     const cleanValue = newRateString.replace(/[^0-9]/g, '');
     const newRate = parseInt(cleanValue) || 0;
     const clampedRate = Math.max(0, Math.min(100, newRate));
@@ -328,8 +293,11 @@ useEffect(() => {
     setSavingsRate(clampedRate);
     
     if (clampedRate > 0 && totalIncome > 0) {
-      const newMonthlySavings = (totalIncome * clampedRate / 100) / 12;
-      setMonthlySavings(newMonthlySavings.toFixed(2));
+      const newMonthlySavings = Currency.fromYearly(
+        Currency.multiply(totalIncome, clampedRate / 100), 
+        'Monthly'
+      );
+      setMonthlySavings(Currency.formatInput(newMonthlySavings));
     } else if (clampedRate === 0) {
       setMonthlySavings('');
     }
@@ -361,13 +329,13 @@ useEffect(() => {
 
   // Calculate totals
   const totalAllocatedSavings = () => {
-  const emergency = emergencyFund.hasExisting ? 0 : 
-    Currency.toCents(emergencyFund.monthlyAmount) / 100;
-  const goals = savingsGoals.reduce((sum, goal) => 
-    Currency.add(sum, goal.amount || 0), 0
-  );
-  return Currency.add(emergency, goals);
-};
+    const emergency = emergencyFund.hasExisting ? 0 : 
+      Currency.toCents(emergencyFund.monthlyAmount) / 100;
+    const goals = savingsGoals.reduce((sum, goal) => 
+      Currency.add(sum, goal.amount || 0), 0
+    );
+    return Currency.add(emergency, goals);
+  };
 
   const monthlySavingsAmount = parseFloat(monthlySavings) || 0;
   const remainingAmount = monthlySavingsAmount - totalAllocatedSavings();
@@ -392,82 +360,90 @@ useEffect(() => {
       <StandardFormLayout
         title="Set Your Savings Rate"
         subtitle="How much of your income do you want to save? Then allocate those savings to specific goals."
-        onBack={onBack}
         onNext={handleNext}
-        canGoNext={true}
-        showBack={true}
+        onBack={onBack}
+        nextLabel="Continue to Expenses"
+        backLabel="Back to Income"
+        isValid={monthlySavingsAmount > 0}
       >
-        
         {/* Savings Rate Section */}
-        <FormSection>
-          <SavingsRateSection 
-            savingsRate={savingsRate}
-            monthlySavings={monthlySavings}
-            onSavingsRateChange={handleSavingsRateChange}
-            onMonthlySavingsChange={handleMonthlySavingsChange}
-            totalIncome={totalIncome}
-          />
-        </FormSection>
+        <SavingsRateSection
+          savingsRate={savingsRate}
+          monthlySavings={monthlySavings}
+          onSavingsRateChange={handleSavingsRateChange}
+          onMonthlySavingsChange={handleMonthlySavingsChange}
+          totalIncome={totalIncome}
+        />
 
         {/* Emergency Fund Section */}
         <EmergencyFundSection
           emergencyFund={emergencyFund}
-          setEmergencyFund={setEmergencyFund}
-          savingsRate={savingsRate}
-          totalIncome={totalIncome}
+          onUpdate={setEmergencyFund}
+          monthlyExpenses={3000} // TODO: Get from actual expense data
         />
 
         {/* Savings Goals Section */}
-        <FormSection title="Specific Savings Goals">
+        <FormSection>
+          <div className="flex items-center justify-between mb-8">
+            <h3 className="text-3xl font-light leading-tight">Savings Goals</h3>
+            <AddItemButton 
+              onClick={addSavingsGoal}
+              label="Add Goal"
+            />
+          </div>
+
           {hasItems ? (
-            <div className="space-y-0 mb-8">
-              {savingsGoals.map((goal) => (
+            <div className="space-y-1">
+              {savingsGoals.map((goal, index) => (
                 <SavingsGoal
-                  key={goal.id}
+                  key={goal.id || index}
                   goal={goal}
-                  onUpdate={(updatedGoal) => updateItem(goal.id, updatedGoal)}
-                  onDelete={() => deleteItem(goal.id)}
+                  onUpdate={(updatedGoal) => updateItem(index, updatedGoal)}
+                  onDelete={() => deleteItem(index)}
                   savingsSuggestions={savingsSuggestions}
                 />
               ))}
             </div>
           ) : (
-            <div className="text-center py-12 text-gray-500">
-              <div className="text-2xl font-light mb-2">No savings goals yet</div>
-              <div className="text-xl font-light">Add your first savings goal to get started</div>
+            <div className={`text-base font-light ${
+              isDarkMode ? 'text-gray-500' : 'text-gray-400'
+            }`}>
+              Add specific savings goals to track your progress
             </div>
           )}
-
-          <AddItemButton 
-            onClick={addSavingsGoal}
-            children={!hasItems ? 'Add your first savings goal' : 'Add another savings goal'}
-          />
         </FormSection>
 
-        {/* Savings Summary */}
-        {(totalAllocatedSavings() > 0 || monthlySavingsAmount > 0) && (
-          <FormSection>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-              <SummaryCard
-                title="Total Monthly Savings"
-                value={monthlySavingsAmount}
-                subtitle="Your full savings budget"
-                accent={true}
-              />
-              <SummaryCard
-                title="Currently Allocated"
-                value={totalAllocatedSavings()}
-                subtitle="Emergency fund + goals"
-              />
-              <SummaryCard
-                title="Available for New Goals"
-                value={remainingAmount}
-                subtitle={remainingAmount < 0 ? 'Over allocated!' : remainingAmount === 0 ? 'Fully allocated' : 'Ready to allocate'}
-              />
-            </div>
-          </FormSection>
+        {/* Summary Section */}
+        {monthlySavingsAmount > 0 && (
+          <SummaryCard
+            title="Savings Allocation Summary"
+            items={[
+              { 
+                label: 'Total Monthly Savings', 
+                value: Currency.format(monthlySavingsAmount) 
+              },
+              { 
+                label: 'Emergency Fund', 
+                value: emergencyFund.hasExisting 
+                  ? 'Already have one' 
+                  : Currency.format(emergencyFund.monthlyAmount || 0)
+              },
+              { 
+                label: 'Goals Total', 
+                value: Currency.format(
+                  savingsGoals.reduce((sum, goal) => 
+                    Currency.add(sum, goal.amount || 0), 0
+                  )
+                )
+              },
+              { 
+                label: 'Unallocated', 
+                value: Currency.format(Math.max(0, remainingAmount)),
+                highlight: remainingAmount !== 0 
+              }
+            ]}
+          />
         )}
-
       </StandardFormLayout>
     </>
   );

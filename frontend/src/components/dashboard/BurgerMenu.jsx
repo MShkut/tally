@@ -29,6 +29,7 @@ export const BurgerMenu = ({ isOpen, onClose, onAction, currentPage = 'dashboard
     };
   }, [isOpen, onClose]);
 
+
   if (!isOpen) return null;
 
   // Get menu items from universal handler
@@ -36,7 +37,7 @@ export const BurgerMenu = ({ isOpen, onClose, onAction, currentPage = 'dashboard
 
   const handleResetConfirm = () => {
     // Handle the actual reset
-    handleMenuAction('reset-data', onAction, () => {}, null);
+    handleMenuAction('reset-data', onAction, onClose, null);
     setShowResetConfirm(false);
   };
 
@@ -120,24 +121,26 @@ export const BurgerMenu = ({ isOpen, onClose, onAction, currentPage = 'dashboard
       </div>
 
       {/* Reset Confirmation Modal */}
-      <ConfirmationModal
-        isOpen={showResetConfirm}
-        title="Reset All Data?"
-        description="This will permanently delete all your financial data, including:"
-        details={[
-          'Onboarding setup and budget configuration',
-          'All imported and manual transactions',
-          'Savings goals and net worth data',
-          'Gift management data',
-          'Theme preferences'
-        ]}
-        warningText="This action cannot be undone."
-        confirmText="Reset All Data"
-        cancelText="Cancel"
-        onConfirm={handleResetConfirm}
-        onCancel={() => setShowResetConfirm(false)}
-        confirmDanger={true}
-      />
+      <div style={{ zIndex: showResetConfirm ? 60 : -1 }}>
+        <ConfirmationModal
+          isOpen={showResetConfirm}
+          title="Reset All Data?"
+          description="This will permanently delete all your financial data, including:"
+          details={[
+            'Onboarding setup and budget configuration',
+            'All imported and manual transactions',
+            'Savings goals and net worth data',
+            'Gift management data',
+            'Theme preferences'
+          ]}
+          warningText="This action cannot be undone."
+          confirmText="Reset All Data"
+          cancelText="Cancel"
+          onConfirm={handleResetConfirm}
+          onCancel={() => setShowResetConfirm(false)}
+          confirmDanger={true}
+        />
+      </div>
     </>
   );
 };

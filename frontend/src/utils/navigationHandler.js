@@ -12,8 +12,10 @@ import { dataManager } from './dataManager';
  * @returns {boolean} - Returns true if action was handled, false if not implemented
  */
 export const handleMenuAction = (actionId, onNavigate, onClose, setShowResetConfirm = null) => {
-  // Always close menu first
-  onClose();
+  // Close menu first for most actions, but not for reset-data
+  if (actionId !== 'reset-data') {
+    onClose();
+  }
   
   switch (actionId) {
     // Overview Actions
