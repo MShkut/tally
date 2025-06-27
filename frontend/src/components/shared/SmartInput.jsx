@@ -1,236 +1,221 @@
-import React, { useState, useEffect } from 'react';
+// frontend/src/components/shared/SmartInput.jsx
+import React, { useState, useEffect, useRef } from 'react';
+import { useTheme } from 'contexts/ThemeContext';
 
-import { ThemeToggle } from 'components/shared/ThemeToggle';
-import { SmartInput } from 'components/shared/SmartInput';
-import { 
-  FormGrid, 
-  FormField, 
-  StandardInput,
-  RemoveButton,
-  AddItemButton,
-  FormSection,
-  StandardFormLayout,
-  SummaryCard,
-  SectionBorder,
-  useItemManager,
-  validation
-} from '../shared/FormComponents';
-import { getSuggestionsByType } from 'utils/netWorthSuggestions';
+export const SmartInput = ({
+  label,
+  value,
+  onChange,
+  onSuggestionSelect,
+  suggestions = [],
+  placeholder = '',
+  className = '',
+  ...props
+}) => {
+  const { isDarkMode } = useTheme();
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [filteredSuggestions, setFilteredSuggestions] = useState([]);
+  const [focusedIndex, setFocusedIndex] = useState(-1);
+  const inputRef = useRef(null);
+  const containerRef = useRef(null);
+  const scrollableContainerRef = useRef(null);
 
-// Enhanced net worth item component with smart suggestions
-export const NetWorthItem = ({ item, onUpdate, onDelete, type, placeholder }) => {
-  // Get suggestions based on type (asset or liability)
-  const suggestions = getSuggestionsByType(type);
-  
-  const handleSuggestionSelect = (suggestion) => {
-    // When a suggestion is selected, update the name
-    onUpdate({ ...item, name: suggestion.name });
-  };
-
-  return (
-    <div className="py-8">
-      <div className="grid grid-cols-12 gap-8 items-end">
-        {/* Asset/Liability name with smart suggestions: 8 columns */}
-        <div className="col-span-8">
-          <SmartInput
-            label={type === 'asset' ? 'Asset' : 'Liability'}
-            value={item.name}
-            onChange={(value) => onUpdate({ ...item, name: value })}
-            onSuggestionSelect={handleSuggestionSelect}
-            suggestions={suggestions}
-            placeholder={placeholder}
-            className="[&_label]:text-2xl [&_label]:font-medium [&_input]:text-2xl [&_input]:font-medium [&_input]:pb-4"
-          />
-        </div>
-        
-        {/* Amount: 3 columns */}
-        <div className="col-span-3">
-          <StandardInput
-            label={type === 'asset' ? 'Value' : 'Balance Owed'}
-            type="currency"
-            value={item.amount}
-            onChange={(value) => onUpdate({ ...item, amount: value })}
-            prefix="$"
-            className="[&_label]:text-2xl [&_label]:font-medium [&_input]:text-2xl [&_input]:font-medium [&_input]:pb-4"
-          />
-        </div>
-        
-        {/* Remove button: 1 column - matching other steps' pattern */}
-        <div className="col-span-1">
-          <div className="flex items-end h-full pb-4">
-            <button
-              onClick={onDelete}
-              className="w-full text-center text-3xl font-light text-gray-400 hover:text-red-500 transition-colors"
-              title="Remove this item"
-            >
-              ×
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export const NetWorthStep = ({ onNext, onBack, incomeData, savingsData, expensesData, savedData = null }) => {
-  const { 
-    items: assets, 
-    addItem: addAsset, 
-    updateItem: updateAsset, 
-    deleteItem: deleteAsset,
-    hasItems: hasAssets,
-    setItems: setAssets
-  } = useItemManager();
-
-  const { 
-    items: liabilities, 
-    addItem: addLiability, 
-    updateItem: updateLiability, 
-    deleteItem: deleteLiability,
-    hasItems: hasLiabilities,
-    setItems: setLiabilities
-  } = useItemManager();
-
-  // Pre-populate with saved data
+  // Filter suggestions based on input value
   useEffect(() => {
-    if (savedData?.netWorth) {
-      console.log('🔄 Loading saved net worth data:', savedData.netWorth);
-      
-      if (savedData.netWorth.assets?.length > 0) {
-        setAssets(savedData.netWorth.assets);
-      }
-      if (savedData.netWorth.liabilities?.length > 0) {
-        setLiabilities(savedData.netWorth.liabilities);
-      }
-    }
-  }, [savedData, setAssets, setLiabilities]);
-
-  const addAssetItem = () => {
-    addAsset({
-      name: '', 
-      amount: ''
-    });
-  };
-
-  const addLiabilityItem = () => {
-    addLiability({
-      name: '', 
-      amount: ''
-    });
-  };
-
-  // Calculate totals
-  const totalAssets = assets.reduce((sum, asset) => 
-    sum + (parseFloat(asset.amount) || 0), 0
-  );
-
-  const totalLiabilities = liabilities.reduce((sum, liability) => 
-    sum + (parseFloat(liability.amount) || 0), 0
-  );
-
-  const netWorth = totalAssets - totalLiabilities;
-
-  const handleNext = () => {
-    if (onNext) {
-      onNext({
-        assets,
-        liabilities,
-        totalAssets,
-        totalLiabilities,
-        netWorth
+    if (value && suggestions.length > 0) {
+      const filtered = suggestions.filter(suggestion => {
+        const includesInput = suggestion.name.toLowerCase().includes(value.toLowerCase());
+        // Don't show exact matches - if user typed exactly what they want, don't suggest it
+        const isExactMatch = suggestion.name.toLowerCase() === value.toLowerCase();
+        return includesInput && !isExactMatch;
       });
+      setFilteredSuggestions(filtered);
+      setShowSuggestions(filtered.length > 0 && value.length > 0);
+      setFocusedIndex(-1); // Reset focus when suggestions change
+    } else {
+      setFilteredSuggestions([]);
+      setShowSuggestions(false);
+      setFocusedIndex(-1);
     }
+  }, [value, suggestions]);
+
+  const handleSuggestionSelect = (suggestion) => {
+    onSuggestionSelect(suggestion);
+    setShowSuggestions(false);
+    setFocusedIndex(-1);
+    inputRef.current?.focus();
+  };
+
+  // Scroll focused item into view
+  const scrollIntoView = (index) => {
+    if (scrollableContainerRef.current && filteredSuggestions.length > 3) {
+      const container = scrollableContainerRef.current;
+      const itemHeight = 60; // Approximate height of each item (py-3 + text + padding)
+      const containerHeight = 192; // maxHeight we set
+      const scrollTop = container.scrollTop;
+      const itemTop = index * itemHeight;
+      const itemBottom = itemTop + itemHeight;
+
+      // Scroll down if item is below visible area
+      if (itemBottom > scrollTop + containerHeight) {
+        container.scrollTop = itemBottom - containerHeight;
+      }
+      // Scroll up if item is above visible area
+      else if (itemTop < scrollTop) {
+        container.scrollTop = itemTop;
+      }
+    }
+  };
+
+  // Handle keyboard navigation
+  const handleKeyDown = (event) => {
+    if (!showSuggestions || filteredSuggestions.length === 0) return;
+
+    switch (event.key) {
+      case 'ArrowDown':
+        event.preventDefault();
+        const nextIndex = (focusedIndex + 1) % filteredSuggestions.length;
+        setFocusedIndex(nextIndex);
+        scrollIntoView(nextIndex);
+        break;
+      case 'ArrowUp':
+        event.preventDefault();
+        const prevIndex = focusedIndex <= 0 ? filteredSuggestions.length - 1 : focusedIndex - 1;
+        setFocusedIndex(prevIndex);
+        scrollIntoView(prevIndex);
+        break;
+      case 'Enter':
+        event.preventDefault();
+        if (focusedIndex >= 0) {
+          handleSuggestionSelect(filteredSuggestions[focusedIndex]);
+        }
+        break;
+      case 'Escape':
+        event.preventDefault();
+        setShowSuggestions(false);
+        setFocusedIndex(-1);
+        break;
+    }
+  };
+
+  // Handle blur - hide suggestions when clicking/tabbing away
+  const handleBlur = (event) => {
+    // Only hide if focus is moving outside the container
+    // Longer timeout to prevent double-click issues
+    setTimeout(() => {
+      if (containerRef.current && !containerRef.current.contains(document.activeElement)) {
+        setShowSuggestions(false);
+        setFocusedIndex(-1);
+      }
+    }, 150);
   };
 
   return (
-    <>
-      <ThemeToggle />
-      <StandardFormLayout
-        title="Calculate Your Net Worth"
-        subtitle="Add up everything you own and subtract what you owe. This gives you your complete financial picture."
-        onBack={onBack}
-        onNext={handleNext}
-        nextLabel="Complete Setup"
-        canGoNext={true}
-        showBack={true}
-      >
-        {/* Assets Section - Full Width */}
-        <FormSection title="Assets (What You Own)">
-          {hasAssets ? (
-            <div className="space-y-0 mb-8">
-              {assets.map((asset) => (
-                <NetWorthItem
-                  key={asset.id}
-                  item={asset}
-                  onUpdate={(updatedAsset) => updateAsset(asset.id, updatedAsset)}
-                  onDelete={() => deleteAsset(asset.id)}
-                  type="asset"
-                  placeholder="Checking account, savings, investments, home"
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-12 text-gray-500">
-              <div className="text-2xl font-light mb-2">No assets yet</div>
-              <div className="text-xl font-light">Add your first asset to get started</div>
-            </div>
-          )}
-          
-          <AddItemButton 
-            onClick={addAssetItem}
-            children={!hasAssets ? 'Add your first asset' : 'Add another asset'}
-          />
-        </FormSection>
+    <div className={`relative ${className}`} ref={containerRef}>
+      {label && (
+        <label className={`block text-2xl font-medium mb-2 ${
+          isDarkMode ? 'text-gray-400' : 'text-gray-500'
+        }`}>
+          {label}
+        </label>
+      )}
+      
+      <input
+        ref={inputRef}
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onKeyDown={handleKeyDown}
+        onBlur={handleBlur}
+        placeholder={placeholder}
+        className={`w-full bg-transparent border-0 border-b-2 pb-4 text-2xl font-medium focus:outline-none transition-colors py-3 ${
+          isDarkMode 
+            ? 'border-gray-700 text-white placeholder-gray-500 focus:border-white' 
+            : 'border-gray-300 text-black placeholder-gray-400 focus:border-black'
+        }`}
+        {...props}
+      />
 
-        {/* Liabilities Section - Full Width */}
-        <FormSection title="Liabilities (What You Owe)">
-          {hasLiabilities ? (
-            <div className="space-y-0 mb-8">
-              {liabilities.map((liability) => (
-                <NetWorthItem
-                  key={liability.id}
-                  item={liability}
-                  onUpdate={(updatedLiability) => updateLiability(liability.id, updatedLiability)}
-                  onDelete={() => deleteLiability(liability.id)}
-                  type="liability"
-                  placeholder="Mortgage, credit cards, student loans, auto loan"
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-12 text-gray-500">
-              <div className="text-2xl font-light mb-2">No liabilities yet</div>
-              <div className="text-xl font-light">Add your first liability to get started</div>
-            </div>
-          )}
-          
-          <AddItemButton 
-            onClick={addLiabilityItem}
-            children={!hasLiabilities ? 'Add your first liability' : 'Add another liability'}
-          />
-        </FormSection>
-
-        {/* Net Worth Summary - Always Visible at Bottom */}
-        <FormSection>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-            <SummaryCard
-              title="Total Assets"
-              value={totalAssets}
-            />
-            <SummaryCard
-              title="Total Liabilities"
-              value={totalLiabilities}
-            />
-            <SummaryCard
-              title="Net Worth"
-              value={`${netWorth >= 0 ? '' : '-'}${Math.abs(netWorth).toLocaleString()}`}
-              subtitle={netWorth >= 0 ? 'Positive net worth' : 'Room to grow'}
-              accent={netWorth >= 0}
-            />
+      {/* Suggestions Dropdown */}
+      {showSuggestions && (
+        filteredSuggestions.length <= 3 ? (
+          // Non-scrollable container for few items - no scrollbar space at all
+          <div className={`absolute top-full left-0 right-0 mt-2 border shadow-lg z-50 ${
+            isDarkMode 
+              ? 'bg-black border-gray-700 shadow-gray-900' 
+              : 'bg-white border-gray-200 shadow-gray-300'
+          }`}>
+            {filteredSuggestions.map((suggestion, index) => (
+              <button
+                key={index}
+                type="button"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleSuggestionSelect(suggestion);
+                }}
+                onMouseEnter={() => setFocusedIndex(index)}
+                className={`w-full px-4 py-3 text-left text-lg font-light transition-colors duration-200 block ${
+                  focusedIndex === index
+                    ? isDarkMode 
+                      ? 'bg-gray-800 text-white' 
+                      : 'bg-gray-100 text-black'
+                    : isDarkMode 
+                      ? 'text-gray-300 hover:bg-gray-900 hover:text-white' 
+                      : 'text-gray-700 hover:bg-gray-50 hover:text-black'
+                }`}
+                style={{ margin: 0, border: 'none' }}
+              >
+                {suggestion.name}
+              </button>
+            ))}
           </div>
-        </FormSection>
-
-      </StandardFormLayout>
-    </>
+        ) : (
+          // Scrollable container for many items
+          <div 
+            ref={scrollableContainerRef}
+            className={`absolute top-full left-0 right-0 mt-2 border shadow-lg z-50 overflow-y-auto ${
+              isDarkMode 
+                ? 'bg-black border-gray-700 shadow-gray-900' 
+                : 'bg-white border-gray-200 shadow-gray-300'
+            }`}
+            style={{ maxHeight: '192px' }}
+          >
+            {filteredSuggestions.map((suggestion, index) => (
+              <button
+                key={index}
+                type="button"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleSuggestionSelect(suggestion);
+                }}
+                onMouseEnter={() => setFocusedIndex(index)}
+                className={`w-full px-4 py-3 text-left text-lg font-light transition-colors duration-200 block ${
+                  focusedIndex === index
+                    ? isDarkMode 
+                      ? 'bg-gray-800 text-white' 
+                      : 'bg-gray-100 text-black'
+                    : isDarkMode 
+                      ? 'text-gray-300 hover:bg-gray-900 hover:text-white' 
+                      : 'text-gray-700 hover:bg-gray-50 hover:text-black'
+                }`}
+                style={{ margin: 0, border: 'none' }}
+              >
+                {suggestion.name}
+              </button>
+            ))}
+          </div>
+        )
+      )}
+    </div>
   );
 };

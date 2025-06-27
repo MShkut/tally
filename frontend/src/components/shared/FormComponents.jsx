@@ -59,9 +59,8 @@ export const StandardInput = ({
     }
   };
 
-  // Format currency value for display
-  const displayValue = type === 'currency' ? 
-    Currency.formatInput(value) : value;
+  // Format currency value for display - keep it simple for typing
+  const displayValue = type === 'currency' ? value : value;
 
   return (
     <div className={className}>
@@ -728,6 +727,3 @@ export const DataSection = ({
     </section>
   );
 };
-
-// Re-export SmartInput for convenience
-export { SmartInput } from './SmartInput';

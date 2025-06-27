@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 
 import { useTheme } from 'contexts/ThemeContext';
 import { ThemeToggle } from 'components/shared/ThemeToggle';
-import { PeriodSelector } from 'components/shared/PeriodSelector';
+import { DateRangePicker } from 'components/shared/DateRangePicker';
 import { 
   FormGrid, 
   FormField, 
@@ -14,6 +14,7 @@ import {
 } from '../shared/FormComponents';
 
 export const WelcomeStep = ({ onNext, savedData = null }) => {
+  const { isDarkMode } = useTheme();
   const [formData, setFormData] = useState({
     householdName: ''
   });
@@ -36,8 +37,8 @@ export const WelcomeStep = ({ onNext, savedData = null }) => {
     }));
   };
 
-  const handlePeriodChange = (period) => {
-    setPeriodData(period);
+  const handleDateRangeChange = (dateRange) => {
+    setPeriodData(dateRange);
   };
 
   const handleNext = () => {
@@ -68,15 +69,16 @@ export const WelcomeStep = ({ onNext, savedData = null }) => {
   return (
     <>
       <ThemeToggle />
-      <StandardFormLayout
-        title="Welcome to Tally"
-        subtitle="A privacy-first approach to organizing your financial life. All data stays on your device, giving you complete control over your financial information."
-        onNext={handleNext}
-        canGoNext={canContinue}
-        nextLabel="Begin Financial Setup"
-        showBack={false}
-        className="flex items-center justify-center"
-      >
+      <div>
+        <StandardFormLayout
+          title="Welcome to Tally"
+          subtitle="A privacy-first approach to organizing your financial life. All data stays on your device, giving you complete control over your financial information."
+          onNext={handleNext}
+          canGoNext={canContinue}
+          nextLabel="Begin Financial Setup"
+          showBack={false}
+          className="flex items-center justify-center"
+        >
         <div className="max-w-3xl mx-auto">
           <FormSection>
             <FormGrid>
@@ -87,17 +89,18 @@ export const WelcomeStep = ({ onNext, savedData = null }) => {
                   value={formData.householdName}
                   onChange={(value) => handleInputChange('householdName', value)}
                   placeholder="John, Jane & John, Smith Family"
-                  required
-                  className="[&_label]:text-2xl [&_label]:font-medium [&_input]:text-2xl [&_input]:font-medium [&_input]:pb-4"
+                  className={`[&_label]:text-2xl [&_label]:font-light [&_input]:text-2xl [&_input]:font-medium [&_input]:pb-4 ${
+                    isDarkMode ? '[&_label]:text-white' : '[&_label]:text-black'
+                  }`}
                 />
               </FormField>
             </FormGrid>
           </FormSection>
           
           {/* Budget Period Selector */}
-          <FormSection title="Select Your Budget Period">
-            <PeriodSelector 
-              onPeriodChange={handlePeriodChange}
+          <FormSection title="Your Budget Period (1-12 months)">
+            <DateRangePicker 
+              onDateRangeChange={handleDateRangeChange}
               initialStartDate={savedData?.period?.start_date}
               initialEndDate={savedData?.period?.end_date}
               maxMonths={12}
@@ -105,7 +108,8 @@ export const WelcomeStep = ({ onNext, savedData = null }) => {
           </FormSection>
         </div>
 
-      </StandardFormLayout>
+        </StandardFormLayout>
+      </div>
     </>
   );
 };
