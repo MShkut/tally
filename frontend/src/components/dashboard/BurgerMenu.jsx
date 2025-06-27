@@ -63,7 +63,7 @@ export const BurgerMenu = ({ isOpen, onClose, onAction, currentPage = 'dashboard
           {/* Header */}
           <div className="flex items-center justify-between mb-12 pb-6 border-b border-current border-opacity-10">
             <h2 className={`text-lg font-medium ${isDarkMode ? 'text-white' : 'text-black'}`}>
-              Stash
+              Tally
             </h2>
             <button 
               onClick={onClose}
