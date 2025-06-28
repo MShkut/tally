@@ -211,11 +211,11 @@ const NetWorthCategory = ({ title, data }) => {
 };
 
 // Enhanced data calculation functions
-export const calculateBudgetPerformance = (onboardingData, transactions, viewMode, selectedMonth) => {
+export const calculateBudgetPerformance = (onboardingData, transactions, viewMode, selectedMonth, categories) => {
   if (viewMode === 'month') {
-    return calculateMonthPerformance(onboardingData, transactions, selectedMonth);
+    return calculateMonthPerformance(onboardingData, transactions, selectedMonth, categories);
   } else {
-    return calculatePeriodPerformance(onboardingData, transactions);
+    return calculatePeriodPerformance(onboardingData, transactions, categories);
   }
 };
 
@@ -232,7 +232,7 @@ export const calculateNetWorthData = (onboardingData, viewMode) => {
   };
 };
 
-function calculateMonthPerformance(onboardingData, transactions, selectedMonth) {
+function calculateMonthPerformance(onboardingData, transactions, selectedMonth, categories) {
   let targetMonth, targetYear;
   
   if (selectedMonth) {
@@ -254,23 +254,17 @@ function calculateMonthPerformance(onboardingData, transactions, selectedMonth) 
            transactionDate.getFullYear() === targetYear;
   });
 
-  // Income Performance - using Currency system
-  const plannedMonthlyIncome = Currency.divide(onboardingData?.income?.totalYearlyIncome || 0, 12);
-  const actualMonthlyIncome = monthlyTransactions
-    .filter(t => Currency.isPositive(t.amount))
-    .reduce((sum, t) => Currency.add(sum, t.amount), 0);
+  // Income Performance - using frequency-aware calculation like breakdown section
+  const plannedMonthlyIncome = calculatePlannedMonthlyIncome(onboardingData);
+  const actualMonthlyIncome = calculateActualMonthlyIncome(monthlyTransactions, onboardingData);
 
   // Savings Performance - using Currency system
   const plannedMonthlySavings = onboardingData?.savingsAllocation?.monthlySavings || 0;
   const actualMonthlySavings = calculateActualMonthlySavings(monthlyTransactions, onboardingData);
 
-  // Expenses Performance - using Currency system
-  const expenseCategories = onboardingData?.expenses?.expenseCategories || [];
-  const plannedMonthlyExpenses = expenseCategories.reduce((sum, cat) => 
-    Currency.add(sum, cat.amount || 0), 0);
-  const actualMonthlyExpenses = monthlyTransactions
-    .filter(t => Currency.compare(t.amount, 0) < 0)
-    .reduce((sum, t) => Currency.add(sum, Currency.abs(t.amount)), 0);
+  // Expenses Performance - using category-based calculation like breakdown section
+  const plannedMonthlyExpenses = calculatePlannedMonthlyExpenses(onboardingData);
+  const actualMonthlyExpenses = calculateActualMonthlyExpenses(monthlyTransactions, categories);
 
   return {
     income: {
@@ -288,7 +282,7 @@ function calculateMonthPerformance(onboardingData, transactions, selectedMonth) 
   };
 }
 
-function calculatePeriodPerformance(onboardingData, transactions) {
+function calculatePeriodPerformance(onboardingData, transactions, categories) {
   const periodStart = new Date(onboardingData?.period?.start_date || new Date());
   
   // Filter transactions for current budget period
@@ -304,14 +298,9 @@ function calculatePeriodPerformance(onboardingData, transactions) {
     (now.getMonth() - periodStart.getMonth()) + 1
   );
 
-  // Income Performance (prorated for elapsed months) - using Currency system
-  const plannedPeriodIncome = Currency.multiply(
-    Currency.divide(onboardingData?.income?.totalYearlyIncome || 0, 12), 
-    monthsElapsed
-  );
-  const actualPeriodIncome = periodTransactions
-    .filter(t => Currency.isPositive(t.amount))
-    .reduce((sum, t) => Currency.add(sum, t.amount), 0);
+  // Income Performance (prorated for elapsed months) - using frequency-aware calculation
+  const plannedPeriodIncome = calculatePlannedPeriodIncome(onboardingData, monthsElapsed);
+  const actualPeriodIncome = calculateActualPeriodIncome(periodTransactions, onboardingData);
 
   // Savings Performance (prorated for elapsed months) - using Currency system
   const plannedPeriodSavings = Currency.multiply(
@@ -320,13 +309,9 @@ function calculatePeriodPerformance(onboardingData, transactions) {
   );
   const actualPeriodSavings = calculateActualPeriodSavings(periodTransactions, onboardingData);
 
-  // Expenses Performance (prorated for elapsed months) - using Currency system
-  const expenseCategories = onboardingData?.expenses?.expenseCategories || [];
-  const plannedPeriodExpenses = expenseCategories.reduce((sum, cat) => 
-    Currency.add(sum, Currency.multiply(cat.amount || 0, monthsElapsed)), 0);
-  const actualPeriodExpenses = periodTransactions
-    .filter(t => Currency.compare(t.amount, 0) < 0)
-    .reduce((sum, t) => Currency.add(sum, Currency.abs(t.amount)), 0);
+  // Expenses Performance (prorated for elapsed months) - using category-based calculation
+  const plannedPeriodExpenses = calculatePlannedPeriodExpenses(onboardingData, monthsElapsed);
+  const actualPeriodExpenses = calculateActualPeriodExpenses(periodTransactions, categories);
 
   return {
     income: {
@@ -402,4 +387,130 @@ function calculateActualPeriodSavings(periodTransactions, onboardingData) {
       return isPositiveTransfer || isSavingsTransfer;
     })
     .reduce((sum, t) => Currency.add(sum, Currency.abs(t.amount)), 0);
+}
+
+// Enhanced calculation functions that match the breakdown section logic
+
+function calculatePlannedMonthlyIncome(onboardingData) {
+  const incomeSources = onboardingData?.income?.incomeSources || [];
+  
+  return incomeSources.reduce((total, source) => {
+    const sourceAmount = parseFloat(source.amount) || 0;
+    let monthlyAmount = 0;
+    
+    // Convert frequency to monthly - same logic as breakdown section
+    switch(source.frequency) {
+      case "Weekly": monthlyAmount = sourceAmount * 4.33; break;
+      case "Bi-weekly": monthlyAmount = sourceAmount * 2.17; break;
+      case "Monthly": monthlyAmount = sourceAmount; break;
+      case "Yearly": monthlyAmount = sourceAmount / 12; break;
+      default: monthlyAmount = sourceAmount;
+    }
+    
+    return Currency.add(total, monthlyAmount);
+  }, 0);
+}
+
+function calculatePlannedPeriodIncome(onboardingData, monthsElapsed) {
+  const incomeSources = onboardingData?.income?.incomeSources || [];
+  
+  return incomeSources.reduce((total, source) => {
+    const sourceAmount = parseFloat(source.amount) || 0;
+    
+    // Convert to yearly based on frequency
+    let yearlyAmount = sourceAmount;
+    switch(source.frequency) {
+      case "Weekly": yearlyAmount = sourceAmount * 52; break;
+      case "Bi-weekly": yearlyAmount = sourceAmount * 26; break;
+      case "Monthly": yearlyAmount = sourceAmount * 12; break;
+      case "Yearly": yearlyAmount = sourceAmount; break;
+      default: yearlyAmount = sourceAmount * 12;
+    }
+    
+    const periodAmount = Currency.multiply(
+      Currency.divide(yearlyAmount, 12), 
+      monthsElapsed
+    );
+    
+    return Currency.add(total, periodAmount);
+  }, 0);
+}
+
+function calculateActualMonthlyIncome(transactions, onboardingData) {
+  const incomeSources = onboardingData?.income?.incomeSources || [];
+  
+  return transactions
+    .filter(t => {
+      if (!Currency.isPositive(t.amount)) return false;
+      
+      // Match by category or description - same logic as breakdown section
+      return incomeSources.some(source => {
+        // Match by category
+        if (t.category) {
+          if (typeof t.category === "string") {
+            return t.category === source.name || 
+                   t.category.toLowerCase() === source.name.toLowerCase();
+          }
+          if (typeof t.category === "object") {
+            return t.category.name === source.name ||
+                   t.category.name?.toLowerCase() === source.name.toLowerCase();
+          }
+        }
+        
+        // Match by description keywords
+        if (t.description) {
+          const desc = t.description.toLowerCase();
+          const sourceName = source.name.toLowerCase();
+          
+          if (desc.includes(sourceName)) return true;
+          
+          // Common income keywords
+          if (sourceName.includes("salary") && desc.includes("payroll")) return true;
+          if (sourceName.includes("freelance") && (desc.includes("contract") || desc.includes("freelance"))) return true;
+        }
+        
+        return false;
+      });
+    })
+    .reduce((sum, t) => Currency.add(sum, t.amount), 0);
+}
+
+function calculateActualPeriodIncome(transactions, onboardingData) {
+  return calculateActualMonthlyIncome(transactions, onboardingData);
+}
+
+function calculatePlannedMonthlyExpenses(onboardingData) {
+  const expenseCategories = onboardingData?.expenses?.expenseCategories || [];
+  return expenseCategories.reduce((sum, cat) => 
+    Currency.add(sum, cat.amount || 0), 0);
+}
+
+function calculatePlannedPeriodExpenses(onboardingData, monthsElapsed) {
+  const expenseCategories = onboardingData?.expenses?.expenseCategories || [];
+  return expenseCategories.reduce((sum, cat) => 
+    Currency.add(sum, Currency.multiply(cat.amount || 0, monthsElapsed)), 0);
+}
+
+function calculateActualMonthlyExpenses(transactions, categories) {
+  const expenseCategories = categories?.filter(cat => cat.type === 'expense') || [];
+  
+  return transactions
+    .filter(t => {
+      // Match by category - same logic as breakdown section
+      return expenseCategories.some(category => {
+        if (!t.category) return false;
+        
+        const transactionCategoryName = typeof t.category === "string" 
+          ? t.category 
+          : t.category.name;
+        
+        return transactionCategoryName?.toLowerCase() === category.name.toLowerCase();
+      });
+    })
+    .filter(t => Currency.compare(t.amount, 0) < 0) // Only negative amounts (expenses)
+    .reduce((sum, t) => Currency.add(sum, Currency.abs(t.amount)), 0);
+}
+
+function calculateActualPeriodExpenses(transactions, categories) {
+  return calculateActualMonthlyExpenses(transactions, categories);
 }

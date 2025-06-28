@@ -1,8 +1,7 @@
 // frontend/src/components/dashboard/DashboardViewSelector.jsx
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 
 import { useTheme } from 'contexts/ThemeContext';
-import { StandardSelect } from 'components/shared/FormComponents';
 
 export const DashboardViewSelector = ({ 
   viewMode, 
@@ -12,58 +11,117 @@ export const DashboardViewSelector = ({
   availableMonths 
 }) => {
   const { isDarkMode } = useTheme();
-
-  // Create options for the month selector
-  const monthOptions = availableMonths.map(month => ({
-    value: month.value,
-    label: month.label
-  }));
+  const tabsRef = useRef(null);
 
   const handleMonthChange = (value) => {
     setSelectedMonth(value);
     setViewMode('month');
   };
 
-  // Get current month label for display
-  const getCurrentMonthLabel = () => {
-    if (selectedMonth) {
-      const month = availableMonths.find(m => m.value === selectedMonth);
-      return month ? month.label : 'Selected Month';
-    } else {
-      // Default to current month
-      const now = new Date();
-      return now.toLocaleDateString('en-US', { 
-        month: 'long', 
-        year: 'numeric' 
-      });
+  const handlePeriodTotal = () => {
+    setViewMode('period');
+    setSelectedMonth(null);
+  };
+
+  // Determine which tab is currently active
+  const getActiveTab = () => {
+    if (viewMode === 'period') return 'period';
+    return selectedMonth || availableMonths[0]?.value || '';
+  };
+
+  // Handle keyboard navigation
+  const handleKeyDown = (event, tabValue, tabType) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      if (tabType === 'period') {
+        handlePeriodTotal();
+      } else {
+        handleMonthChange(tabValue);
+      }
+    }
+    
+    if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+      event.preventDefault();
+      const tabs = tabsRef.current?.querySelectorAll('[role="tab"]');
+      if (!tabs) return;
+      
+      const currentIndex = Array.from(tabs).findIndex(tab => tab === event.target);
+      let nextIndex;
+      
+      if (event.key === 'ArrowLeft') {
+        nextIndex = currentIndex > 0 ? currentIndex - 1 : tabs.length - 1;
+      } else {
+        nextIndex = currentIndex < tabs.length - 1 ? currentIndex + 1 : 0;
+      }
+      
+      tabs[nextIndex]?.focus();
     }
   };
 
-  return (
-    <div className="flex items-center justify-center mb-16">
-      <div className="flex items-center gap-0">
-        
-        {/* Month Selection using StandardSelect */}
-        <div className="relative min-w-48">
-          <StandardSelect
-            value={selectedMonth || availableMonths[0]?.value || ''}
-            onChange={handleMonthChange}
-            options={monthOptions}
-            className="[&_button]:border-b-2 [&_button]:border-t-0 [&_button]:border-l-0 [&_button]:border-r-0 [&_button]:rounded-none [&_button]:text-sm [&_button]:px-4 [&_button]:py-2"
-          />
-        </div>
+  // Auto-focus on mount if no selection
+  useEffect(() => {
+    if (!selectedMonth && viewMode !== 'period' && availableMonths.length > 0) {
+      setSelectedMonth(availableMonths[0].value);
+    }
+  }, [availableMonths, selectedMonth, viewMode, setSelectedMonth]);
 
-        {/* Period Total Button */}
+  const activeTab = getActiveTab();
+
+  return (
+    <div className="flex items-center justify-center mb-8">
+      <div 
+        ref={tabsRef}
+        className="flex items-center gap-0" 
+        role="tablist"
+        aria-label="Select time period"
+      >
+        
+        {/* Month Tabs */}
+        {availableMonths.map((month, index) => {
+          const isActive = activeTab === month.value;
+          
+          return (
+            <button
+              key={month.value}
+              role="tab"
+              tabIndex={isActive ? 0 : -1}
+              aria-selected={isActive}
+              aria-controls={`tabpanel-${month.value}`}
+              onClick={() => handleMonthChange(month.value)}
+              onKeyDown={(e) => handleKeyDown(e, month.value, 'month')}
+              style={{ outline: 'none', boxShadow: 'none' }}
+              className={`px-4 py-2 text-base transition-all duration-200 border-b-2 ${
+                isActive
+                  ? isDarkMode 
+                    ? 'text-white border-white' 
+                    : 'text-black border-black'
+                  : isDarkMode 
+                    ? 'text-gray-500 border-transparent hover:text-gray-300 hover:border-gray-600' 
+                    : 'text-gray-400 border-transparent hover:text-gray-600 hover:border-gray-300'
+              }`}
+            >
+              {month.label}
+            </button>
+          );
+        })}
+
+        {/* Period Total Tab */}
         <button
-          onClick={() => setViewMode('period')}
-          className={`px-4 py-2 text-sm transition-all duration-200 border-b-2 ${
+          role="tab"
+          tabIndex={viewMode === 'period' ? 0 : -1}
+          aria-selected={viewMode === 'period'}
+          aria-controls="tabpanel-period"
+          onClick={handlePeriodTotal}
+          onKeyDown={(e) => handleKeyDown(e, null, 'period')}
+          style={{ outline: 'none', boxShadow: 'none' }}
+          className={`px-4 py-2 text-base transition-all duration-200 border-b-2 ${
             viewMode === 'period'
               ? isDarkMode 
                 ? 'text-white border-white' 
                 : 'text-black border-black'
               : isDarkMode 
-                ? 'text-gray-500 border-transparent hover:text-gray-300' 
-                : 'text-gray-400 border-transparent hover:text-gray-600'
+                ? 'text-gray-500 border-transparent hover:text-gray-300 hover:border-gray-600' 
+                : 'text-gray-400 border-transparent hover:text-gray-600 hover:border-gray-300'
           }`}
         >
           Period Total
