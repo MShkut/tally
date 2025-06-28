@@ -277,8 +277,8 @@ export const SavingsAllocationStep = ({ onNext, onBack, incomeData, savedData = 
         subtitle="How much of your income do you want to save? Then allocate those savings to specific goals like emergency fund, vacation, down payment, etc."
         onNext={handleNext}
         onBack={onBack}
-        nextLabel="Continue to Expenses"
-        backLabel="Back to Income"
+        nextLabel="Continue"
+        backLabel="Back"
         isValid={monthlySavingsAmount > 0}
       >
         {/* Savings Rate Section */}
@@ -330,7 +330,7 @@ export const SavingsAllocationStep = ({ onNext, onBack, incomeData, savedData = 
             />
             <SummaryCard
               title={remainingAmount < 0 ? "Overallocated" : "Unallocated"}
-              value={Math.abs(remainingAmount)}
+              value={Currency.format(Math.abs(remainingAmount), { showCents: true })}
               className={remainingAmount < 0 ? "[&>div:first-child]:text-red-500" : ""}
             />
           </div>
