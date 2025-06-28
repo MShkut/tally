@@ -120,7 +120,7 @@ export const parseCurrencyInput = (input) => {
   // Handle multiple decimal points - keep only the first one
   const parts = cleaned.split('.');
   if (parts.length > 2) {
-    cleaned = parts[0] + '.' + parts.slice(1).join('');
+    cleaned = parts[0] + '.' + parts[1];
   }
   
   // Limit to 2 decimal places
