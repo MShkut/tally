@@ -60,7 +60,7 @@ export const StandardInput = ({
   };
 
   // Format currency value for display - keep it simple for typing
-  const displayValue = type === 'currency' ? value : value;
+  const displayValue = value;
 
   return (
     <div className={className}>
