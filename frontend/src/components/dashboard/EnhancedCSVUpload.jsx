@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 
 import { useTheme } from 'contexts/ThemeContext';
 import { ThemeToggle } from 'components/shared/ThemeToggle';
+import { Currency } from 'utils/currency';
 import { 
   FormGrid, 
   FormField, 
@@ -11,10 +12,11 @@ import {
   FormSection,
   StandardFormLayout,
   SummaryCard,
+  AddItemButton,
   validation
 } from '../shared/FormComponents';
 
-export const EnhancedCSVUpload = ({ onComplete, onBack }) => {
+export const EnhancedCSVUpload = ({ onComplete, onBack, onStepChange }) => {
   const { isDarkMode } = useTheme();
   const [step, setStep] = useState('upload'); // 'upload' or 'mapping'
   const [csvData, setCsvData] = useState([]);
@@ -32,6 +34,7 @@ export const EnhancedCSVUpload = ({ onComplete, onBack }) => {
       return {}; 
     }
   });
+  const [selectedSavedMapping, setSelectedSavedMapping] = useState('');
 
   const handleFiles = async (files) => {
     if (!files?.[0]) return;
@@ -82,8 +85,26 @@ export const EnhancedCSVUpload = ({ onComplete, onBack }) => {
     setCsvData(data);
     setFileName(file.name);
     setStep('mapping');
+    onStepChange?.('mapping', { count: data.length, fileName: file.name });
     
-    // Auto-detect columns
+    // Try to load default mapping first, then auto-detect
+    const defaultMapping = localStorage.getItem('defaultColumnMapping');
+    if (defaultMapping) {
+      try {
+        const parsed = JSON.parse(defaultMapping);
+        // Check if all required columns exist in the CSV
+        if (headers.includes(parsed.date) && headers.includes(parsed.description) && headers.includes(parsed.amount)) {
+          setColumnMapping(parsed);
+          // Auto-complete if default mapping is valid
+          setTimeout(() => handleMappingComplete(), 100);
+          return;
+        }
+      } catch (e) {
+        console.log('Invalid default mapping, falling back to auto-detect');
+      }
+    }
+    
+    // Fallback to auto-detect columns
     autoDetectColumns(headers);
   };
 
@@ -155,7 +176,15 @@ export const EnhancedCSVUpload = ({ onComplete, onBack }) => {
     if (!columnMapping.date || !columnMapping.description || !columnMapping.amount) {
       return;
     }
-    onComplete(csvData, columnMapping);
+    
+    // Process CSV data using column mapping
+    const processedTransactions = csvData.map(row => ({
+      date: row[columnMapping.date],
+      description: row[columnMapping.description],
+      amount: parseFloat(row[columnMapping.amount]?.replace(/[,$]/g, '') || '0')
+    }));
+    
+    onComplete(processedTransactions);
   };
 
   const saveMapping = (name) => {
@@ -167,50 +196,41 @@ export const EnhancedCSVUpload = ({ onComplete, onBack }) => {
   };
 
   const loadSavedMapping = (name) => {
-    if (savedMappings[name]) {
+    if (name && savedMappings[name]) {
       setColumnMapping(savedMappings[name]);
+      setSelectedSavedMapping(name);
+    } else {
+      setSelectedSavedMapping('');
     }
   };
 
   if (step === 'upload') {
     return (
-      <>
+      <div className={`min-h-screen transition-colors ${
+        isDarkMode ? 'bg-black text-white' : 'bg-white text-black'
+      }`}>
         <ThemeToggle />
-        <StandardFormLayout
-          title="Upload Transaction File"
-          subtitle="Import transactions from your bank or credit card CSV export"
-          onBack={onBack}
-          showBack={true}
-          backLabel="Cancel"
-        >
+        
+        <div className="max-w-6xl mx-auto px-8 py-12">
           
           {/* Upload Area */}
           <FormSection>
-            <div 
-              className={`
-                py-24 border-2 text-center transition-all cursor-pointer
-                ${dragActive 
+            <div
+              {...dragHandlers}
+              onClick={() => document.getElementById('csv-file-input').click()}
+              className={`w-full py-6 border-2 border-dashed transition-colors text-center mb-8 cursor-pointer ${
+                dragActive 
                   ? isDarkMode 
                     ? 'border-white bg-gray-900' 
                     : 'border-black bg-gray-100'
                   : isDarkMode 
-                    ? 'border-gray-700 hover:border-gray-500' 
-                    : 'border-gray-300 hover:border-gray-400'
-                }
-              `}
-              {...dragHandlers}
-              onClick={() => document.getElementById('csv-file-input').click()}
+                    ? 'border-gray-600 text-gray-400 hover:border-gray-500 hover:text-gray-300' 
+                    : 'border-gray-300 text-gray-600 hover:border-gray-400 hover:text-gray-700'
+              }`}
             >
-              <h3 className={`text-5xl font-light mb-4 ${
-                isDarkMode ? 'text-white' : 'text-black'
-              }`}>
-                Drop CSV file here
-              </h3>
-              <p className={`text-2xl font-light mb-8 ${
-                isDarkMode ? 'text-gray-400' : 'text-gray-600'
-              }`}>
-                or click to browse
-              </p>
+              <span className="text-lg font-light">
+                Drop CSV file here or click to browse
+              </span>
               
               <input
                 type="file"
@@ -235,8 +255,23 @@ export const EnhancedCSVUpload = ({ onComplete, onBack }) => {
             </div>
           </FormSection>
 
-        </StandardFormLayout>
-      </>
+          {/* Navigation */}
+          <div className="flex justify-between items-center mt-16">
+            <button
+              onClick={onBack}
+              className={`text-lg font-light transition-colors ${
+                isDarkMode 
+                  ? 'text-gray-400 hover:text-white border-b border-gray-700 hover:border-white pb-1' 
+                  : 'text-gray-600 hover:text-black border-b border-gray-300 hover:border-black pb-1'
+              }`}
+            >
+              Cancel
+            </button>
+            <div />
+          </div>
+
+        </div>
+      </div>
     );
   }
 
@@ -255,172 +290,174 @@ export const EnhancedCSVUpload = ({ onComplete, onBack }) => {
   ];
 
   return (
-    <>
+    <div className={`min-h-screen transition-colors ${
+      isDarkMode ? 'bg-black text-white' : 'bg-white text-black'
+    }`}>
       <ThemeToggle />
-      <StandardFormLayout
-        title="Map CSV Columns"
-        subtitle={`Found ${csvData.length} transactions in ${fileName}. Tell us which columns contain your data.`}
-        onBack={() => setStep('upload')}
-        onNext={handleMappingComplete}
-        canGoNext={isValid}
-        nextLabel={`Import ${csvData.length} Transactions`}
-        backLabel="Choose Different File"
-      >
+      
+      <div className="max-w-6xl mx-auto px-8 py-12">
         
-        {/* Saved Mappings */}
-        {Object.keys(savedMappings).length > 0 && (
-          <FormSection title="Quick Load">
-            <FormGrid>
-              <FormField span={6}>
+        {/* Saved Mappings and Set Default */}
+        <FormSection>
+          <FormGrid>
+            {Object.keys(savedMappings).length > 0 && (
+              <div className="col-span-12 lg:col-span-3">
                 <StandardSelect
                   label="Use Saved Mapping"
-                  value=""
+                  value={selectedSavedMapping}
                   onChange={loadSavedMapping}
                   options={savedMappingOptions}
                   className="[&_label]:text-2xl [&_label]:font-medium [&_button]:text-xl [&_button]:font-medium"
                 />
-              </FormField>
-            </FormGrid>
-          </FormSection>
-        )}
-
-        {/* Column Mapping */}
-        <FormSection title="Column Mapping">
-          <div className="space-y-8">
-            <FormGrid>
-              <FormField span={4}>
-                <StandardSelect
-                  label="Date Column"
-                  value={columnMapping.date}
-                  onChange={(value) => setColumnMapping(prev => ({ ...prev, date: value }))}
-                  options={columnOptions}
-                  required
-                  className="[&_label]:text-2xl [&_label]:font-medium [&_button]:text-xl [&_button]:font-medium"
-                />
-              </FormField>
-              <FormField span={8}>
-                {columnMapping.date && csvData[0]?.[columnMapping.date] && (
-                  <div className="flex items-end h-full pb-4">
-                    <div className={`text-xl font-light ${
-                      isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                    }`}>
-                      Sample: "{csvData[0][columnMapping.date]}"
-                    </div>
-                  </div>
-                )}
-              </FormField>
-            </FormGrid>
-
-            <FormGrid>
-              <FormField span={4}>
-                <StandardSelect
-                  label="Description Column"
-                  value={columnMapping.description}
-                  onChange={(value) => setColumnMapping(prev => ({ ...prev, description: value }))}
-                  options={columnOptions}
-                  required
-                  className="[&_label]:text-2xl [&_label]:font-medium [&_button]:text-xl [&_button]:font-medium"
-                />
-              </FormField>
-              <FormField span={8}>
-                {columnMapping.description && csvData[0]?.[columnMapping.description] && (
-                  <div className="flex items-end h-full pb-4">
-                    <div className={`text-xl font-light ${
-                      isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                    }`}>
-                      Sample: "{csvData[0][columnMapping.description]}"
-                    </div>
-                  </div>
-                )}
-              </FormField>
-            </FormGrid>
-
-            <FormGrid>
-              <FormField span={4}>
-                <StandardSelect
-                  label="Amount Column"
-                  value={columnMapping.amount}
-                  onChange={(value) => setColumnMapping(prev => ({ ...prev, amount: value }))}
-                  options={columnOptions}
-                  required
-                  className="[&_label]:text-2xl [&_label]:font-medium [&_button]:text-xl [&_button]:font-medium"
-                />
-              </FormField>
-              <FormField span={8}>
-                {columnMapping.amount && csvData[0]?.[columnMapping.amount] && (
-                  <div className="flex items-end h-full pb-4">
-                    <div className={`text-xl font-light ${
-                      isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                    }`}>
-                      Sample: "{csvData[0][columnMapping.amount]}"
-                    </div>
-                  </div>
-                )}
-              </FormField>
-            </FormGrid>
-          </div>
+              </div>
+            )}
+            <div className={Object.keys(savedMappings).length > 0 ? "col-span-12 lg:col-span-9" : "col-span-12"}>
+              <div className="flex items-end h-full pb-4">
+                <button
+                  onClick={() => {
+                    localStorage.setItem('defaultColumnMapping', JSON.stringify(columnMapping));
+                    alert('Default mapping set! Future CSV uploads with matching columns will skip this step.');
+                  }}
+                  disabled={!isValid}
+                  className={`
+                    text-xl font-medium transition-colors pb-1
+                    ${isValid
+                      ? isDarkMode 
+                        ? 'text-green-400 hover:text-green-300' 
+                        : 'text-green-600 hover:text-green-800'
+                      : 'text-gray-400 cursor-not-allowed'
+                    }
+                  `}
+                >
+                  Set current mapping as default
+                </button>
+              </div>
+            </div>
+          </FormGrid>
         </FormSection>
 
-        {/* Preview */}
-        {isValid && (
-          <FormSection title="Preview Import">
-            <div className="space-y-3">
-              {csvData.slice(0, 3).map((row, i) => (
-                <div key={i} className={`
-                  flex justify-between py-4 border-b
-                  ${isDarkMode ? 'border-gray-800' : 'border-gray-200'}
-                `}>
-                  <div className="flex-1">
-                    <div className={`text-xl font-light ${
-                      isDarkMode ? 'text-white' : 'text-black'
-                    }`}>
-                      {row[columnMapping.description]}
-                    </div>
-                    <div className={`text-base font-light mt-1 ${
-                      isDarkMode ? 'text-gray-500' : 'text-gray-400'
-                    }`}>
-                      {row[columnMapping.date]}
-                    </div>
-                  </div>
-                  <div className={`
-                    text-xl font-mono
-                    ${parseFloat(row[columnMapping.amount]) >= 0 
-                      ? 'text-green-500' 
-                      : 'text-red-500'
-                    }
-                  `}>
-                    ${Currency.format(Currency.abs(row[columnMapping.amount] || 0))}
-                  </div>
-                </div>
-              ))}
-              {csvData.length > 3 && (
-                <div className={`text-center py-4 text-base font-light ${
-                  isDarkMode ? 'text-gray-500' : 'text-gray-400'
+        {/* Column Mapping */}
+        <FormSection>
+          <FormGrid>
+            {/* Date Column */}
+            <FormField span={4} mobileSpan={4}>
+              <StandardSelect
+                label="Date Column"
+                value={columnMapping.date}
+                onChange={(value) => setColumnMapping(prev => ({ ...prev, date: value }))}
+                options={columnOptions}
+                className="[&_label]:text-2xl [&_label]:font-medium [&_button]:text-xl [&_button]:font-medium"
+              />
+              {columnMapping.date && csvData[0]?.[columnMapping.date] && (
+                <div className={`mt-2 text-base font-light ${
+                  isDarkMode ? 'text-gray-400' : 'text-gray-600'
                 }`}>
-                  ... and {csvData.length - 3} more transactions
+                  Sample: "{csvData[0][columnMapping.date]}"
                 </div>
               )}
-            </div>
-          </FormSection>
-        )}
+            </FormField>
+            
+            {/* Description Column */}
+            <FormField span={4} mobileSpan={4}>
+              <StandardSelect
+                label="Description Column"
+                value={columnMapping.description}
+                onChange={(value) => setColumnMapping(prev => ({ ...prev, description: value }))}
+                options={columnOptions}
+                className="[&_label]:text-2xl [&_label]:font-medium [&_button]:text-xl [&_button]:font-medium"
+              />
+              {columnMapping.description && csvData[0]?.[columnMapping.description] && (
+                <div className={`mt-2 text-base font-light ${
+                  isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                }`}>
+                  Sample: "{csvData[0][columnMapping.description]}"
+                </div>
+              )}
+            </FormField>
+            
+            {/* Amount Column */}
+            <FormField span={4} mobileSpan={4}>
+              <StandardSelect
+                label="Amount Column"
+                value={columnMapping.amount}
+                onChange={(value) => setColumnMapping(prev => ({ ...prev, amount: value }))}
+                options={columnOptions}
+                className="[&_label]:text-2xl [&_label]:font-medium [&_button]:text-xl [&_button]:font-medium"
+              />
+              {columnMapping.amount && csvData[0]?.[columnMapping.amount] && (
+                <div className={`mt-2 text-base font-light ${
+                  isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                }`}>
+                  Sample: "{csvData[0][columnMapping.amount]}"
+                </div>
+              )}
+            </FormField>
+          </FormGrid>
+        </FormSection>
+
 
         {/* Save Mapping Option */}
         {isValid && (
           <FormSection>
-            <SaveMappingOption onSave={saveMapping} />
+            <SaveMappingOption 
+              onSave={saveMapping} 
+              currentMapping={columnMapping}
+              savedMappings={savedMappings}
+              selectedSavedMapping={selectedSavedMapping}
+            />
           </FormSection>
         )}
 
-      </StandardFormLayout>
-    </>
+        {/* Navigation */}
+        <div className="flex justify-between items-center mt-16">
+          <button
+            onClick={() => {
+              setStep('upload');
+              onStepChange?.('upload');
+            }}
+            className={`text-lg font-light transition-colors ${
+              isDarkMode 
+                ? 'text-gray-400 hover:text-white border-b border-gray-700 hover:border-white pb-1' 
+                : 'text-gray-600 hover:text-black border-b border-gray-300 hover:border-black pb-1'
+            }`}
+          >
+            Choose Different File
+          </button>
+          
+          <button
+            onClick={handleMappingComplete}
+            disabled={!isValid}
+            className={`text-xl font-light transition-all ${
+              isValid
+                ? isDarkMode
+                  ? 'text-white border-b-2 border-white hover:border-gray-400 pb-2'
+                  : 'text-black border-b-2 border-black hover:border-gray-600 pb-2'
+                : isDarkMode
+                  ? 'text-gray-600 cursor-not-allowed pb-2'
+                  : 'text-gray-400 cursor-not-allowed pb-2'
+            }`}
+          >
+            Import {csvData.length} Transactions
+          </button>
+        </div>
+
+      </div>
+    </div>
   );
 };
 
 // Save mapping component
-const SaveMappingOption = ({ onSave }) => {
+const SaveMappingOption = ({ onSave, currentMapping, savedMappings, selectedSavedMapping }) => {
   const { isDarkMode } = useTheme();
   const [showSave, setShowSave] = useState(false);
   const [mappingName, setMappingName] = useState('');
+
+  // Check if current mapping is new (not already saved)
+  const isNewMapping = !selectedSavedMapping && !Object.values(savedMappings).some(saved => 
+    saved.date === currentMapping.date && 
+    saved.description === currentMapping.description && 
+    saved.amount === currentMapping.amount
+  );
 
   const handleSave = () => {
     onSave(mappingName);
@@ -428,67 +465,72 @@ const SaveMappingOption = ({ onSave }) => {
     setMappingName('');
   };
 
+  // Only show if it's a new mapping format
+  if (!isNewMapping) return null;
+
   if (!showSave) {
     return (
       <div className="text-center">
         <button
           onClick={() => setShowSave(true)}
           className={`
-            text-base font-light border-b border-transparent hover:border-current pb-1
+            text-xl font-medium transition-colors pb-1
             ${isDarkMode 
-              ? 'text-gray-500 hover:text-gray-300' 
-              : 'text-gray-500 hover:text-gray-700'
+              ? 'text-blue-400 hover:text-blue-300' 
+              : 'text-blue-600 hover:text-blue-800'
             }
           `}
         >
-          Save this column mapping for future imports
+          Save this mapping for future imports
         </button>
       </div>
     );
   }
 
   return (
-    <FormGrid>
-      <FormField span={8}>
-        <StandardInput
-          label="Save Mapping As"
-          value={mappingName}
-          onChange={setMappingName}
-          placeholder="Chase Credit Card, Bank of America, etc."
-          className="[&_label]:text-2xl [&_label]:font-medium [&_input]:text-2xl [&_input]:font-medium [&_input]:pb-4"
-        />
-      </FormField>
-      <FormField span={4}>
-        <div className="flex items-end h-full pb-4 gap-4">
-          <button
-            onClick={handleSave}
-            disabled={!mappingName.trim()}
-            className={`
-              text-xl font-light border-b-2 pb-2 transition-all
-              ${mappingName.trim()
-                ? isDarkMode
-                  ? 'text-white border-white hover:border-gray-400'
-                  : 'text-black border-black hover:border-gray-600'
-                : 'text-gray-400 border-gray-400 cursor-not-allowed'
-              }
-            `}
-          >
-            Save
-          </button>
-          <button
-            onClick={() => setShowSave(false)}
-            className={`
-              text-xl font-light border-b border-transparent hover:border-current pb-1
-              ${isDarkMode 
-                ? 'text-gray-400 hover:text-white' 
-                : 'text-gray-600 hover:text-black'
-              }
-            `}
-          >
-            Cancel
-          </button>
-        </div>
-      </FormField>
-    </FormGrid>
+    <div className="space-y-6">
+      <FormGrid>
+        <FormField span={8}>
+          <StandardInput
+            label="Save Mapping As"
+            value={mappingName}
+            onChange={setMappingName}
+            placeholder="Chase Credit Card, Bank of America, etc."
+            className="[&_label]:text-2xl [&_label]:font-medium [&_input]:text-2xl [&_input]:font-medium [&_input]:pb-4"
+          />
+        </FormField>
+        <FormField span={4}>
+          <div className="flex items-end h-full pb-4 gap-4">
+            <button
+              onClick={handleSave}
+              disabled={!mappingName.trim()}
+              className={`
+                text-xl font-light border-b-2 pb-2 transition-all
+                ${mappingName.trim()
+                  ? isDarkMode
+                    ? 'text-white border-white hover:border-gray-400'
+                    : 'text-black border-black hover:border-gray-600'
+                  : 'text-gray-400 border-gray-400 cursor-not-allowed'
+                }
+              `}
+            >
+              Save
+            </button>
+            <button
+              onClick={() => setShowSave(false)}
+              className={`
+                text-xl font-light border-b border-transparent hover:border-current pb-1
+                ${isDarkMode 
+                  ? 'text-gray-400 hover:text-white' 
+                  : 'text-gray-600 hover:text-black'
+                }
+              `}
+            >
+              Cancel
+            </button>
+          </div>
+        </FormField>
+      </FormGrid>
+    </div>
   );
 };
