@@ -34,7 +34,7 @@ export const Dashboard = ({ onNavigate }) => {
     [onboardingData, transactions, viewMode, selectedMonth, categories]
   );
   
-  const performanceData = calculateBudgetPerformance(onboardingData, transactions, viewMode, selectedMonth);
+  const performanceData = calculateBudgetPerformance(onboardingData, transactions, viewMode, selectedMonth, categories);
   const netWorthData = calculateNetWorthData(onboardingData, viewMode);
   const availableMonths = generateAvailableMonths(onboardingData, transactions);
 
@@ -175,12 +175,6 @@ export const Dashboard = ({ onNavigate }) => {
             availableMonths={availableMonths}
           />
 
-          {/* View Context Indicator */}
-          <div className={`text-center mb-12 text-sm font-light ${
-            isDarkMode ? 'text-gray-500' : 'text-gray-400'
-          }`}>
-            Showing data for: {getCurrentViewLabel()}
-          </div>
 
           {/* Budget Performance Section - Enhanced with 2 rows */}
           <BudgetPerformanceSection 
@@ -188,31 +182,18 @@ export const Dashboard = ({ onNavigate }) => {
             netWorthData={netWorthData}
           />
 
-          <SectionBorder />
+          {/* Single divider border */}
+          <div className={`my-8 border-t ${
+            isDarkMode ? 'border-gray-800' : 'border-gray-200'
+          }`} />
 
           {/* Two Column Layout */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
             
             {/* Left Column */}
             <div className="space-y-16">
-              {/* Budget Categories */}
-              <FormSection title="Budget Categories">
-                {dashboardData.budgetCategories.length > 0 ? (
-                  <div className="space-y-4">
-                    {dashboardData.budgetCategories.map((category, index) => (
-                      <BudgetCategoryItem key={index} category={category} />
-                    ))}
-                  </div>
-                ) : (
-                  <EmptyState
-                    title="No budget categories"
-                    description="Complete your onboarding to see budget breakdown"
-                  />
-                )}
-              </FormSection>
-
-              {/* Income Breakdown */}
-              <FormSection title="Income Breakdown">
+              {/* Income */}
+              <FormSection title="Income">
                 {dashboardData.incomeBreakdown.length > 0 ? (
                   <div className="space-y-4">
                     {dashboardData.incomeBreakdown.map((source, index) => (
@@ -226,12 +207,9 @@ export const Dashboard = ({ onNavigate }) => {
                   />
                 )}
               </FormSection>
-            </div>
 
-            {/* Right Column */}
-            <div className="space-y-16">
-              {/* Savings Progress */}
-              <FormSection title="Savings Goals">
+              {/* Savings */}
+              <FormSection title="Savings">
                 {dashboardData.savingsGoals.length > 0 ? (
                   <div className="space-y-4">
                     {dashboardData.savingsGoals.map((goal, index) => (
@@ -242,6 +220,25 @@ export const Dashboard = ({ onNavigate }) => {
                   <EmptyState
                     title="No savings goals"
                     description="Set up savings goals in your onboarding to track progress"
+                  />
+                )}
+              </FormSection>
+            </div>
+
+            {/* Right Column */}
+            <div className="space-y-16">
+              {/* Expenses */}
+              <FormSection title="Expenses">
+                {dashboardData.budgetCategories.length > 0 ? (
+                  <div className="space-y-4">
+                    {dashboardData.budgetCategories.map((category, index) => (
+                      <BudgetCategoryItem key={index} category={category} />
+                    ))}
+                  </div>
+                ) : (
+                  <EmptyState
+                    title="No budget categories"
+                    description="Complete your onboarding to see budget breakdown"
                   />
                 )}
               </FormSection>
@@ -307,7 +304,9 @@ const BudgetCategoryItem = ({ category }) => {
 
 const IncomeSourceItem = ({ source, viewMode }) => {
   const { isDarkMode } = useTheme();
-  
+  const percentage = source.expected > 0 ? (source.actual / source.expected) * 100 : 0;
+  const isOverExpected = percentage > 100;
+
   return (
     <div className={`flex items-center justify-between py-4 border-b ${
       isDarkMode ? 'border-gray-800' : 'border-gray-200'
@@ -317,9 +316,25 @@ const IncomeSourceItem = ({ source, viewMode }) => {
       }`}>
         {source.name}
       </div>
-      <div className="flex items-center gap-4">
-        <div className={`text-sm font-mono text-right ${
-          isDarkMode ? 'text-gray-400' : 'text-gray-600'
+      <div className="flex items-center gap-4 min-w-80">
+        <div className="flex-1 max-w-24">
+          <div className={`w-full h-1 relative ${
+            isDarkMode ? 'bg-gray-800' : 'bg-gray-200'
+          }`}>
+            <div 
+              className={`absolute top-0 left-0 h-full transition-all duration-300 ${
+                isOverExpected 
+                  ? 'bg-green-500' 
+                  : isDarkMode ? 'bg-gray-400' : 'bg-gray-600'
+              }`}
+              style={{ width: `${Math.min(percentage, 100)}%` }}
+            />
+          </div>
+        </div>
+        <div className={`text-sm font-mono text-right min-w-24 ${
+          isOverExpected 
+            ? 'text-green-500' 
+            : isDarkMode ? 'text-gray-400' : 'text-gray-600'
         }`}>
           ${source.actual.toLocaleString()} / ${source.expected.toLocaleString()}
         </div>
@@ -331,36 +346,40 @@ const IncomeSourceItem = ({ source, viewMode }) => {
 const CleanSavingsGoalItem = ({ goal }) => {
   const { isDarkMode } = useTheme();
   const percentage = goal.target > 0 ? (goal.current / goal.target) * 100 : 0;
+  const isOnTrack = percentage >= 100;
   
   return (
-    <div className={`py-4 border-b ${
+    <div className={`flex items-center justify-between py-4 border-b ${
       isDarkMode ? 'border-gray-800' : 'border-gray-200'
     }`}>
-      <div className={`text-base font-light mb-2 ${
+      <div className={`text-base font-light ${
         isDarkMode ? 'text-white' : 'text-black'
       }`}>
         {goal.name}
       </div>
-      
-      <div className="flex items-center gap-4">
-        <div className={`flex-1 h-1 relative ${
-          isDarkMode ? 'bg-gray-800' : 'bg-gray-200'
-        }`}>
-          <div 
-            className={`absolute top-0 left-0 h-full transition-all duration-300 ${
-              percentage >= 100 
-                ? 'bg-green-500' 
-                : percentage >= 90 
-                  ? isDarkMode ? 'bg-gray-500' : 'bg-gray-400'
-                  : 'bg-yellow-500'
-            }`}
-            style={{ width: `${Math.min(percentage, 100)}%` }}
-          />
+      <div className="flex items-center gap-4 min-w-80">
+        <div className="flex-1 max-w-24">
+          <div className={`w-full h-1 relative ${
+            isDarkMode ? 'bg-gray-800' : 'bg-gray-200'
+          }`}>
+            <div 
+              className={`absolute top-0 left-0 h-full transition-all duration-300 ${
+                percentage >= 100 
+                  ? 'bg-green-500' 
+                  : percentage >= 90 
+                    ? 'bg-yellow-500'
+                    : isDarkMode ? 'bg-gray-400' : 'bg-gray-600'
+              }`}
+              style={{ width: `${Math.min(percentage, 100)}%` }}
+            />
+          </div>
         </div>
-        <div className={`text-sm font-mono text-right min-w-20 ${
-          isDarkMode ? 'text-gray-400' : 'text-gray-600'
+        <div className={`text-sm font-mono text-right min-w-24 ${
+          isOnTrack 
+            ? 'text-green-500' 
+            : isDarkMode ? 'text-gray-400' : 'text-gray-600'
         }`}>
-          ${(goal.current / 1000).toFixed(1)}k / ${(goal.target / 1000).toFixed(0)}k
+          ${goal.current.toLocaleString()} / ${goal.target.toLocaleString()}
         </div>
       </div>
     </div>
@@ -369,7 +388,7 @@ const CleanSavingsGoalItem = ({ goal }) => {
 
 // Enhanced data processing function
 function processDashboardData(onboardingData, transactions, viewMode, selectedMonth, categories) {
-  const household = onboardingData?.household?.name || 'Your Budget';
+  const household = getPersonalizedDashboardTitle(onboardingData?.household?.name);
   const period = formatPeriodInfo(onboardingData);
   
   // Filter transactions based on view mode
@@ -616,4 +635,19 @@ function calculateMonthsElapsed(onboardingData) {
     ((now.getFullYear() - periodStart.getFullYear()) * 12) + 
     (now.getMonth() - periodStart.getMonth()) + 1
   );
+}
+
+// Helper function to extract first name and format dashboard title
+function getPersonalizedDashboardTitle(householdName) {
+  if (!householdName) return 'Your Dashboard';
+  
+  // Extract first name from household name
+  // Handle formats like: "John", "Jane & John", "Smith Family", "John, Jane & Bob"
+  const firstName = householdName
+    .split(/[\s,&]+/)[0]  // Split by space, comma, or ampersand
+    .trim();              // Remove any whitespace
+  
+  if (!firstName) return 'Your Dashboard';
+  
+  return `${firstName}'s Dashboard`;
 }
