@@ -199,8 +199,8 @@ export const ExpensesStep = ({ onNext, onBack, incomeData, savingsData, savedDat
         showBack={true}
       >
         {/* Expense Categories Section */}
-        <FormSection title="Monthly Expense Categories">
-          {hasItems ? (
+        <FormSection>
+          {hasItems && (
             <div className="space-y-0 mb-8">
               {expenseCategories.map((category) => (
                 <ExpenseCategory
@@ -212,11 +212,6 @@ export const ExpensesStep = ({ onNext, onBack, incomeData, savingsData, savedDat
                   suggestions={suggestions}
                 />
               ))}
-            </div>
-          ) : (
-            <div className="text-center py-12 text-gray-500">
-              <div className="text-2xl font-light mb-2">No expense categories yet</div>
-              <div className="text-xl font-light">Add your first expense category to get started</div>
             </div>
           )}
 
@@ -232,20 +227,16 @@ export const ExpensesStep = ({ onNext, onBack, incomeData, savingsData, savedDat
             <SummaryCard
               title="Available for Expenses"
               value={availableForExpenses}
-              subtitle="Your monthly expense budget"
               accent={true}
             />
             <SummaryCard
               title="Currently Allocated"
               value={totalMonthlyExpenses}
-              subtitle="Monthly equivalent"
             />
             <SummaryCard
-              title="Remaining to Allocate"
-              value={Currency.abs(remainingBudget)}
-              subtitle={isOverBudget ? 
-                       `Over by ${Currency.format(Currency.abs(remainingBudget))}` : 
-                       Currency.isEqual(remainingBudget, 0) ? 'Fully allocated' : 'Available for new categories'}
+              title={isOverBudget ? "Overallocated" : "Unallocated"}
+              value={Currency.format(Currency.abs(remainingBudget), { showCents: true })}
+              className={isOverBudget ? "[&>div:first-child]:text-red-500" : ""}
             />
           </div>
         </FormSection>

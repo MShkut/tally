@@ -157,7 +157,7 @@ export const NetWorthStep = ({ onNext, onBack, incomeData, savingsData, expenses
       >
         {/* Assets Section - Full Width */}
         <FormSection title="Assets (What You Own)">
-          {hasAssets ? (
+          {hasAssets && (
             <div className="space-y-0 mb-8">
               {assets.map((asset) => (
                 <NetWorthItem
@@ -170,11 +170,6 @@ export const NetWorthStep = ({ onNext, onBack, incomeData, savingsData, expenses
                 />
               ))}
             </div>
-          ) : (
-            <div className="text-center py-12 text-gray-500">
-              <div className="text-2xl font-light mb-2">No assets yet</div>
-              <div className="text-xl font-light">Add your first asset to get started</div>
-            </div>
           )}
           
           <AddItemButton 
@@ -185,7 +180,7 @@ export const NetWorthStep = ({ onNext, onBack, incomeData, savingsData, expenses
 
         {/* Liabilities Section - Full Width */}
         <FormSection title="Liabilities (What You Owe)">
-          {hasLiabilities ? (
+          {hasLiabilities && (
             <div className="space-y-0 mb-8">
               {liabilities.map((liability) => (
                 <NetWorthItem
@@ -197,11 +192,6 @@ export const NetWorthStep = ({ onNext, onBack, incomeData, savingsData, expenses
                   placeholder="Mortgage, auto loan, student loans"
                 />
               ))}
-            </div>
-          ) : (
-            <div className="text-center py-12 text-gray-500">
-              <div className="text-2xl font-light mb-2">No liabilities yet</div>
-              <div className="text-xl font-light">Add your first liability to get started</div>
             </div>
           )}
           
@@ -225,8 +215,8 @@ export const NetWorthStep = ({ onNext, onBack, incomeData, savingsData, expenses
             <SummaryCard
               title="Net Worth"
               value={Currency.format(netWorth, { showCents: false })}
-              subtitle={Currency.compare(netWorth, 0) >= 0 ? 'Positive net worth' : 'Room to grow'}
-              accent={Currency.compare(netWorth, 0) >= 0}
+              className={Currency.compare(netWorth, 0) > 0 ? "[&>div:first-child]:text-green-500" : 
+                        Currency.compare(netWorth, 0) < 0 ? "[&>div:first-child]:text-red-500" : ""}
             />
           </div>
         </FormSection>
