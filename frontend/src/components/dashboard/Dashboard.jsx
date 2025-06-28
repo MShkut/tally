@@ -64,12 +64,18 @@ export const Dashboard = ({ onNavigate }) => {
     
     // Build categories from user data
     if (userData?.expenses?.expenseCategories) {
-      const expenseCategories = userData.expenses.expenseCategories.map(cat => ({
-        id: cat.name.toLowerCase().replace(/\s+/g, '-'),
-        name: cat.name,
-        type: 'expense',
-        amount: parseFloat(cat.amount) || 0
-      }));
+      const expenseCategories = userData.expenses.expenseCategories.map(cat => {
+        // Convert amount from original frequency to monthly
+        const yearlyAmount = Currency.toYearly(cat.amount, cat.frequency);
+        const monthlyAmount = Currency.fromYearly(yearlyAmount, 'Monthly');
+        
+        return {
+          id: cat.name.toLowerCase().replace(/\s+/g, '-'),
+          name: cat.name,
+          type: 'expense',
+          amount: monthlyAmount
+        };
+      });
       
       const incomeCategories = userData.income?.incomeSources?.map(source => ({
         id: source.name.toLowerCase().replace(/\s+/g, '-'),
