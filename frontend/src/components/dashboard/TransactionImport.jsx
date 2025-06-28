@@ -151,9 +151,20 @@ const ManualTransactionForm = ({ categories, onAdd }) => {
 export const TransactionImport = ({ onNavigate }) => {
   const { isDarkMode } = useTheme();
   const [activeView, setActiveView] = useState('upload'); // 'upload', 'manual', 'review'
+  const [uploadStep, setUploadStep] = useState('upload'); // 'upload', 'mapping'
+  const [mappingData, setMappingData] = useState(null); // { count, fileName }
   const [transactions, setTransactions] = useState([]);
   const [categories, setCategories] = useState([]);
   const [isProcessing, setIsProcessing] = useState(false);
+
+  const handleStepChange = (step, data = null) => {
+    setUploadStep(step);
+    if (step === 'mapping' && data) {
+      setMappingData(data);
+    } else if (step === 'upload') {
+      setMappingData(null);
+    }
+  };
 
   useEffect(() => {
     // Load existing transactions and categories
@@ -228,12 +239,18 @@ export const TransactionImport = ({ onNavigate }) => {
         {/* Header */}
         <div className="mb-12">
           <h1 className="text-5xl font-light leading-tight mb-4">
-            Import Transactions
+            {activeView === 'upload' && uploadStep === 'mapping' 
+              ? 'Map CSV Columns' 
+              : 'Import Transactions'
+            }
           </h1>
           <p className={`text-xl ${
             isDarkMode ? 'text-gray-400' : 'text-gray-600'
           }`}>
-            Upload a CSV file or manually enter transactions to track your spending
+            {activeView === 'upload' && uploadStep === 'mapping' && mappingData
+              ? `Found ${mappingData.count} transactions in ${mappingData.fileName}. Tell us which columns contain your data.`
+              : 'Upload a CSV file or manually enter transactions to track your spending'
+            }
           </p>
         </div>
 
@@ -253,20 +270,22 @@ export const TransactionImport = ({ onNavigate }) => {
           >
             CSV Upload
           </button>
-          <button
-            onClick={() => setActiveView('manual')}
-            className={`text-xl font-light border-b-2 pb-2 transition-all ${
-              activeView === 'manual'
-                ? isDarkMode
-                  ? 'text-white border-white'
-                  : 'text-black border-black'
-                : isDarkMode
-                  ? 'text-gray-400 border-transparent hover:border-gray-400'
-                  : 'text-gray-600 border-transparent hover:border-gray-600'
-            }`}
-          >
-            Manual Entry
-          </button>
+          {!(activeView === 'upload' && uploadStep === 'mapping') && (
+            <button
+              onClick={() => setActiveView('manual')}
+              className={`text-xl font-light border-b-2 pb-2 transition-all ${
+                activeView === 'manual'
+                  ? isDarkMode
+                    ? 'text-white border-white'
+                    : 'text-black border-black'
+                  : isDarkMode
+                    ? 'text-gray-400 border-transparent hover:border-gray-400'
+                    : 'text-gray-600 border-transparent hover:border-gray-600'
+              }`}
+            >
+              Manual Entry
+            </button>
+          )}
           {transactions.length > 0 && (
             <button
               onClick={() => setActiveView('review')}
@@ -288,8 +307,12 @@ export const TransactionImport = ({ onNavigate }) => {
         {/* Content */}
         {activeView === 'upload' && (
           <EnhancedCSVUpload
-            onUpload={handleCSVUpload}
-            isProcessing={isProcessing}
+            onComplete={handleCSVUpload}
+            onBack={() => {
+              setActiveView('upload');
+              setUploadStep('upload');
+            }}
+            onStepChange={handleStepChange}
           />
         )}
 
