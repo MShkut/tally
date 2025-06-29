@@ -9,6 +9,7 @@ import { EnhancedCSVUpload } from './EnhancedCSVUpload';
 import { ReviewTransactions } from './ReviewTransactions';
 import { ManualTransactionEntry } from './ManualTransactionEntry';
 import { normalizeMerchantName, suggestCategory } from 'utils/transactionHelpers';
+import { enhanceCategories, shouldAutoIgnore, learnMerchantMapping } from 'utils/categoryEnhancer';
 import { dataManager } from 'utils/dataManager';
 import { 
   EmptyState, 
@@ -75,7 +76,7 @@ const ManualTransactionForm = ({ categories, onAdd }) => {
 
   const categoryOptions = categories.map(cat => ({
     value: cat.id,
-    label: `${cat.name} (${cat.type})`
+    label: cat.isSystemCategory ? cat.name : `${cat.name} (${cat.type})`
   }));
 
   return (
@@ -203,19 +204,47 @@ export const TransactionImport = ({ onNavigate }) => {
       allCategories.push(...expenseCategories);
     }
     
-    setCategories(allCategories);
+    // Enhance categories with keywords and merchant mappings, add Ignore category
+    const enhancedCategories = enhanceCategories(allCategories);
+    setCategories(enhancedCategories);
   }, []);
 
   const handleCSVUpload = async (csvTransactions) => {
     setIsProcessing(true);
     try {
       // Process and categorize transactions
-      const processedTransactions = csvTransactions.map(transaction => ({
-        ...transaction,
-        id: `${Date.now()}_${Math.random()}`,
-        category: suggestCategory(transaction, categories),
-        confirmed: false
-      }));
+      const processedTransactions = csvTransactions.map(transaction => {
+        let suggestedCategory = null;
+        let confidence = 0;
+        let needsReview = true;
+        
+        // Check if transaction should be auto-ignored
+        if (shouldAutoIgnore(transaction)) {
+          const ignoreCategory = categories.find(c => c.id === 'system-ignore');
+          if (ignoreCategory) {
+            suggestedCategory = ignoreCategory;
+            confidence = 1.0;
+            needsReview = false;
+          }
+        } else {
+          // Use smart categorization for non-ignored transactions
+          const suggestion = suggestCategory(transaction, categories);
+          if (suggestion) {
+            suggestedCategory = suggestion.category;
+            confidence = suggestion.confidence;
+            needsReview = confidence < 0.8;
+          }
+        }
+        
+        return {
+          ...transaction,
+          id: `${Date.now()}_${Math.random()}`,
+          category: suggestedCategory,
+          confidence: confidence,
+          needsReview: needsReview,
+          confirmed: false
+        };
+      });
       
       setTransactions(processedTransactions);
       setActiveView('review');
@@ -245,13 +274,18 @@ export const TransactionImport = ({ onNavigate }) => {
   };
 
   const handleTransactionsSave = (finalTransactions) => {
+    // Filter out ignored transactions - they should not be saved
+    const transactionsToSave = finalTransactions.filter(t => 
+      !t.category || t.category.id !== 'system-ignore'
+    );
+    
     const userData = dataManager.loadUserData();
     dataManager.saveUserData({
       ...userData,
-      transactions: finalTransactions
+      transactions: transactionsToSave
     });
     
-    setTransactions(finalTransactions);
+    setTransactions(transactionsToSave);
     onNavigate('dashboard');
   };
 
@@ -363,48 +397,33 @@ export const TransactionImport = ({ onNavigate }) => {
           return activeView === 'review' && transactions.length > 0;
         })() && (
           <>
-            {/* Import Summary */}
-            <FormSection>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-                <SummaryCard
-                  title="Total Imported"
-                  value={transactions.length}
-                  subtitle="New transactions"
-                />
-                <SummaryCard
-                  title="Auto-Categorized"
-                  value={transactions.filter(t => t.category && t.category.id).length}
-                  subtitle="High confidence"
-                  accent={true}
-                />
-                <SummaryCard
-                  title="Need Review"
-                  value={transactions.filter(t => t.needsReview || (t.confidence && t.confidence < 0.8)).length}
-                  subtitle="Low confidence"
-                />
-                <SummaryCard
-                  title="Total Amount"
-                  value={Currency.format(transactions.reduce((sum, t) => sum + Math.abs(t.amount || 0), 0))}
-                  subtitle="Transaction value"
-                />
-              </div>
-            </FormSection>
 
             <ReviewTransactions
               transactions={transactions}
               categories={categories}
-              stats={{
-                totalImported: transactions.length,
-                categorized: transactions.filter(t => t.category && t.category.id).length,
-                needsReview: transactions.filter(t => t.needsReview || (t.confidence && t.confidence < 0.8)).length,
-                totalAmount: transactions.reduce((sum, t) => sum + Math.abs(t.amount || 0), 0)
-              }}
+              stats={(() => {
+                const nonIgnoredTransactions = transactions.filter(t => t.category?.id !== 'system-ignore');
+                return {
+                  totalImported: transactions.length,
+                  categorized: nonIgnoredTransactions.filter(t => t.category && t.category.id && !t.needsReview).length,
+                  needsReview: nonIgnoredTransactions.filter(t => t.needsReview || (t.confidence && t.confidence < 0.8)).length,
+                  totalAmount: nonIgnoredTransactions.reduce((sum, t) => sum + Math.abs(t.amount || 0), 0)
+                };
+              })()}
               onCategoryChange={(transactionId, categoryId) => {
-                setTransactions(prev => prev.map(t => 
-                  t.id === transactionId 
-                    ? { ...t, category: categories.find(c => c.id === categoryId) }
-                    : t
-                ));
+                setTransactions(prev => prev.map(t => {
+                  if (t.id === transactionId) {
+                    const newCategory = categories.find(c => c.id === categoryId);
+                    
+                    // Learn merchant mapping if not system category
+                    if (newCategory && !newCategory.isSystemCategory && t.description) {
+                      learnMerchantMapping(t.description, categoryId);
+                    }
+                    
+                    return { ...t, category: newCategory };
+                  }
+                  return t;
+                }));
               }}
               onSplitTransaction={(transactionId, splits) => {
                 // Handle transaction splitting if needed

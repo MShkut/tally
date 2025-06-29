@@ -30,11 +30,13 @@ export const ReviewTransactions = ({
   onboardingData
 }) => {
   const { isDarkMode } = useTheme();
-  const [filter, setFilter] = useState('all'); // 'all', 'needs-review', 'income', 'expense'
-  const [sortBy, setSortBy] = useState('confidence'); // 'confidence', 'date', 'amount'
+  const [sortBy, setSortBy] = useState('date'); // 'date', 'amount', 'category'
+  const [sortDirection, setSortDirection] = useState('desc'); // 'asc', 'desc'
   const [selectedTransaction, setSelectedTransaction] = useState(null);
-  const [showSplitter, setShowSplitter] = useState(false);
+  const [showTransactionActions, setShowTransactionActions] = useState(false);
+  const [actionType, setActionType] = useState(null); // 'split', 'combine', 'edit'
   const [openCategoryDropdown, setOpenCategoryDropdown] = useState(null); // Track which dropdown is open
+  const [openActionsDropdown, setOpenActionsDropdown] = useState(null); // Track which actions dropdown is open
   
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -51,51 +53,90 @@ export const ReviewTransactions = ({
       return () => document.removeEventListener('click', handleClickOutside);
     }
   }, [openCategoryDropdown]);
-  
-  // Filter and sort transactions
-  const filteredTransactions = transactions.filter(t => {
-    if (filter === 'needs-review') return t.needsReview || t.confidence < 0.8;
-    if (filter === 'income') return Currency.compare(t.amount, 0) > 0;
-    if (filter === 'expense') return Currency.compare(t.amount, 0) < 0;
-    return true;
-  });
 
-  const sortedTransactions = [...filteredTransactions].sort((a, b) => {
-    if (sortBy === 'confidence') return a.confidence - b.confidence;
-    if (sortBy === 'date') return new Date(b.date) - new Date(a.date);
-    if (sortBy === 'amount') return Currency.compare(Currency.abs(b.amount), Currency.abs(a.amount));
-    if (sortBy === 'category') {
+  // Close actions dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      // Don't close if clicking on an actions button or dropdown
+      if (event.target.closest('.actions-dropdown')) {
+        return;
+      }
+      setOpenActionsDropdown(null);
+    };
+    
+    if (openActionsDropdown) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [openActionsDropdown]);
+  
+  // Sort transactions
+  const sortedTransactions = [...transactions].sort((a, b) => {
+    let comparison = 0;
+    
+    if (sortBy === 'date') {
+      comparison = new Date(a.date) - new Date(b.date);
+    } else if (sortBy === 'amount') {
+      comparison = Currency.compare(Currency.abs(a.amount), Currency.abs(b.amount));
+    } else if (sortBy === 'category') {
       const aCategory = a.category?.name || 'Uncategorized';
       const bCategory = b.category?.name || 'Uncategorized';
-      return aCategory.localeCompare(bCategory);
+      comparison = aCategory.localeCompare(bCategory);
     }
-    return 0;
+    
+    return sortDirection === 'desc' ? -comparison : comparison;
   });
 
-  const filterOptions = [
-    { value: 'all', label: 'All Transactions' },
-    { value: 'needs-review', label: 'Needs Review' },
-    { value: 'income', label: 'Income Only' },
-    { value: 'expense', label: 'Expenses Only' }
-  ];
+  // Handle column header clicks for sorting
+  const handleSort = (column) => {
+    if (sortBy === column) {
+      // Same column - toggle direction
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      // New column - set default direction
+      setSortBy(column);
+      setSortDirection(column === 'date' ? 'desc' : 'asc'); // Date defaults to desc (newest first)
+    }
+  };
 
-  const sortOptions = [
-    { value: 'confidence', label: 'Confidence (Low to High)' },
-    { value: 'date', label: 'Date (Recent First)' },
-    { value: 'amount', label: 'Amount (High to Low)' },
-    { value: 'category', label: 'Category (A to Z)' }
-  ];
+  // Get sort indicator for column header
+  const getSortIndicator = (column) => {
+    if (sortBy !== column) return ' ▲▼';
+    return sortDirection === 'asc' ? ' ▲' : ' ▼';
+  };
 
   const categoryOptions = categories.map(cat => ({
     value: cat.id,
-    label: `${cat.name} (${cat.type})`
+    label: cat.isSystemCategory ? cat.name : `${cat.name} (${cat.type})`
   }));
 
   const handleSplit = (transactionId) => {
     const transaction = transactions.find(t => t.id === transactionId);
     if (transaction) {
       setSelectedTransaction(transaction);
-      setShowSplitter(true);
+      setActionType('split');
+      setShowTransactionActions(true);
+      setOpenActionsDropdown(null);
+    }
+  };
+
+  const handleCombine = (transactionId) => {
+    const transaction = transactions.find(t => t.id === transactionId);
+    if (transaction) {
+      setSelectedTransaction(transaction);
+      setActionType('combine');
+      setShowTransactionActions(true);
+      setOpenActionsDropdown(null);
+    }
+  };
+
+  const handleEdit = (transactionId) => {
+    const transaction = transactions.find(t => t.id === transactionId);
+    if (transaction) {
+      setSelectedTransaction(transaction);
+      setActionType('edit');
+      setShowTransactionActions(true);
+      setOpenActionsDropdown(null);
     }
   };
 
@@ -104,10 +145,11 @@ export const ReviewTransactions = ({
     onSplitTransaction(transactionId, []);
   };
 
-  const handleSplitComplete = (splitTransactions) => {
+  const handleTransactionActionComplete = (resultTransactions) => {
     if (selectedTransaction) {
-      onSplitTransaction(selectedTransaction.id, splitTransactions);
-      setShowSplitter(false);
+      onSplitTransaction(selectedTransaction.id, resultTransactions);
+      setShowTransactionActions(false);
+      setActionType(null);
       setSelectedTransaction(null);
     }
   };
@@ -123,42 +165,13 @@ export const ReviewTransactions = ({
       <ThemeToggle />
       <div>
 
-          {/* Filters and Controls */}
-          <FormSection>
-            <FormGrid>
-              <FormField span={3}>
-                <StandardSelect
-                  label="Filter Transactions"
-                  value={filter}
-                  onChange={setFilter}
-                  options={filterOptions}
-                  className="[&_label]:text-2xl [&_label]:font-medium [&_button]:text-xl [&_button]:font-medium"
-                />
-              </FormField>
-              <FormField span={3}>
-                <StandardSelect
-                  label="Sort By"
-                  value={sortBy}
-                  onChange={setSortBy}
-                  options={sortOptions}
-                  className="[&_label]:text-2xl [&_label]:font-medium [&_button]:text-xl [&_button]:font-medium"
-                />
-              </FormField>
-            </FormGrid>
-          </FormSection>
 
           {/* Transaction List - Table-like layout */}
           <FormSection>
-            <h2 className={`text-2xl font-light mb-8 ${
-              isDarkMode ? 'text-white' : 'text-black'
-            }`}>
-              Transactions ({sortedTransactions.length})
-            </h2>
-            
             {sortedTransactions.length === 0 ? (
               <EmptyState
-                title="No transactions match filter"
-                description="Try adjusting your filter settings"
+                title="No transactions to review"
+                description="Import some transactions to get started"
               />
             ) : (
               <div className="space-y-0">
@@ -166,30 +179,50 @@ export const ReviewTransactions = ({
                 <div className={`grid grid-cols-12 gap-4 pb-4 border-b ${
                   isDarkMode ? 'border-gray-800' : 'border-gray-200'
                 }`}>
-                  <div className={`col-span-1 text-sm font-medium ${
-                    isDarkMode ? 'text-gray-500' : 'text-gray-400'
-                  }`}>
-                    Date
-                  </div>
-                  <div className={`col-span-4 text-sm font-medium ${
+                  <button
+                    onClick={() => handleSort('date')}
+                    className={`col-span-1 text-lg font-medium text-left transition-colors whitespace-nowrap ${
+                      isDarkMode 
+                        ? 'text-gray-500 hover:text-white' 
+                        : 'text-gray-400 hover:text-black'
+                    }`}
+                  >
+                    Date{getSortIndicator('date')}
+                  </button>
+                  <div className={`col-span-3 text-lg font-medium ${
                     isDarkMode ? 'text-gray-500' : 'text-gray-400'
                   }`}>
                     Description
                   </div>
-                  <div className={`col-span-2 text-sm font-medium text-right ${
-                    isDarkMode ? 'text-gray-500' : 'text-gray-400'
-                  }`}>
-                    Amount
-                  </div>
-                  <div className={`col-span-3 text-sm font-medium ${
-                    isDarkMode ? 'text-gray-500' : 'text-gray-400'
-                  }`}>
-                    Category
-                  </div>
-                  <div className={`col-span-2 text-sm font-medium text-right ${
+                  <button
+                    onClick={() => handleSort('amount')}
+                    className={`col-span-2 text-lg font-medium text-left transition-colors whitespace-nowrap ${
+                      isDarkMode 
+                        ? 'text-gray-500 hover:text-white' 
+                        : 'text-gray-400 hover:text-black'
+                    }`}
+                  >
+                    Amount{getSortIndicator('amount')}
+                  </button>
+                  <button
+                    onClick={() => handleSort('category')}
+                    className={`col-span-3 text-lg font-medium text-left transition-colors ${
+                      isDarkMode 
+                        ? 'text-gray-500 hover:text-white' 
+                        : 'text-gray-400 hover:text-black'
+                    }`}
+                  >
+                    Category{getSortIndicator('category')}
+                  </button>
+                  <div className={`col-span-2 text-lg font-medium text-left ${
                     isDarkMode ? 'text-gray-500' : 'text-gray-400'
                   }`}>
                     Actions
+                  </div>
+                  <div className={`col-span-1 text-lg font-medium text-center ${
+                    isDarkMode ? 'text-gray-500' : 'text-gray-400'
+                  }`}>
+                    
                   </div>
                 </div>
                 
@@ -202,10 +235,14 @@ export const ReviewTransactions = ({
                     categoryOptions={categoryOptions}
                     onCategoryChange={onCategoryChange}
                     onSplit={handleSplit}
+                    onCombine={handleCombine}
+                    onEdit={handleEdit}
                     onDelete={handleDelete}
                     getConfidenceIndicator={getConfidenceIndicator}
                     openCategoryDropdown={openCategoryDropdown}
                     setOpenCategoryDropdown={setOpenCategoryDropdown}
+                    openActionsDropdown={openActionsDropdown}
+                    setOpenActionsDropdown={setOpenActionsDropdown}
                   />
                 ))}
               </div>
@@ -238,14 +275,17 @@ export const ReviewTransactions = ({
           </div>
         </div>
 
-      {/* Split Transaction Inline */}
-      {showSplitter && selectedTransaction && (
-        <TransactionSplitter
+      {/* Transaction Actions Modal */}
+      {showTransactionActions && selectedTransaction && (
+        <TransactionActions
           transaction={selectedTransaction}
+          transactions={transactions}
           categories={categories}
-          onComplete={handleSplitComplete}
+          actionType={actionType}
+          onComplete={handleTransactionActionComplete}
           onCancel={() => {
-            setShowSplitter(false);
+            setShowTransactionActions(false);
+            setActionType(null);
             setSelectedTransaction(null);
           }}
         />
@@ -261,14 +301,19 @@ const TransactionReviewItem = ({
   categoryOptions, 
   onCategoryChange, 
   onSplit,
+  onCombine,
+  onEdit,
   onDelete,
   getConfidenceIndicator,
   openCategoryDropdown,
-  setOpenCategoryDropdown
+  setOpenCategoryDropdown,
+  openActionsDropdown,
+  setOpenActionsDropdown
 }) => {
   const { isDarkMode } = useTheme();
   const confidence = getConfidenceIndicator(transaction.confidence);
   const showCategoryDropdown = openCategoryDropdown === transaction.id;
+  const showActionsDropdown = openActionsDropdown === transaction.id;
 
   // Format date to be more compact
   const formatDate = (dateStr) => {
@@ -287,6 +332,23 @@ const TransactionReviewItem = ({
     setOpenCategoryDropdown(null);
   };
 
+  const handleActionsClick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setOpenActionsDropdown(showActionsDropdown ? null : transaction.id);
+  };
+
+  const handleActionSelect = (action) => {
+    if (action === 'split') {
+      onSplit(transaction.id);
+    } else if (action === 'combine') {
+      onCombine(transaction.id);
+    } else if (action === 'edit') {
+      onEdit(transaction.id);
+    }
+    setOpenActionsDropdown(null);
+  };
+
   return (
     <div className={`grid grid-cols-12 gap-4 py-6 border-b ${
       isDarkMode ? 'border-gray-800' : 'border-gray-200'
@@ -298,8 +360,8 @@ const TransactionReviewItem = ({
         {formatDate(transaction.date)}
       </div>
 
-      {/* Description - 4 columns, full text */}
-      <div className={`col-span-4 text-base font-light ${
+      {/* Description - 3 columns, full text */}
+      <div className={`col-span-3 text-base font-light ${
         isDarkMode ? 'text-white' : 'text-black'
       }`}>
         <div className="truncate pr-4" title={transaction.description}>
@@ -311,7 +373,7 @@ const TransactionReviewItem = ({
       </div>
 
       {/* Amount - 2 columns */}
-      <div className={`col-span-2 text-base font-mono text-right ${
+      <div className={`col-span-2 text-base font-mono text-left ${
         Currency.compare(transaction.amount, 0) >= 0 ? 'text-green-500' : 'text-red-500'
       }`}>
         {Currency.compare(transaction.amount, 0) >= 0 ? '+' : ''}
@@ -363,21 +425,66 @@ const TransactionReviewItem = ({
         )}
       </div>
 
-      {/* Actions - 2 columns */}
-      <div className="col-span-2 flex items-center justify-end gap-4">
+      {/* Actions - 2 columns, dropdown */}
+      <div className="col-span-2 relative actions-dropdown">
         <button
-          onClick={() => onSplit(transaction.id)}
-          className={`
-            text-base font-light border-b border-transparent hover:border-current pb-1
-            ${isDarkMode 
-              ? 'text-gray-400 hover:text-white' 
-              : 'text-gray-600 hover:text-black'
-            }
-          `}
-          title="Split this transaction"
+          onClick={handleActionsClick}
+          className={`w-full px-0 py-2 border-0 border-b-2 bg-transparent transition-colors focus:outline-none text-left text-base font-light ${
+            isDarkMode 
+              ? 'border-gray-700 text-white hover:border-white' 
+              : 'border-gray-300 text-black hover:border-black'
+          }`}
         >
-          Split
+          <span className="flex items-center justify-between">
+            <span>Actions</span>
+            <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+              ▼
+            </span>
+          </span>
         </button>
+        
+        {showActionsDropdown && (
+          <div className={`absolute top-full left-0 right-0 mt-2 border shadow-lg z-50 ${
+            isDarkMode 
+              ? 'bg-black border-gray-700 shadow-gray-900' 
+              : 'bg-white border-gray-200 shadow-gray-300'
+          }`}>
+            <button
+              onClick={() => handleActionSelect('edit')}
+              className={`w-full px-4 py-3 text-left text-base font-light transition-colors duration-200 ${
+                isDarkMode 
+                  ? 'text-gray-300 hover:bg-gray-900 hover:text-white' 
+                  : 'text-gray-700 hover:bg-gray-50 hover:text-black'
+              }`}
+            >
+              Edit Transaction
+            </button>
+            <button
+              onClick={() => handleActionSelect('split')}
+              className={`w-full px-4 py-3 text-left text-base font-light transition-colors duration-200 ${
+                isDarkMode 
+                  ? 'text-gray-300 hover:bg-gray-900 hover:text-white' 
+                  : 'text-gray-700 hover:bg-gray-50 hover:text-black'
+              }`}
+            >
+              Split Transaction
+            </button>
+            <button
+              onClick={() => handleActionSelect('combine')}
+              className={`w-full px-4 py-3 text-left text-base font-light transition-colors duration-200 ${
+                isDarkMode 
+                  ? 'text-gray-300 hover:bg-gray-900 hover:text-white' 
+                  : 'text-gray-700 hover:bg-gray-50 hover:text-black'
+              }`}
+            >
+              Combine Transaction
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Delete - 1 column */}
+      <div className="col-span-1 flex items-center justify-center">
         <button
           onClick={() => onDelete(transaction.id)}
           className="text-2xl font-light text-gray-400 hover:text-red-500 transition-colors"
@@ -390,41 +497,79 @@ const TransactionReviewItem = ({
   );
 };
 
-// Transaction splitter component (editorial style, no modal)
-const TransactionSplitter = ({ transaction, categories, onComplete, onCancel }) => {
+// Transaction actions component (editorial style, no modal) - handles split, combine, and edit
+const TransactionActions = ({ transaction, transactions, categories, actionType, onComplete, onCancel }) => {
   const { isDarkMode } = useTheme();
+  
+  // Get title and subtitle based on action type
+  const getActionTitle = () => {
+    switch (actionType) {
+      case 'split': return 'Split Transaction';
+      case 'combine': return 'Combine Transaction';
+      case 'edit': return 'Edit Transaction';
+      default: return 'Transaction Action';
+    }
+  };
+
+  const getActionSubtitle = () => {
+    switch (actionType) {
+      case 'split': 
+        return `Original: ${transaction.description} - ${Currency.format(Currency.abs(transaction.amount))}`;
+      case 'combine': 
+        return `Combine with other transactions to reduce this expense`;
+      case 'edit': 
+        return `Modify transaction details`;
+      default: return '';
+    }
+  };
+
+  // Initialize items based on action type
+  const getInitialItems = () => {
+    if (actionType === 'edit') {
+      return [{
+        id: 1,
+        description: transaction.description,
+        amount: Currency.formatInput(Currency.abs(transaction.amount)),
+        categoryId: transaction.category?.id || categories[0]?.id || ''
+      }];
+    } else {
+      // For split/combine, start with the original transaction
+      return [{
+        id: 1,
+        description: transaction.description,
+        amount: Currency.formatInput(Currency.abs(transaction.amount)),
+        categoryId: transaction.category?.id || categories[0]?.id || ''
+      }];
+    }
+  };
+
   const { 
-    items: splits, 
+    items: actionItems, 
     addItem, 
     updateItem, 
     deleteItem,
     hasItems
-  } = useItemManager([
-    {
-      id: 1,
-      description: transaction.description,
-      amount: Currency.formatInput(Currency.abs(transaction.amount)),
-      categoryId: transaction.category?.id || categories[0]?.id || ''
-    }
-  ]);
+  } = useItemManager(getInitialItems());
 
   const originalAmount = Currency.abs(transaction.amount);
   
   // Calculate total allocated using Currency system
-  const totalAllocated = splits.reduce((sum, split) => {
-    const splitAmount = Currency.parseCurrencyInput(split.amount) || '0';
-    return Currency.add(sum, splitAmount);
+  const totalAllocated = actionItems.reduce((sum, item) => {
+    const itemAmount = Currency.parseCurrencyInput(item.amount) || '0';
+    return Currency.add(sum, itemAmount);
   }, 0);
   
   const remaining = Currency.subtract(originalAmount, totalAllocated);
-  const isValid = Currency.isEqual(remaining, 0);
+  const isValid = actionType === 'edit' ? true : Currency.isEqual(remaining, 0);
 
   const categoryOptions = categories.map(cat => ({
     value: cat.id,
-    label: `${cat.name} (${cat.type})`
+    label: cat.isSystemCategory ? cat.name : `${cat.name} (${cat.type})`
   }));
 
-  const handleAddSplit = () => {
+  const handleAddItem = () => {
+    if (actionType === 'edit') return; // Don't allow adding items in edit mode
+    
     const remainingFormatted = Currency.compare(remaining, 0) > 0 ? 
       Currency.formatInput(remaining) : '';
       
@@ -438,40 +583,63 @@ const TransactionSplitter = ({ transaction, categories, onComplete, onCancel }) 
   const handleComplete = () => {
     if (!isValid) return;
 
-    const splitTransactions = splits.map((split, index) => {
-      const splitAmount = Currency.parseCurrencyInput(split.amount) || '0';
+    if (actionType === 'edit') {
+      // For edit, return single modified transaction
+      const editedItem = actionItems[0];
+      const editedAmount = Currency.parseCurrencyInput(editedItem.amount) || '0';
       const finalAmount = Currency.compare(transaction.amount, 0) < 0 ? 
-        Currency.multiply(splitAmount, -1) : splitAmount;
+        Currency.multiply(editedAmount, -1) : editedAmount;
         
-      return {
+      const editedTransaction = {
         ...transaction,
-        id: `${transaction.id}-split-${index + 1}`,
-        description: split.description || transaction.description,
+        description: editedItem.description || transaction.description,
         amount: finalAmount,
-        category: categories.find(c => c.id === split.categoryId),
+        category: categories.find(c => c.id === editedItem.categoryId),
         confidence: 1.0,
-        needsReview: false,
-        originalData: {
-          ...transaction.originalData,
-          splitFrom: transaction.id,
-          splitIndex: index + 1,
-          splitTotal: splits.length
-        }
+        needsReview: false
       };
-    });
 
-    onComplete(splitTransactions);
+      onComplete([editedTransaction]);
+    } else {
+      // For split/combine, return multiple transactions
+      const resultTransactions = actionItems.map((item, index) => {
+        const itemAmount = Currency.parseCurrencyInput(item.amount) || '0';
+        const finalAmount = Currency.compare(transaction.amount, 0) < 0 ? 
+          Currency.multiply(itemAmount, -1) : itemAmount;
+          
+        return {
+          ...transaction,
+          id: `${transaction.id}-${actionType}-${index + 1}`,
+          description: item.description || transaction.description,
+          amount: finalAmount,
+          category: categories.find(c => c.id === item.categoryId),
+          confidence: 1.0,
+          needsReview: false,
+          originalData: {
+            ...transaction.originalData,
+            actionType: actionType,
+            actionFrom: transaction.id,
+            actionIndex: index + 1,
+            actionTotal: actionItems.length
+          }
+        };
+      });
+
+      onComplete(resultTransactions);
+    }
   };
 
   const autoDistribute = () => {
-    const count = splits.length;
+    if (actionType === 'edit') return; // Don't allow auto-distribute in edit mode
+    
+    const count = actionItems.length;
     const perItem = Currency.divide(originalAmount, count);
     const lastItemAmount = Currency.subtract(originalAmount, Currency.multiply(perItem, count - 1));
     
-    splits.forEach((split, index) => {
+    actionItems.forEach((item, index) => {
       const amount = index === count - 1 ? lastItemAmount : perItem;
-      updateItem(split.id, {
-        ...split,
+      updateItem(item.id, {
+        ...item,
         amount: Currency.formatInput(amount)
       });
     });
@@ -485,84 +653,93 @@ const TransactionSplitter = ({ transaction, categories, onComplete, onCancel }) 
       <div className="min-h-screen">
         <ThemeToggle />
         <StandardFormLayout
-          title="Split Transaction"
-          subtitle={`Original: ${transaction.description} - ${Currency.format(originalAmount)}`}
+          title={getActionTitle()}
+          subtitle={getActionSubtitle()}
           onBack={onCancel}
           onNext={handleComplete}
           canGoNext={isValid}
-          nextLabel="Apply Split"
+          nextLabel={actionType === 'edit' ? 'Save Changes' : `Apply ${actionType.charAt(0).toUpperCase() + actionType.slice(1)}`}
           backLabel="Cancel"
         >
           
-          {/* Split Controls */}
-          <FormSection>
-            <div className="flex items-center gap-6">
-              <button
-                onClick={autoDistribute}
-                className={`
-                  text-lg font-light border-b border-transparent hover:border-current pb-1
-                  ${isDarkMode 
-                    ? 'text-gray-400 hover:text-white' 
-                    : 'text-gray-600 hover:text-black'
-                  }
-                `}
-              >
-                Distribute Evenly
-              </button>
-              <div className={`text-lg font-light ${
-                isDarkMode ? 'text-gray-500' : 'text-gray-400'
-              }`}>
-                Remaining: {Currency.format(remaining)}
+          {/* Action Controls */}
+          {actionType !== 'edit' && (
+            <FormSection>
+              <div className="flex items-center gap-6">
+                <button
+                  onClick={autoDistribute}
+                  className={`
+                    text-lg font-light border-b border-transparent hover:border-current pb-1
+                    ${isDarkMode 
+                      ? 'text-gray-400 hover:text-white' 
+                      : 'text-gray-600 hover:text-black'
+                    }
+                  `}
+                >
+                  Distribute Evenly
+                </button>
+                <div className={`text-lg font-light ${
+                  isDarkMode ? 'text-gray-500' : 'text-gray-400'
+                }`}>
+                  Remaining: {Currency.format(remaining)}
+                </div>
               </div>
-            </div>
-          </FormSection>
+            </FormSection>
+          )}
 
-          {/* Split Items */}
+          {/* Action Items */}
           <FormSection>
             <div className="space-y-0">
-              {splits.map((split) => (
-                <SplitItem
-                  key={split.id}
-                  split={split}
+              {actionItems.map((item) => (
+                <ActionItem
+                  key={item.id}
+                  item={item}
                   categoryOptions={categoryOptions}
-                  onUpdate={(updated) => updateItem(split.id, updated)}
-                  onDelete={() => deleteItem(split.id)}
-                  canDelete={splits.length > 1}
+                  onUpdate={(updated) => updateItem(item.id, updated)}
+                  onDelete={() => deleteItem(item.id)}
+                  canDelete={actionItems.length > 1 && actionType !== 'edit'}
+                  actionType={actionType}
                 />
               ))}
             </div>
             
-            <div className="mt-8">
-              <button
-                onClick={handleAddSplit}
-                className={`
-                  w-full py-6 border-2 border-dashed transition-colors text-center
-                  ${isDarkMode 
-                    ? 'border-gray-600 text-gray-400 hover:border-gray-500 hover:text-gray-300' 
-                    : 'border-gray-300 text-gray-600 hover:border-gray-400 hover:text-gray-700'
-                  }
-                `}
-              >
-                <span className="text-xl font-light">Add Split Item</span>
-              </button>
-            </div>
+            {actionType !== 'edit' && (
+              <div className="mt-8">
+                <button
+                  onClick={handleAddItem}
+                  className={`
+                    w-full py-6 border-2 border-dashed transition-colors text-center
+                    ${isDarkMode 
+                      ? 'border-gray-600 text-gray-400 hover:border-gray-500 hover:text-gray-300' 
+                      : 'border-gray-300 text-gray-600 hover:border-gray-400 hover:text-gray-700'
+                    }
+                  `}
+                >
+                  <span className="text-xl font-light">
+                    Add {actionType === 'split' ? 'Split' : 'Combine'} Item
+                  </span>
+                </button>
+              </div>
+            )}
           </FormSection>
 
           {/* Validation Status */}
-          <FormSection>
-            <div className={`
-              text-center py-4 text-xl font-light
-              ${isValid 
-                ? 'text-green-500' 
-                : 'text-red-500'
-              }
-            `}>
-              {isValid 
-                ? 'Split amounts match original transaction' 
-                : `Split amounts must equal ${Currency.format(originalAmount)}`
-              }
-            </div>
-          </FormSection>
+          {actionType !== 'edit' && (
+            <FormSection>
+              <div className={`
+                text-center py-4 text-xl font-light
+                ${isValid 
+                  ? 'text-green-500' 
+                  : 'text-red-500'
+                }
+              `}>
+                {isValid 
+                  ? `${actionType.charAt(0).toUpperCase() + actionType.slice(1)} amounts match original transaction` 
+                  : `${actionType.charAt(0).toUpperCase() + actionType.slice(1)} amounts must equal ${Currency.format(originalAmount)}`
+                }
+              </div>
+            </FormSection>
+          )}
 
         </StandardFormLayout>
       </div>
@@ -570,14 +747,14 @@ const TransactionSplitter = ({ transaction, categories, onComplete, onCancel }) 
   );
 };
 
-// Split item component
-const SplitItem = ({ split, categoryOptions, onUpdate, onDelete, canDelete }) => {
+// Action item component (for split, combine, edit)
+const ActionItem = ({ item, categoryOptions, onUpdate, onDelete, canDelete, actionType }) => {
   const { isDarkMode } = useTheme();
 
   const handleAmountChange = (value) => {
     // Use Currency.parseCurrencyInput to clean the input
     const cleanedValue = Currency.parseCurrencyInput(value);
-    onUpdate({ ...split, amount: cleanedValue });
+    onUpdate({ ...item, amount: cleanedValue });
   };
 
   return (
@@ -588,9 +765,9 @@ const SplitItem = ({ split, categoryOptions, onUpdate, onDelete, canDelete }) =>
         <FormField span={5}>
           <StandardInput
             label="Description"
-            value={split.description}
-            onChange={(value) => onUpdate({ ...split, description: value })}
-            placeholder="What was this part for?"
+            value={item.description}
+            onChange={(value) => onUpdate({ ...item, description: value })}
+            placeholder={actionType === 'edit' ? "Transaction description" : "What was this part for?"}
             className="[&_label]:text-2xl [&_label]:font-medium [&_input]:text-2xl [&_input]:font-medium [&_input]:pb-4"
           />
         </FormField>
@@ -598,7 +775,7 @@ const SplitItem = ({ split, categoryOptions, onUpdate, onDelete, canDelete }) =>
           <StandardInput
             label="Amount"
             type="currency"
-            value={split.amount}
+            value={item.amount}
             onChange={handleAmountChange}
             prefix="$"
             className="[&_label]:text-2xl [&_label]:font-medium [&_input]:text-2xl [&_input]:font-medium [&_input]:pb-4"
@@ -607,8 +784,8 @@ const SplitItem = ({ split, categoryOptions, onUpdate, onDelete, canDelete }) =>
         <FormField span={4}>
           <StandardSelect
             label="Category"
-            value={split.categoryId}
-            onChange={(value) => onUpdate({ ...split, categoryId: value })}
+            value={item.categoryId}
+            onChange={(value) => onUpdate({ ...item, categoryId: value })}
             options={categoryOptions}
             className="[&_label]:text-2xl [&_label]:font-medium [&_button]:text-xl [&_button]:font-medium"
           />
@@ -619,7 +796,7 @@ const SplitItem = ({ split, categoryOptions, onUpdate, onDelete, canDelete }) =>
               <button
                 onClick={onDelete}
                 className="w-full text-center text-3xl font-light text-gray-400 hover:text-red-500 transition-colors"
-                title="Remove this split"
+                title={`Remove this ${actionType} item`}
               >
                 ×
               </button>
