@@ -1,5 +1,5 @@
 // frontend/src/components/dashboard/ReviewTransactions.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 import { useTheme } from 'contexts/ThemeContext';
 import { ThemeToggle } from 'components/shared/ThemeToggle';
@@ -18,6 +18,7 @@ import {
 import { TransactionHelpers } from 'utils/transactionHelpers';
 import { Currency } from 'utils/currency';
 
+
 export const ReviewTransactions = ({ 
   transactions, 
   categories, 
@@ -33,6 +34,23 @@ export const ReviewTransactions = ({
   const [sortBy, setSortBy] = useState('confidence'); // 'confidence', 'date', 'amount'
   const [selectedTransaction, setSelectedTransaction] = useState(null);
   const [showSplitter, setShowSplitter] = useState(false);
+  const [openCategoryDropdown, setOpenCategoryDropdown] = useState(null); // Track which dropdown is open
+  
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      // Don't close if clicking on a category button or dropdown
+      if (event.target.closest('.category-dropdown')) {
+        return;
+      }
+      setOpenCategoryDropdown(null);
+    };
+    
+    if (openCategoryDropdown) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [openCategoryDropdown]);
   
   // Filter and sort transactions
   const filteredTransactions = transactions.filter(t => {
@@ -46,6 +64,11 @@ export const ReviewTransactions = ({
     if (sortBy === 'confidence') return a.confidence - b.confidence;
     if (sortBy === 'date') return new Date(b.date) - new Date(a.date);
     if (sortBy === 'amount') return Currency.compare(Currency.abs(b.amount), Currency.abs(a.amount));
+    if (sortBy === 'category') {
+      const aCategory = a.category?.name || 'Uncategorized';
+      const bCategory = b.category?.name || 'Uncategorized';
+      return aCategory.localeCompare(bCategory);
+    }
     return 0;
   });
 
@@ -59,7 +82,8 @@ export const ReviewTransactions = ({
   const sortOptions = [
     { value: 'confidence', label: 'Confidence (Low to High)' },
     { value: 'date', label: 'Date (Recent First)' },
-    { value: 'amount', label: 'Amount (High to Low)' }
+    { value: 'amount', label: 'Amount (High to Low)' },
+    { value: 'category', label: 'Category (A to Z)' }
   ];
 
   const categoryOptions = categories.map(cat => ({
@@ -97,56 +121,12 @@ export const ReviewTransactions = ({
   return (
     <>
       <ThemeToggle />
-      <div className={`min-h-screen transition-colors duration-300 ${
-        isDarkMode ? 'bg-black text-white' : 'bg-gray-50 text-gray-900'
-      }`}>
-        <div className="max-w-7xl mx-auto px-6 py-12">
-          
-          {/* Header */}
-          <div className="mb-24">
-            <h1 className={`text-5xl font-light leading-tight mb-4 ${
-              isDarkMode ? 'text-white' : 'text-black'
-            }`}>
-              Review & Categorize
-            </h1>
-            <p className={`text-xl font-light ${
-              isDarkMode ? 'text-gray-400' : 'text-gray-600'
-            }`}>
-              Confirm categories for your imported transactions. We've made suggestions based on your budget.
-            </p>
-          </div>
-          
-          {/* Import Summary */}
-          <FormSection>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-              <SummaryCard
-                title="Total Imported"
-                value={stats.totalImported}
-                subtitle="New transactions"
-              />
-              <SummaryCard
-                title="Auto-Categorized"
-                value={stats.categorized}
-                subtitle="High confidence"
-                accent={true}
-              />
-              <SummaryCard
-                title="Need Review"
-                value={stats.needsReview}
-                subtitle="Low confidence"
-              />
-              <SummaryCard
-                title="Split"
-                value={stats.splits}
-                subtitle="Transactions split"
-              />
-            </div>
-          </FormSection>
+      <div>
 
           {/* Filters and Controls */}
           <FormSection>
             <FormGrid>
-              <FormField span={6}>
+              <FormField span={3}>
                 <StandardSelect
                   label="Filter Transactions"
                   value={filter}
@@ -155,7 +135,7 @@ export const ReviewTransactions = ({
                   className="[&_label]:text-2xl [&_label]:font-medium [&_button]:text-xl [&_button]:font-medium"
                 />
               </FormField>
-              <FormField span={6}>
+              <FormField span={3}>
                 <StandardSelect
                   label="Sort By"
                   value={sortBy}
@@ -166,8 +146,6 @@ export const ReviewTransactions = ({
               </FormField>
             </FormGrid>
           </FormSection>
-
-          <SectionBorder />
 
           {/* Transaction List - Table-like layout */}
           <FormSection>
@@ -226,6 +204,8 @@ export const ReviewTransactions = ({
                     onSplit={handleSplit}
                     onDelete={handleDelete}
                     getConfidenceIndicator={getConfidenceIndicator}
+                    openCategoryDropdown={openCategoryDropdown}
+                    setOpenCategoryDropdown={setOpenCategoryDropdown}
                   />
                 ))}
               </div>
@@ -256,9 +236,7 @@ export const ReviewTransactions = ({
               Save All Transactions
             </button>
           </div>
-
         </div>
-      </div>
 
       {/* Split Transaction Inline */}
       {showSplitter && selectedTransaction && (
@@ -284,11 +262,13 @@ const TransactionReviewItem = ({
   onCategoryChange, 
   onSplit,
   onDelete,
-  getConfidenceIndicator
+  getConfidenceIndicator,
+  openCategoryDropdown,
+  setOpenCategoryDropdown
 }) => {
   const { isDarkMode } = useTheme();
   const confidence = getConfidenceIndicator(transaction.confidence);
-  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+  const showCategoryDropdown = openCategoryDropdown === transaction.id;
 
   // Format date to be more compact
   const formatDate = (dateStr) => {
@@ -297,13 +277,14 @@ const TransactionReviewItem = ({
   };
 
   const handleCategoryClick = (e) => {
+    e.preventDefault();
     e.stopPropagation();
-    setShowCategoryDropdown(!showCategoryDropdown);
+    setOpenCategoryDropdown(showCategoryDropdown ? null : transaction.id);
   };
 
   const handleCategorySelect = (categoryId) => {
     onCategoryChange(transaction.id, categoryId);
-    setShowCategoryDropdown(false);
+    setOpenCategoryDropdown(null);
   };
 
   return (
@@ -338,7 +319,7 @@ const TransactionReviewItem = ({
       </div>
 
       {/* Category - 3 columns, inline dropdown */}
-      <div className="col-span-3 relative">
+      <div className="col-span-3 relative category-dropdown">
         <button
           onClick={handleCategoryClick}
           className={`w-full px-0 py-2 border-0 border-b-2 bg-transparent transition-colors focus:outline-none text-left text-base font-light ${
@@ -356,7 +337,7 @@ const TransactionReviewItem = ({
         </button>
         
         {showCategoryDropdown && (
-          <div className={`absolute top-full left-0 right-0 mt-2 border shadow-lg z-10 max-h-60 overflow-y-auto ${
+          <div className={`absolute top-full left-0 right-0 mt-2 border shadow-lg z-50 max-h-80 overflow-y-auto ${
             isDarkMode 
               ? 'bg-black border-gray-700 shadow-gray-900' 
               : 'bg-white border-gray-200 shadow-gray-300'

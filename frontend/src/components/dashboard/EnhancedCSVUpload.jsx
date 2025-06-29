@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 
 import { useTheme } from 'contexts/ThemeContext';
 import { ThemeToggle } from 'components/shared/ThemeToggle';
+import { FloatingModal } from 'components/shared/FloatingModal';
 import { Currency } from 'utils/currency';
 import { 
   FormGrid, 
@@ -35,10 +36,15 @@ export const EnhancedCSVUpload = ({ onComplete, onBack, onStepChange }) => {
     }
   });
   const [selectedSavedMapping, setSelectedSavedMapping] = useState('');
+  const [showDefaultMappingModal, setShowDefaultMappingModal] = useState(false);
+  const [showSaveMappingModal, setShowSaveMappingModal] = useState(false);
+  const [mappingName, setMappingName] = useState('');
 
   const handleFiles = async (files) => {
+    console.log('handleFiles called with:', files);
     if (!files?.[0]) return;
     const file = files[0];
+    console.log('Processing file:', file.name);
     
     if (!file.name.toLowerCase().endsWith('.csv')) {
       alert('Please upload a CSV file');
@@ -46,8 +52,16 @@ export const EnhancedCSVUpload = ({ onComplete, onBack, onStepChange }) => {
     }
 
     const text = await file.text();
+    console.log('=== CSV PARSING DEBUG ===');
+    console.log('Raw file text length:', text.length);
+    console.log('First 200 chars of file:', text.substring(0, 200));
+    
     const lines = text.split('\n').filter(line => line.trim());
+    console.log('Total lines after filtering:', lines.length);
+    console.log('First line (headers):', lines[0]);
+    
     const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+    console.log('Parsed headers:', headers);
     
     // Better CSV parsing that handles quoted values
     const parseCSVLine = (line) => {
@@ -82,10 +96,12 @@ export const EnhancedCSVUpload = ({ onComplete, onBack, onStepChange }) => {
       );
     });
 
+    console.log('Processed data rows:', data.length);
+    console.log('First data row:', data[0]);
+    console.log('========================');
+
     setCsvData(data);
     setFileName(file.name);
-    setStep('mapping');
-    onStepChange?.('mapping', { count: data.length, fileName: file.name });
     
     // Try to load default mapping first, then auto-detect
     const defaultMapping = localStorage.getItem('defaultColumnMapping');
@@ -95,14 +111,18 @@ export const EnhancedCSVUpload = ({ onComplete, onBack, onStepChange }) => {
         // Check if all required columns exist in the CSV
         if (headers.includes(parsed.date) && headers.includes(parsed.description) && headers.includes(parsed.amount)) {
           setColumnMapping(parsed);
-          // Auto-complete if default mapping is valid
-          setTimeout(() => handleMappingComplete(), 100);
+          // Auto-complete if default mapping is valid - skip mapping step entirely
+          setTimeout(() => handleMappingComplete(data, parsed), 100);
           return;
         }
       } catch (e) {
         console.log('Invalid default mapping, falling back to auto-detect');
       }
     }
+    
+    // If we get here, we need to show the mapping step
+    setStep('mapping');
+    onStepChange?.('mapping', { count: data.length, fileName: file.name });
     
     // Fallback to auto-detect columns
     autoDetectColumns(headers);
@@ -172,18 +192,27 @@ export const EnhancedCSVUpload = ({ onComplete, onBack, onStepChange }) => {
     }
   };
 
-  const handleMappingComplete = () => {
-    if (!columnMapping.date || !columnMapping.description || !columnMapping.amount) {
+  const handleMappingComplete = (dataOverride = null, mappingOverride = null) => {
+    console.log('handleMappingComplete called');
+    const dataToUse = dataOverride || csvData;
+    const mappingToUse = mappingOverride || columnMapping;
+    
+    console.log('columnMapping:', mappingToUse);
+    console.log('csvData:', dataToUse);
+    
+    if (!mappingToUse.date || !mappingToUse.description || !mappingToUse.amount) {
+      console.log('Missing column mapping, returning early');
       return;
     }
     
     // Process CSV data using column mapping
-    const processedTransactions = csvData.map(row => ({
-      date: row[columnMapping.date],
-      description: row[columnMapping.description],
-      amount: parseFloat(row[columnMapping.amount]?.replace(/[,$]/g, '') || '0')
+    const processedTransactions = dataToUse.map(row => ({
+      date: row[mappingToUse.date],
+      description: row[mappingToUse.description],
+      amount: parseFloat(row[mappingToUse.amount]?.replace(/[,$]/g, '') || '0')
     }));
     
+    console.log('Calling onComplete with:', processedTransactions);
     onComplete(processedTransactions);
   };
 
@@ -193,6 +222,14 @@ export const EnhancedCSVUpload = ({ onComplete, onBack, onStepChange }) => {
     const newMappings = { ...savedMappings, [name]: columnMapping };
     setSavedMappings(newMappings);
     localStorage.setItem('csvColumnMappings', JSON.stringify(newMappings));
+  };
+
+  const handleSaveMapping = () => {
+    if (mappingName.trim()) {
+      saveMapping(mappingName.trim());
+      setShowSaveMappingModal(false);
+      setMappingName('');
+    }
   };
 
   const loadSavedMapping = (name) => {
@@ -297,7 +334,7 @@ export const EnhancedCSVUpload = ({ onComplete, onBack, onStepChange }) => {
       
       <div className="max-w-6xl mx-auto px-8 py-12">
         
-        {/* Saved Mappings and Set Default */}
+        {/* Saved Mappings and Actions */}
         <FormSection>
           <FormGrid>
             {Object.keys(savedMappings).length > 0 && (
@@ -312,11 +349,11 @@ export const EnhancedCSVUpload = ({ onComplete, onBack, onStepChange }) => {
               </div>
             )}
             <div className={Object.keys(savedMappings).length > 0 ? "col-span-12 lg:col-span-9" : "col-span-12"}>
-              <div className="flex items-end h-full pb-4">
+              <div className="flex items-end h-full pb-4 gap-8">
                 <button
                   onClick={() => {
                     localStorage.setItem('defaultColumnMapping', JSON.stringify(columnMapping));
-                    alert('Default mapping set! Future CSV uploads with matching columns will skip this step.');
+                    setShowDefaultMappingModal(true);
                   }}
                   disabled={!isValid}
                   className={`
@@ -331,6 +368,14 @@ export const EnhancedCSVUpload = ({ onComplete, onBack, onStepChange }) => {
                 >
                   Set current mapping as default
                 </button>
+                
+                <SaveMappingButton 
+                  onSave={() => setShowSaveMappingModal(true)} 
+                  currentMapping={columnMapping}
+                  savedMappings={savedMappings}
+                  selectedSavedMapping={selectedSavedMapping}
+                  isValid={isValid}
+                />
               </div>
             </div>
           </FormGrid>
@@ -344,7 +389,10 @@ export const EnhancedCSVUpload = ({ onComplete, onBack, onStepChange }) => {
               <StandardSelect
                 label="Date Column"
                 value={columnMapping.date}
-                onChange={(value) => setColumnMapping(prev => ({ ...prev, date: value }))}
+                onChange={(value) => {
+                  setColumnMapping(prev => ({ ...prev, date: value }));
+                  setSelectedSavedMapping(''); // Clear saved mapping selection when manually changed
+                }}
                 options={columnOptions}
                 className="[&_label]:text-2xl [&_label]:font-medium [&_button]:text-xl [&_button]:font-medium"
               />
@@ -362,7 +410,10 @@ export const EnhancedCSVUpload = ({ onComplete, onBack, onStepChange }) => {
               <StandardSelect
                 label="Description Column"
                 value={columnMapping.description}
-                onChange={(value) => setColumnMapping(prev => ({ ...prev, description: value }))}
+                onChange={(value) => {
+                  setColumnMapping(prev => ({ ...prev, description: value }));
+                  setSelectedSavedMapping(''); // Clear saved mapping selection when manually changed
+                }}
                 options={columnOptions}
                 className="[&_label]:text-2xl [&_label]:font-medium [&_button]:text-xl [&_button]:font-medium"
               />
@@ -380,7 +431,10 @@ export const EnhancedCSVUpload = ({ onComplete, onBack, onStepChange }) => {
               <StandardSelect
                 label="Amount Column"
                 value={columnMapping.amount}
-                onChange={(value) => setColumnMapping(prev => ({ ...prev, amount: value }))}
+                onChange={(value) => {
+                  setColumnMapping(prev => ({ ...prev, amount: value }));
+                  setSelectedSavedMapping(''); // Clear saved mapping selection when manually changed
+                }}
                 options={columnOptions}
                 className="[&_label]:text-2xl [&_label]:font-medium [&_button]:text-xl [&_button]:font-medium"
               />
@@ -395,18 +449,6 @@ export const EnhancedCSVUpload = ({ onComplete, onBack, onStepChange }) => {
           </FormGrid>
         </FormSection>
 
-
-        {/* Save Mapping Option */}
-        {isValid && (
-          <FormSection>
-            <SaveMappingOption 
-              onSave={saveMapping} 
-              currentMapping={columnMapping}
-              savedMappings={savedMappings}
-              selectedSavedMapping={selectedSavedMapping}
-            />
-          </FormSection>
-        )}
 
         {/* Navigation */}
         <div className="flex justify-between items-center mt-16">
@@ -441,96 +483,84 @@ export const EnhancedCSVUpload = ({ onComplete, onBack, onStepChange }) => {
           </button>
         </div>
 
+        <FloatingModal
+          isOpen={showDefaultMappingModal}
+          onClose={() => setShowDefaultMappingModal(false)}
+          title="Default Mapping Set"
+          message="Future CSV uploads with matching columns will automatically use this mapping and skip the configuration step."
+          buttons={[
+            { text: "Continue", onClick: () => setShowDefaultMappingModal(false), primary: true }
+          ]}
+        />
+
+        <FloatingModal
+          isOpen={showSaveMappingModal}
+          onClose={() => {
+            setShowSaveMappingModal(false);
+            setMappingName('');
+          }}
+          title="Save Mapping"
+          input={{
+            value: mappingName,
+            onChange: setMappingName,
+            placeholder: "Chase Credit Card, Bank of America, etc.",
+            autoFocus: true
+          }}
+          buttons={[
+            { 
+              text: "Cancel", 
+              onClick: () => {
+                setShowSaveMappingModal(false);
+                setMappingName('');
+              }
+            },
+            { 
+              text: "Save", 
+              onClick: handleSaveMapping, 
+              primary: true, 
+              disabled: !mappingName.trim() 
+            }
+          ]}
+        />
+
       </div>
     </div>
   );
 };
 
-// Save mapping component
-const SaveMappingOption = ({ onSave, currentMapping, savedMappings, selectedSavedMapping }) => {
+// Save mapping button component
+const SaveMappingButton = ({ onSave, currentMapping, savedMappings, selectedSavedMapping, isValid }) => {
   const { isDarkMode } = useTheme();
-  const [showSave, setShowSave] = useState(false);
-  const [mappingName, setMappingName] = useState('');
 
-  // Check if current mapping is new (not already saved)
-  const isNewMapping = !selectedSavedMapping && !Object.values(savedMappings).some(saved => 
-    saved.date === currentMapping.date && 
-    saved.description === currentMapping.description && 
-    saved.amount === currentMapping.amount
-  );
+  // Check if current mapping is different from selected saved mapping or is completely new
+  const isNewOrModifiedMapping = !selectedSavedMapping || 
+    !savedMappings[selectedSavedMapping] ||
+    savedMappings[selectedSavedMapping].date !== currentMapping.date ||
+    savedMappings[selectedSavedMapping].description !== currentMapping.description ||
+    savedMappings[selectedSavedMapping].amount !== currentMapping.amount;
 
-  const handleSave = () => {
-    onSave(mappingName);
-    setShowSave(false);
-    setMappingName('');
-  };
-
-  // Only show if it's a new mapping format
-  if (!isNewMapping) return null;
-
-  if (!showSave) {
-    return (
-      <div className="text-center">
-        <button
-          onClick={() => setShowSave(true)}
-          className={`
-            text-xl font-medium transition-colors pb-1
-            ${isDarkMode 
-              ? 'text-blue-400 hover:text-blue-300' 
-              : 'text-blue-600 hover:text-blue-800'
-            }
-          `}
-        >
-          Save this mapping for future imports
-        </button>
-      </div>
+  // Don't show if mapping is not valid or if it exactly matches an existing saved mapping
+  const shouldShow = isValid && isNewOrModifiedMapping && 
+    !Object.values(savedMappings).some(saved => 
+      saved.date === currentMapping.date && 
+      saved.description === currentMapping.description && 
+      saved.amount === currentMapping.amount
     );
-  }
+
+  if (!shouldShow) return null;
 
   return (
-    <div className="space-y-6">
-      <FormGrid>
-        <FormField span={8}>
-          <StandardInput
-            label="Save Mapping As"
-            value={mappingName}
-            onChange={setMappingName}
-            placeholder="Chase Credit Card, Bank of America, etc."
-            className="[&_label]:text-2xl [&_label]:font-medium [&_input]:text-2xl [&_input]:font-medium [&_input]:pb-4"
-          />
-        </FormField>
-        <FormField span={4}>
-          <div className="flex items-end h-full pb-4 gap-4">
-            <button
-              onClick={handleSave}
-              disabled={!mappingName.trim()}
-              className={`
-                text-xl font-light border-b-2 pb-2 transition-all
-                ${mappingName.trim()
-                  ? isDarkMode
-                    ? 'text-white border-white hover:border-gray-400'
-                    : 'text-black border-black hover:border-gray-600'
-                  : 'text-gray-400 border-gray-400 cursor-not-allowed'
-                }
-              `}
-            >
-              Save
-            </button>
-            <button
-              onClick={() => setShowSave(false)}
-              className={`
-                text-xl font-light border-b border-transparent hover:border-current pb-1
-                ${isDarkMode 
-                  ? 'text-gray-400 hover:text-white' 
-                  : 'text-gray-600 hover:text-black'
-                }
-              `}
-            >
-              Cancel
-            </button>
-          </div>
-        </FormField>
-      </FormGrid>
-    </div>
+    <button
+      onClick={onSave}
+      className={`
+        text-xl font-medium transition-colors pb-1
+        ${isDarkMode 
+          ? 'text-blue-400 hover:text-blue-300' 
+          : 'text-blue-600 hover:text-blue-800'
+        }
+      `}
+    >
+      Save mapping
+    </button>
   );
 };

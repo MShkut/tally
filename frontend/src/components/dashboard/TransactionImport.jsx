@@ -173,10 +173,37 @@ export const TransactionImport = ({ onNavigate }) => {
       setTransactions(userData.transactions);
     }
     
-    // Load categories from onboarding data
-    if (userData?.expenses?.categories) {
-      setCategories(userData.expenses.categories);
+    // Load all categories from onboarding data in order: Income, Savings, Expenses
+    const allCategories = [];
+    
+    // 1. Add income sources as categories (first)
+    if (userData?.income?.incomeSources) {
+      const incomeCategories = userData.income.incomeSources.map(source => ({
+        ...source,
+        type: 'Income'
+      }));
+      allCategories.push(...incomeCategories);
     }
+    
+    // 2. Add savings goals as categories (second)
+    if (userData?.savingsAllocation?.savingsGoals) {
+      const savingsCategories = userData.savingsAllocation.savingsGoals.map(goal => ({
+        ...goal,
+        type: 'Savings'
+      }));
+      allCategories.push(...savingsCategories);
+    }
+    
+    // 3. Add expense categories (third)
+    if (userData?.expenses?.expenseCategories) {
+      const expenseCategories = userData.expenses.expenseCategories.map(category => ({
+        ...category,
+        type: 'Expense'
+      }));
+      allCategories.push(...expenseCategories);
+    }
+    
+    setCategories(allCategories);
   }, []);
 
   const handleCSVUpload = async (csvTransactions) => {
@@ -239,42 +266,32 @@ export const TransactionImport = ({ onNavigate }) => {
         {/* Header */}
         <div className="mb-12">
           <h1 className="text-5xl font-light leading-tight mb-4">
-            {activeView === 'upload' && uploadStep === 'mapping' 
-              ? 'Map CSV Columns' 
-              : 'Import Transactions'
+            {activeView === 'review' 
+              ? 'Review & Categorize'
+              : activeView === 'upload' && uploadStep === 'mapping' 
+                ? 'Map CSV Columns' 
+                : 'Import Transactions'
             }
           </h1>
           <p className={`text-xl ${
             isDarkMode ? 'text-gray-400' : 'text-gray-600'
           }`}>
-            {activeView === 'upload' && uploadStep === 'mapping' && mappingData
-              ? `Found ${mappingData.count} transactions in ${mappingData.fileName}. Tell us which columns contain your data.`
-              : 'Upload a CSV file or manually enter transactions to track your spending'
+            {activeView === 'review'
+              ? 'Review your imported transactions and ensure they\'re properly categorized before saving'
+              : activeView === 'upload' && uploadStep === 'mapping' && mappingData
+                ? `Found ${mappingData.count} transactions in ${mappingData.fileName}. Tell us which columns contain your data.`
+                : 'Upload a CSV file or manually enter transactions to track your spending'
             }
           </p>
         </div>
 
         {/* View Toggle */}
-        <div className="flex space-x-8 mb-12">
-          <button
-            onClick={() => setActiveView('upload')}
-            className={`text-xl font-light border-b-2 pb-2 transition-all ${
-              activeView === 'upload'
-                ? isDarkMode
-                  ? 'text-white border-white'
-                  : 'text-black border-black'
-                : isDarkMode
-                  ? 'text-gray-400 border-transparent hover:border-gray-400'
-                  : 'text-gray-600 border-transparent hover:border-gray-600'
-            }`}
-          >
-            CSV Upload
-          </button>
-          {!(activeView === 'upload' && uploadStep === 'mapping') && (
+        {activeView !== 'review' && (
+          <div className="flex space-x-8 mb-12">
             <button
-              onClick={() => setActiveView('manual')}
+              onClick={() => setActiveView('upload')}
               className={`text-xl font-light border-b-2 pb-2 transition-all ${
-                activeView === 'manual'
+                activeView === 'upload'
                   ? isDarkMode
                     ? 'text-white border-white'
                     : 'text-black border-black'
@@ -283,35 +300,48 @@ export const TransactionImport = ({ onNavigate }) => {
                     : 'text-gray-600 border-transparent hover:border-gray-600'
               }`}
             >
-              Manual Entry
+              CSV Upload
             </button>
-          )}
-          {transactions.length > 0 && (
-            <button
-              onClick={() => setActiveView('review')}
-              className={`text-xl font-light border-b-2 pb-2 transition-all ${
-                activeView === 'review'
-                  ? isDarkMode
-                    ? 'text-white border-white'
-                    : 'text-black border-black'
-                  : isDarkMode
-                    ? 'text-gray-400 border-transparent hover:border-gray-400'
-                    : 'text-gray-600 border-transparent hover:border-gray-600'
-              }`}
-            >
-              Review ({transactions.length})
-            </button>
-          )}
-        </div>
+            {!(activeView === 'upload' && uploadStep === 'mapping') && (
+              <button
+                onClick={() => setActiveView('manual')}
+                className={`text-xl font-light border-b-2 pb-2 transition-all ${
+                  activeView === 'manual'
+                    ? isDarkMode
+                      ? 'text-white border-white'
+                      : 'text-black border-black'
+                    : isDarkMode
+                      ? 'text-gray-400 border-transparent hover:border-gray-400'
+                      : 'text-gray-600 border-transparent hover:border-gray-600'
+                }`}
+              >
+                Manual Entry
+              </button>
+            )}
+            {transactions.length > 0 && (
+              <button
+                onClick={() => setActiveView('review')}
+                className={`text-xl font-light border-b-2 pb-2 transition-all ${
+                  activeView === 'review'
+                    ? isDarkMode
+                      ? 'text-white border-white'
+                      : 'text-black border-black'
+                    : isDarkMode
+                      ? 'text-gray-400 border-transparent hover:border-gray-400'
+                      : 'text-gray-600 border-transparent hover:border-gray-600'
+                }`}
+              >
+                Review ({transactions.length})
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Content */}
         {activeView === 'upload' && (
           <EnhancedCSVUpload
             onComplete={handleCSVUpload}
-            onBack={() => {
-              setActiveView('upload');
-              setUploadStep('upload');
-            }}
+            onBack={() => onNavigate('dashboard')}
             onStepChange={handleStepChange}
           />
         )}
@@ -323,36 +353,70 @@ export const TransactionImport = ({ onNavigate }) => {
           />
         )}
 
-        {activeView === 'review' && transactions.length > 0 && (
-          <ReviewTransactions
-            transactions={transactions}
-            categories={categories}
-            onSave={handleTransactionsSave}
-            onBack={() => setActiveView('upload')}
-          />
+        {(() => {
+          console.log('=== RENDER DEBUG ===');
+          console.log('activeView:', activeView);
+          console.log('transactions:', transactions);
+          console.log('transactions.length:', transactions.length);
+          console.log('Should render review?', activeView === 'review' && transactions.length > 0);
+          console.log('==================');
+          return activeView === 'review' && transactions.length > 0;
+        })() && (
+          <>
+            {/* Import Summary */}
+            <FormSection>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+                <SummaryCard
+                  title="Total Imported"
+                  value={transactions.length}
+                  subtitle="New transactions"
+                />
+                <SummaryCard
+                  title="Auto-Categorized"
+                  value={transactions.filter(t => t.category && t.category.id).length}
+                  subtitle="High confidence"
+                  accent={true}
+                />
+                <SummaryCard
+                  title="Need Review"
+                  value={transactions.filter(t => t.needsReview || (t.confidence && t.confidence < 0.8)).length}
+                  subtitle="Low confidence"
+                />
+                <SummaryCard
+                  title="Total Amount"
+                  value={Currency.format(transactions.reduce((sum, t) => sum + Math.abs(t.amount || 0), 0))}
+                  subtitle="Transaction value"
+                />
+              </div>
+            </FormSection>
+
+            <ReviewTransactions
+              transactions={transactions}
+              categories={categories}
+              stats={{
+                totalImported: transactions.length,
+                categorized: transactions.filter(t => t.category && t.category.id).length,
+                needsReview: transactions.filter(t => t.needsReview || (t.confidence && t.confidence < 0.8)).length,
+                totalAmount: transactions.reduce((sum, t) => sum + Math.abs(t.amount || 0), 0)
+              }}
+              onCategoryChange={(transactionId, categoryId) => {
+                setTransactions(prev => prev.map(t => 
+                  t.id === transactionId 
+                    ? { ...t, category: categories.find(c => c.id === categoryId) }
+                    : t
+                ));
+              }}
+              onSplitTransaction={(transactionId, splits) => {
+                // Handle transaction splitting if needed
+                console.log('Split transaction:', transactionId, splits);
+              }}
+              onSave={handleTransactionsSave}
+              onBack={() => setActiveView('upload')}
+              onboardingData={dataManager.loadUserData()}
+            />
+          </>
         )}
 
-        {/* Summary */}
-        {transactions.length > 0 && (
-          <div className="mt-12">
-            <SummaryCard
-              title="Transaction Summary"
-              items={[
-                { label: 'Total Transactions', value: transactions.length },
-                { 
-                  label: 'Total Amount', 
-                  value: Currency.format(
-                    transactions.reduce((sum, t) => sum + Math.abs(t.amount || 0), 0)
-                  )
-                },
-                { 
-                  label: 'Categorized', 
-                  value: `${transactions.filter(t => t.category).length}/${transactions.length}`
-                }
-              ]}
-            />
-          </div>
-        )}
       </div>
     </div>
   );
