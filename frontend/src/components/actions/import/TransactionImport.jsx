@@ -22,16 +22,16 @@ import {
 import { DatePicker } from 'components/shared/DatePicker';
 import { handleMenuAction } from 'utils/navigationHandler';
 
-const ManualTransactionForm = ({ categories, onAdd, formData, setFormData }) => {
+const ManualTransactionForm = ({ categories, formData, onUpdate, onAdd, showAddButton = true }) => {
   const { isDarkMode } = useTheme();
   const [errors, setErrors] = useState({});
   
   // Set default category when categories load and no category selected
   useEffect(() => {
     if (categories.length > 0 && !formData.categoryId) {
-      setFormData(prev => ({ ...prev, categoryId: categories[0]?.id || '' }));
+      onUpdate({ ...formData, categoryId: categories[0]?.id || '' });
     }
-  }, [categories, formData.categoryId, setFormData]);
+  }, [categories, formData.categoryId, onUpdate]);
 
   const handleSubmit = () => {
     // Clear previous errors
@@ -55,30 +55,16 @@ const ManualTransactionForm = ({ categories, onAdd, formData, setFormData }) => 
       return;
     }
     
-    // Create transaction object
-    const transaction = {
-      date: formData.date,
-      description: formData.description.trim(),
-      amount: parseFloat(formData.amount),
-      category: selectedCategory
-    };
-    
-    // Call the onAdd callback
-    onAdd(transaction);
-    
-    // Reset form after adding transaction
-    setFormData({
-      date: new Date().toISOString().split('T')[0],
-      description: '',
-      amount: '',
-      categoryId: categories[0]?.id || ''
-    });
+    // Call the onAdd callback to create new form
+    onAdd();
   };
 
-  const categoryOptions = categories.map(cat => ({
-    value: cat.id,
-    label: cat.isSystemCategory ? cat.name : `${cat.name} (${cat.type})`
-  }));
+  const categoryOptions = categories
+    .filter(cat => !cat.isSystemCategory || cat.id !== 'system-ignore') // Exclude ignore category for manual entry
+    .map(cat => ({
+      value: cat.id,
+      label: cat.isSystemCategory ? cat.name : `${cat.name} (${cat.type})`
+    }));
 
   return (
     <div className="space-y-6">
@@ -91,7 +77,7 @@ const ManualTransactionForm = ({ categories, onAdd, formData, setFormData }) => 
             </label>
             <DatePicker
               value={formData.date}
-              onChange={(isoDate) => setFormData(prev => ({ ...prev, date: isoDate }))}
+              onChange={(isoDate) => onUpdate({ ...formData, date: isoDate })}
               placeholder="Select date"
             />
           </div>
@@ -100,7 +86,7 @@ const ManualTransactionForm = ({ categories, onAdd, formData, setFormData }) => 
           <StandardInput
             label="Description"
             value={formData.description}
-            onChange={(value) => setFormData(prev => ({ ...prev, description: value }))}
+            onChange={(value) => onUpdate({ ...formData, description: value })}
             placeholder="Transaction description"
             error={errors.description}
             className="[&_label]:text-base [&_label]:font-light [&_input]:text-base [&_input]:font-light"
@@ -111,7 +97,7 @@ const ManualTransactionForm = ({ categories, onAdd, formData, setFormData }) => 
             label="Amount"
             type="currency"
             value={formData.amount}
-            onChange={(value) => setFormData(prev => ({ ...prev, amount: value }))}
+            onChange={(value) => onUpdate({ ...formData, amount: value })}
             prefix="$"
             placeholder="0.00"
             error={errors.amount}
@@ -122,7 +108,7 @@ const ManualTransactionForm = ({ categories, onAdd, formData, setFormData }) => 
           <StandardSelect
             label="Category"
             value={formData.categoryId}
-            onChange={(value) => setFormData(prev => ({ ...prev, categoryId: value }))}
+            onChange={(value) => onUpdate({ ...formData, categoryId: value })}
             options={categoryOptions}
             error={errors.category}
             className="[&_label]:text-base [&_label]:font-light [&_button]:text-base [&_button]:font-light"
@@ -131,25 +117,27 @@ const ManualTransactionForm = ({ categories, onAdd, formData, setFormData }) => 
       </FormGrid>
       
       {/* Add transaction button - dashed box format like CSV import */}
-      <button
-        onClick={handleSubmit}
-        disabled={!formData.description || !formData.amount}
-        className={`
-          w-full py-6 border-2 border-dashed transition-colors text-center
-          ${formData.description && formData.amount
-            ? isDarkMode 
-              ? 'border-gray-600 text-gray-400 hover:border-gray-500 hover:text-gray-300' 
-              : 'border-gray-300 text-gray-600 hover:border-gray-400 hover:text-gray-700'
-            : isDarkMode
-              ? 'border-gray-700 text-gray-500 cursor-not-allowed'
-              : 'border-gray-200 text-gray-400 cursor-not-allowed'
-          }
-        `}
-      >
-        <span className="text-xl font-light">
-          Add Transaction
-        </span>
-      </button>
+      {showAddButton && (
+        <button
+          onClick={handleSubmit}
+          disabled={!formData.description || !formData.amount}
+          className={`
+            w-full py-6 border-2 border-dashed transition-colors text-center
+            ${formData.description && formData.amount
+              ? isDarkMode 
+                ? 'border-gray-600 text-gray-400 hover:border-gray-500 hover:text-gray-300' 
+                : 'border-gray-300 text-gray-600 hover:border-gray-400 hover:text-gray-700'
+              : isDarkMode
+                ? 'border-gray-700 text-gray-500 cursor-not-allowed'
+                : 'border-gray-200 text-gray-400 cursor-not-allowed'
+            }
+          `}
+        >
+          <span className="text-xl font-light">
+            Add Transaction
+          </span>
+        </button>
+      )}
     </div>
   );
 };
@@ -163,13 +151,17 @@ export const TransactionImport = ({ onNavigate }) => {
   const [categories, setCategories] = useState([]);
   const [isProcessing, setIsProcessing] = useState(false);
   
-  // Preserve manual form data between view switches
-  const [manualFormData, setManualFormData] = useState({
+  // Manual entry state - array of transaction forms
+  const [manualTransactions, setManualTransactions] = useState([{
+    id: Date.now(),
     date: new Date().toISOString().split('T')[0],
     description: '',
     amount: '',
     categoryId: ''
-  });
+  }]);
+  
+  // Success feedback for manual entries
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
 
   const handleStepChange = (step, data = null) => {
     setUploadStep(step);
@@ -268,22 +260,71 @@ export const TransactionImport = ({ onNavigate }) => {
     }
   };
 
-  const handleManualAdd = (transaction) => {
-    const newTransaction = {
-      ...transaction,
-      id: `${Date.now()}_${Math.random()}`,
-      confirmed: true
-    };
+  const handleAddNewForm = () => {
+    // Add a new empty form to the manual transactions array
+    setManualTransactions(prev => [...prev, {
+      id: Date.now(),
+      date: new Date().toISOString().split('T')[0],
+      description: '',
+      amount: '',
+      categoryId: categories[0]?.id || ''
+    }]);
+  };
+
+  const handleUpdateManualTransaction = (index, formData) => {
+    setManualTransactions(prev => prev.map((item, i) => 
+      i === index ? formData : item
+    ));
+  };
+
+  const handleImportManualTransactions = () => {
+    // Validate and convert manual transaction forms to transactions
+    const validTransactions = [];
     
-    const updatedTransactions = [...transactions, newTransaction];
-    setTransactions(updatedTransactions);
+    for (const formData of manualTransactions) {
+      if (formData.description.trim() && formData.amount) {
+        const validation = Currency.validate(formData.amount);
+        if (validation.isValid) {
+          const selectedCategory = categories.find(c => c.id === formData.categoryId);
+          if (selectedCategory) {
+            validTransactions.push({
+              id: `manual_${Date.now()}_${Math.random()}`,
+              date: formData.date,
+              description: formData.description.trim(),
+              amount: parseFloat(formData.amount),
+              category: selectedCategory,
+              confirmed: true,
+              isManualEntry: true
+            });
+          }
+        }
+      }
+    }
     
-    // Save to localStorage
-    const userData = dataManager.loadUserData();
-    dataManager.saveUserData({
-      ...userData,
-      transactions: updatedTransactions
-    });
+    if (validTransactions.length > 0) {
+      // Save to localStorage immediately
+      const userData = dataManager.loadUserData();
+      const allTransactions = [...(userData.transactions || []), ...validTransactions];
+      dataManager.saveUserData({
+        ...userData,
+        transactions: allTransactions
+      });
+      
+      // Show success notification and return to upload page
+      setShowSuccessMessage(true);
+      setTimeout(() => {
+        setShowSuccessMessage(false);
+        setActiveView('upload');
+        // Reset manual transactions
+        setManualTransactions([{
+          id: Date.now(),
+          date: new Date().toISOString().split('T')[0],
+          description: '',
+          amount: '',
+          categoryId: categories[0]?.id || ''
+        }]);
+      }, 2000);
+    }
   };
 
   const handleTransactionsSave = (finalTransactions) => {
@@ -395,12 +436,40 @@ export const TransactionImport = ({ onNavigate }) => {
 
         {activeView === 'manual' && (
           <>
-            <ManualTransactionForm
-              categories={categories}
-              onAdd={handleManualAdd}
-              formData={manualFormData}
-              setFormData={setManualFormData}
-            />
+            {/* Stacked Manual Transaction Forms */}
+            <div className="space-y-8">
+              {manualTransactions.map((formData, index) => (
+                <div key={formData.id} className="space-y-6">
+                  <ManualTransactionForm
+                    categories={categories}
+                    formData={formData}
+                    onUpdate={(updatedData) => handleUpdateManualTransaction(index, updatedData)}
+                    onAdd={handleAddNewForm}
+                    showAddButton={index === manualTransactions.length - 1} // Only show on last form
+                  />
+                </div>
+              ))}
+            </div>
+            
+            {/* Success message - floating notification style */}
+            {showSuccessMessage && (
+              <div className="fixed top-8 right-8 z-50">
+                <div className={`p-4 rounded-lg border-2 shadow-lg ${
+                  isDarkMode 
+                    ? 'bg-green-900 border-green-700 text-green-300' 
+                    : 'bg-green-50 border-green-200 text-green-700'
+                }`}>
+                  <div className="flex items-center">
+                    <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    <span className="font-light">
+                      {manualTransactions.filter(t => t.description && t.amount).length} transaction{manualTransactions.filter(t => t.description && t.amount).length !== 1 ? 's' : ''} imported successfully!
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
             
             {/* Navigation buttons for manual entry */}
             <div className="flex justify-between items-center mt-16">
@@ -416,35 +485,23 @@ export const TransactionImport = ({ onNavigate }) => {
               </button>
               
               <button
-                onClick={() => {
-                  if (transactions.length > 0) {
-                    setActiveView('review');
-                  }
-                }}
-                disabled={transactions.length === 0}
+                onClick={handleImportManualTransactions}
+                disabled={!manualTransactions.some(t => t.description && t.amount)}
                 className={`text-xl font-light transition-all ${
-                  transactions.length > 0
+                  manualTransactions.some(t => t.description && t.amount)
                     ? isDarkMode
                       ? 'text-white border-b-2 border-white hover:border-gray-400 pb-2'
                       : 'text-black border-b-2 border-black hover:border-gray-600 pb-2'
                     : 'text-gray-400 border-b-2 border-gray-400 cursor-not-allowed pb-2'
                 }`}
               >
-                Import {transactions.length > 0 ? `${transactions.length} Transaction${transactions.length > 1 ? 's' : ''}` : 'Transactions'}
+                Import Transactions
               </button>
             </div>
           </>
         )}
 
-        {(() => {
-          console.log('=== RENDER DEBUG ===');
-          console.log('activeView:', activeView);
-          console.log('transactions:', transactions);
-          console.log('transactions.length:', transactions.length);
-          console.log('Should render review?', activeView === 'review' && transactions.length > 0);
-          console.log('==================');
-          return activeView === 'review' && transactions.length > 0;
-        })() && (
+        {activeView === 'review' && (
           <>
 
             <ReviewTransactions
@@ -475,8 +532,39 @@ export const TransactionImport = ({ onNavigate }) => {
                 }));
               }}
               onSplitTransaction={(transactionId, splits) => {
-                // Handle transaction splitting if needed
-                console.log('Split transaction:', transactionId, splits);
+                setTransactions(prev => {
+                  let updatedTransactions;
+                  
+                  if (splits.length === 0) {
+                    // Delete the transaction when empty array is passed
+                    updatedTransactions = prev.filter(t => t.id !== transactionId);
+                  } else {
+                    // Replace with split transactions (for future splitting functionality)
+                    updatedTransactions = prev.map(t => 
+                      t.id === transactionId 
+                        ? splits  // Replace with split transactions
+                        : t
+                    ).flat();
+                  }
+                  
+                  // Auto-save deletions to localStorage immediately
+                  if (splits.length === 0) {
+                    const userData = dataManager.loadUserData();
+                    const existingTransactions = userData.transactions || [];
+                    
+                    // Filter out ignored transactions and save to localStorage
+                    const transactionsToSave = updatedTransactions.filter(t => 
+                      !t.category || t.category.id !== 'system-ignore'
+                    );
+                    
+                    dataManager.saveUserData({
+                      ...userData,
+                      transactions: transactionsToSave
+                    });
+                  }
+                  
+                  return updatedTransactions;
+                });
               }}
               onSave={handleTransactionsSave}
               onBack={() => setActiveView('upload')}

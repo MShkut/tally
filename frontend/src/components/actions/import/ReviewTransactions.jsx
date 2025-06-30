@@ -263,11 +263,14 @@ export const ReviewTransactions = ({
             </button>
             
             <button
-              onClick={onSave}
-              className={`text-xl font-light transition-all ${
-                isDarkMode
-                  ? 'text-white border-b-2 border-white hover:border-gray-400 pb-2'
-                  : 'text-black border-b-2 border-black hover:border-gray-600 pb-2'
+              onClick={transactions.length > 0 ? onSave : undefined}
+              disabled={transactions.length === 0}
+              className={`text-xl font-light transition-all pb-2 ${
+                transactions.length === 0
+                  ? 'text-gray-400 border-b-2 border-gray-400 cursor-not-allowed'
+                  : isDarkMode
+                    ? 'text-white border-b-2 border-white hover:border-gray-400'
+                    : 'text-black border-b-2 border-black hover:border-gray-600'
               }`}
             >
               Save All Transactions

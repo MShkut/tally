@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useTheme } from 'contexts/ThemeContext';
-import { StandardSelect } from './FormComponents';
+import { dataManager } from 'utils/dataManager';
 
 export const DatePicker = ({ 
   value, 
@@ -16,6 +16,40 @@ export const DatePicker = ({
   const [viewMonth, setViewMonth] = useState(new Date().getMonth());
   const [viewYear, setViewYear] = useState(new Date().getFullYear());
   const calendarRef = useRef(null);
+
+  // Get budget period constraints
+  const getBudgetPeriodConstraints = () => {
+    try {
+      const userData = dataManager.loadUserData();
+      const period = userData?.period;
+      
+      console.log('Budget period data loaded:', period); // Debug log
+      
+      if (period?.start_date && period?.end_date) {
+        const startDate = new Date(period.start_date);
+        const endDate = new Date(period.end_date);
+        
+        console.log('Parsed dates - Start:', startDate, 'End:', endDate); // Debug log
+        
+        return {
+          startDate: startDate,
+          endDate: endDate
+        };
+      }
+    } catch (error) {
+      console.warn('Could not load budget period constraints:', error);
+    }
+    
+    // Fallback to current year if no period defined
+    const now = new Date();
+    console.log('Using fallback period for current year:', now.getFullYear()); // Debug log
+    return {
+      startDate: new Date(now.getFullYear(), 0, 1), // Jan 1 of current year
+      endDate: new Date(now.getFullYear(), 11, 31)  // Dec 31 of current year
+    };
+  };
+
+  const budgetPeriod = getBudgetPeriodConstraints();
 
   // Initialize view month/year from value or default to current month
   useEffect(() => {
@@ -54,26 +88,59 @@ export const DatePicker = ({
     'July', 'August', 'September', 'October', 'November', 'December'
   ];
 
+
   // Handle date selection
   const handleDateClick = (day) => {
     const selectedDate = new Date(viewYear, viewMonth, day);
-    const isoDate = selectedDate.toISOString().split('T')[0];
-    onChange(isoDate);
-    setShowCalendar(false);
+    
+    // Check if date is within budget period
+    if (selectedDate >= budgetPeriod.startDate && selectedDate <= budgetPeriod.endDate) {
+      const isoDate = selectedDate.toISOString().split('T')[0];
+      onChange(isoDate);
+      setShowCalendar(false);
+    }
   };
 
-  // Navigate months
-  const navigateMonth = (direction) => {
+  // Check if navigation is allowed in given direction
+  const canNavigateMonth = (direction) => {
     const newMonth = viewMonth + direction;
+    let newYear = viewYear;
+    let finalMonth = newMonth;
+
     if (newMonth < 0) {
-      setViewMonth(11);
-      setViewYear(viewYear - 1);
+      finalMonth = 11;
+      newYear = viewYear - 1;
     } else if (newMonth > 11) {
-      setViewMonth(0);
-      setViewYear(viewYear + 1);
-    } else {
-      setViewMonth(newMonth);
+      finalMonth = 0;
+      newYear = viewYear + 1;
     }
+
+    // Check if the new month/year is within budget period
+    const newDate = new Date(newYear, finalMonth, 1);
+    const periodStart = new Date(budgetPeriod.startDate.getFullYear(), budgetPeriod.startDate.getMonth(), 1);
+    const periodEnd = new Date(budgetPeriod.endDate.getFullYear(), budgetPeriod.endDate.getMonth(), 1);
+
+    return newDate >= periodStart && newDate <= periodEnd;
+  };
+
+  // Navigate months (constrained to budget period)
+  const navigateMonth = (direction) => {
+    if (!canNavigateMonth(direction)) return;
+
+    const newMonth = viewMonth + direction;
+    let newYear = viewYear;
+    let finalMonth = newMonth;
+
+    if (newMonth < 0) {
+      finalMonth = 11;
+      newYear = viewYear - 1;
+    } else if (newMonth > 11) {
+      finalMonth = 0;
+      newYear = viewYear + 1;
+    }
+
+    setViewMonth(finalMonth);
+    setViewYear(newYear);
   };
 
   // Generate calendar days
@@ -101,17 +168,21 @@ export const DatePicker = ({
                         date.getFullYear() === selectedDate.getFullYear() && 
                         date.getMonth() === selectedDate.getMonth() && 
                         date.getDate() === selectedDate.getDate();
+      const isOutsidePeriod = date < budgetPeriod.startDate || date > budgetPeriod.endDate;
       
       days.push(
         <button
           key={day}
           onClick={() => handleDateClick(day)}
+          disabled={isOutsidePeriod}
           className={`w-12 h-10 text-sm rounded flex items-center justify-center transition-colors ${
-            isSelected
-              ? isDarkMode ? 'bg-white text-black' : 'bg-black text-white'
-              : isToday
-              ? isDarkMode ? 'bg-gray-700 text-white' : 'bg-gray-200 text-black'
-              : isDarkMode ? 'text-white hover:bg-gray-700' : 'text-black hover:bg-gray-100'
+            isOutsidePeriod
+              ? 'text-gray-400 cursor-not-allowed opacity-50'
+              : isSelected
+                ? isDarkMode ? 'bg-white text-black' : 'bg-black text-white'
+                : isToday
+                ? isDarkMode ? 'bg-gray-700 text-white' : 'bg-gray-200 text-black'
+                : isDarkMode ? 'text-white hover:bg-gray-700' : 'text-black hover:bg-gray-100'
           }`}
         >
           {day}
@@ -145,40 +216,25 @@ export const DatePicker = ({
         {displayValue || placeholder}
       </button>
 
-      {/* Calendar popup - fixed width that breaks out of column constraints */}
+      {/* Calendar popup - positioned to the right of the date field */}
       {showCalendar && (
-        <div className={`absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 p-4 border rounded-lg z-50 w-80 ${
+        <div className={`absolute top-0 left-full ml-4 p-4 border rounded-lg z-50 w-80 ${
           isDarkMode 
             ? 'bg-black border-gray-800 shadow-2xl shadow-black/50' 
             : 'bg-white border-gray-200 shadow-xl shadow-gray-500/25'
         }`}>
-          {/* Month/Year Selectors */}
-          <div className="grid grid-cols-2 gap-2 mb-4">
-            <StandardSelect
-              value={viewMonth}
-              onChange={(value) => setViewMonth(parseInt(value))}
-              options={monthNames.map((month, index) => ({
-                value: index,
-                label: month
-              }))}
-              className="[&_button]:text-sm [&_button]:py-1"
-            />
-            <StandardSelect
-              value={viewYear}
-              onChange={(value) => setViewYear(parseInt(value))}
-              options={Array.from({ length: 10 }, (_, i) => {
-                const year = new Date().getFullYear() - 5 + i;
-                return { value: year, label: year.toString() };
-              })}
-              className="[&_button]:text-sm [&_button]:py-1"
-            />
-          </div>
-          
-          {/* Month Navigation Arrows */}
+          {/* Month Navigation with Arrows Only */}
           <div className="flex items-center justify-between mb-4">
             <button
               onClick={() => navigateMonth(-1)}
-              className={`p-2 rounded ${isDarkMode ? 'hover:bg-gray-700 text-white' : 'hover:bg-gray-100 text-black'}`}
+              disabled={!canNavigateMonth(-1)}
+              className={`p-2 rounded transition-colors ${
+                !canNavigateMonth(-1)
+                  ? 'text-gray-400 cursor-not-allowed opacity-50'
+                  : isDarkMode 
+                    ? 'hover:bg-gray-700 text-white' 
+                    : 'hover:bg-gray-100 text-black'
+              }`}
             >
               ←
             </button>
@@ -187,7 +243,14 @@ export const DatePicker = ({
             </div>
             <button
               onClick={() => navigateMonth(1)}
-              className={`p-2 rounded ${isDarkMode ? 'hover:bg-gray-700 text-white' : 'hover:bg-gray-100 text-black'}`}
+              disabled={!canNavigateMonth(1)}
+              className={`p-2 rounded transition-colors ${
+                !canNavigateMonth(1)
+                  ? 'text-gray-400 cursor-not-allowed opacity-50'
+                  : isDarkMode 
+                    ? 'hover:bg-gray-700 text-white' 
+                    : 'hover:bg-gray-100 text-black'
+              }`}
             >
               →
             </button>
