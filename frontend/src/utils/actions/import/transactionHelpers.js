@@ -1,7 +1,7 @@
 // frontend/src/utils/transactionHelpers.js
 // Helper Functions for Transaction Processing
 
-import { Currency } from './currency';
+import { Currency } from 'utils/currency';
 
 export const normalizeMerchantName = (description) => {
   return description

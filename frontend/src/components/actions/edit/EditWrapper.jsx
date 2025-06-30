@@ -2,10 +2,10 @@
 import React, { useState, useEffect } from 'react';
 
 import { dataManager } from 'utils/dataManager';
-import { IncomeStep } from 'components/onboarding/IncomeStep';
-import { SavingsAllocationStep } from 'components/onboarding/SavingsAllocationStep';
-import { ExpensesStep } from 'components/onboarding/ExpensesStep';
-import { NetWorthStep } from 'components/onboarding/NetWorthStep';
+import { IncomeStep } from 'components/setup/IncomeStep';
+import { SavingsAllocationStep } from 'components/setup/SavingsAllocationStep';
+import { ExpensesStep } from 'components/setup/ExpensesStep';
+import { NetWorthStep } from 'components/setup/NetWorthStep';
 
 export const EditWrapper = ({ editType, onComplete, onCancel, returnTo = 'dashboard' }) => {
   const [userData, setUserData] = useState(null);

@@ -8,7 +8,7 @@ import {
   FormSection,
   StandardFormLayout,
   SummaryCard
-} from '../shared/FormComponents';
+} from 'components/shared/FormComponents';
 import { dataManager } from 'utils/dataManager';
 import { convertToYearly } from 'utils/incomeHelpers';
 

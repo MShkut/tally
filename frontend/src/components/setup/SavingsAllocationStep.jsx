@@ -14,7 +14,7 @@ import {
   SummaryCard,
   useItemManager,
   validation
-} from '../shared/FormComponents';
+} from 'components/shared/FormComponents';
 import { 
   loadCategoriesWithCustom, 
   saveCustomCategory 

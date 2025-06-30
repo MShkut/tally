@@ -11,7 +11,7 @@ import {
   FormSection,
   StandardFormLayout,
   validation
-} from '../shared/FormComponents';
+} from 'components/shared/FormComponents';
 
 export const WelcomeStep = ({ onNext, savedData = null }) => {
   const { isDarkMode } = useTheme();

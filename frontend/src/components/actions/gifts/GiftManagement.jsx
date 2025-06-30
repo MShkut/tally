@@ -12,7 +12,7 @@ import {
   useItemManager
 } from 'components/shared/FormComponents';
 import { dataManager } from 'utils/dataManager';
-import { BurgerMenu } from 'components/dashboard/BurgerMenu';
+import { BurgerMenu } from 'components/shared/BurgerMenu';
 import { ContactImport } from './ContactImport';
 import { PersonCard } from './PersonCard';
 import { GiftBudgetOverview } from './GiftBudgetOverview';

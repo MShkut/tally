@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 
 import { useTheme } from 'contexts/ThemeContext';
 import { dataManager } from 'utils/dataManager';
-import { BurgerMenu } from 'components/dashboard/BurgerMenu';
+import { BurgerMenu } from 'components/shared/BurgerMenu';
 import { 
   FormSection,
   SummaryCard,
