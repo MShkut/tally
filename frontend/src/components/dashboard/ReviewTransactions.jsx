@@ -555,7 +555,7 @@ const TransactionActions = ({ transaction, transactions, categories, actionType,
   
   // Calculate total allocated using Currency system
   const totalAllocated = actionItems.reduce((sum, item) => {
-    const itemAmount = Currency.parseCurrencyInput(item.amount) || '0';
+    const itemAmount = parseFloat(Currency.parseInput(item.amount)) || 0;
     return Currency.add(sum, itemAmount);
   }, 0);
   
@@ -586,7 +586,7 @@ const TransactionActions = ({ transaction, transactions, categories, actionType,
     if (actionType === 'edit') {
       // For edit, return single modified transaction
       const editedItem = actionItems[0];
-      const editedAmount = Currency.parseCurrencyInput(editedItem.amount) || '0';
+      const editedAmount = parseFloat(Currency.parseInput(editedItem.amount)) || 0;
       const finalAmount = Currency.compare(transaction.amount, 0) < 0 ? 
         Currency.multiply(editedAmount, -1) : editedAmount;
         
@@ -603,7 +603,7 @@ const TransactionActions = ({ transaction, transactions, categories, actionType,
     } else {
       // For split/combine, return multiple transactions
       const resultTransactions = actionItems.map((item, index) => {
-        const itemAmount = Currency.parseCurrencyInput(item.amount) || '0';
+        const itemAmount = parseFloat(Currency.parseInput(item.amount)) || 0;
         const finalAmount = Currency.compare(transaction.amount, 0) < 0 ? 
           Currency.multiply(itemAmount, -1) : itemAmount;
           
@@ -752,8 +752,8 @@ const ActionItem = ({ item, categoryOptions, onUpdate, onDelete, canDelete, acti
   const { isDarkMode } = useTheme();
 
   const handleAmountChange = (value) => {
-    // Use Currency.parseCurrencyInput to clean the input
-    const cleanedValue = Currency.parseCurrencyInput(value);
+    // Use Currency.parseInput to clean the input
+    const cleanedValue = Currency.parseInput(value);
     onUpdate({ ...item, amount: cleanedValue });
   };
 

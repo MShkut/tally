@@ -1,5 +1,5 @@
 // frontend/src/components/dashboard/TransactionImport.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 import { useTheme } from 'contexts/ThemeContext';
 import { ThemeToggle } from 'components/shared/ThemeToggle';
@@ -7,7 +7,6 @@ import { Currency } from 'utils/currency';
 import { BurgerMenu } from './BurgerMenu';
 import { EnhancedCSVUpload } from './EnhancedCSVUpload';
 import { ReviewTransactions } from './ReviewTransactions';
-import { ManualTransactionEntry } from './ManualTransactionEntry';
 import { normalizeMerchantName, suggestCategory } from 'utils/transactionHelpers';
 import { enhanceCategories, shouldAutoIgnore, learnMerchantMapping } from 'utils/categoryEnhancer';
 import { dataManager } from 'utils/dataManager';
@@ -20,17 +19,19 @@ import {
   StandardInput, 
   StandardSelect 
 } from '../shared/FormComponents';
+import { DatePicker } from '../shared/DatePicker';
 import { handleMenuAction } from 'utils/navigationHandler';
 
-const ManualTransactionForm = ({ categories, onAdd }) => {
+const ManualTransactionForm = ({ categories, onAdd, formData, setFormData }) => {
   const { isDarkMode } = useTheme();
-  const [formData, setFormData] = useState({
-    date: new Date().toISOString().split('T')[0],
-    description: '',
-    amount: '',
-    categoryId: categories[0]?.id || ''
-  });
   const [errors, setErrors] = useState({});
+  
+  // Set default category when categories load and no category selected
+  useEffect(() => {
+    if (categories.length > 0 && !formData.categoryId) {
+      setFormData(prev => ({ ...prev, categoryId: categories[0]?.id || '' }));
+    }
+  }, [categories, formData.categoryId, setFormData]);
 
   const handleSubmit = () => {
     // Clear previous errors
@@ -65,7 +66,7 @@ const ManualTransactionForm = ({ categories, onAdd }) => {
     // Call the onAdd callback
     onAdd(transaction);
     
-    // Reset form
+    // Reset form after adding transaction
     setFormData({
       date: new Date().toISOString().split('T')[0],
       description: '',
@@ -81,30 +82,31 @@ const ManualTransactionForm = ({ categories, onAdd }) => {
 
   return (
     <div className="space-y-6">
+      {/* Horizontal form layout - copying ReviewTransactions approach */}
       <FormGrid>
-        <FormField span={12}>
+        <FormField span={2} mobileSpan={2}>
+          <div>
+            <label className={`block text-base font-light mb-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+              Date *
+            </label>
+            <DatePicker
+              value={formData.date}
+              onChange={(isoDate) => setFormData(prev => ({ ...prev, date: isoDate }))}
+              placeholder="Select date"
+            />
+          </div>
+        </FormField>
+        <FormField span={4} mobileSpan={4}>
           <StandardInput
             label="Description"
             value={formData.description}
             onChange={(value) => setFormData(prev => ({ ...prev, description: value }))}
-            placeholder="Coffee Shop, Grocery Store, etc."
+            placeholder="Transaction description"
             error={errors.description}
-            className="[&_label]:text-2xl [&_label]:font-medium [&_input]:text-2xl [&_input]:font-medium [&_input]:pb-4"
+            className="[&_label]:text-base [&_label]:font-light [&_input]:text-base [&_input]:font-light"
           />
         </FormField>
-      </FormGrid>
-      
-      <FormGrid>
-        <FormField span={4}>
-          <StandardInput
-            label="Date"
-            type="date"
-            value={formData.date}
-            onChange={(value) => setFormData(prev => ({ ...prev, date: value }))}
-            className="[&_label]:text-2xl [&_label]:font-medium [&_input]:text-2xl [&_input]:font-medium [&_input]:pb-4"
-          />
-        </FormField>
-        <FormField span={4}>
+        <FormField span={3} mobileSpan={3}>
           <StandardInput
             label="Amount"
             type="currency"
@@ -113,38 +115,41 @@ const ManualTransactionForm = ({ categories, onAdd }) => {
             prefix="$"
             placeholder="0.00"
             error={errors.amount}
-            className="[&_label]:text-2xl [&_label]:font-medium [&_input]:text-2xl [&_input]:font-medium [&_input]:pb-4"
+            className="[&_label]:text-base [&_label]:font-light [&_input]:text-base [&_input]:font-light"
           />
         </FormField>
-        <FormField span={4}>
+        <FormField span={3} mobileSpan={3}>
           <StandardSelect
             label="Category"
             value={formData.categoryId}
             onChange={(value) => setFormData(prev => ({ ...prev, categoryId: value }))}
             options={categoryOptions}
             error={errors.category}
-            className="[&_label]:text-2xl [&_label]:font-medium [&_button]:text-2xl [&_button]:font-medium [&_button]:pb-4"
+            className="[&_label]:text-base [&_label]:font-light [&_button]:text-base [&_button]:font-light"
           />
         </FormField>
       </FormGrid>
       
-      <div className="text-center">
-        <button
-          onClick={handleSubmit}
-          disabled={!formData.description || !formData.amount}
-          className={`
-            text-xl font-light border-b-2 pb-2 transition-all
-            ${formData.description && formData.amount
-              ? isDarkMode
-                ? 'text-white border-white hover:border-gray-400'
-                : 'text-black border-black hover:border-gray-600'
-              : 'text-gray-400 border-gray-400 cursor-not-allowed'
-            }
-          `}
-        >
+      {/* Add transaction button - dashed box format like CSV import */}
+      <button
+        onClick={handleSubmit}
+        disabled={!formData.description || !formData.amount}
+        className={`
+          w-full py-6 border-2 border-dashed transition-colors text-center
+          ${formData.description && formData.amount
+            ? isDarkMode 
+              ? 'border-gray-600 text-gray-400 hover:border-gray-500 hover:text-gray-300' 
+              : 'border-gray-300 text-gray-600 hover:border-gray-400 hover:text-gray-700'
+            : isDarkMode
+              ? 'border-gray-700 text-gray-500 cursor-not-allowed'
+              : 'border-gray-200 text-gray-400 cursor-not-allowed'
+          }
+        `}
+      >
+        <span className="text-xl font-light">
           Add Transaction
-        </button>
-      </div>
+        </span>
+      </button>
     </div>
   );
 };
@@ -157,6 +162,14 @@ export const TransactionImport = ({ onNavigate }) => {
   const [transactions, setTransactions] = useState([]);
   const [categories, setCategories] = useState([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  
+  // Preserve manual form data between view switches
+  const [manualFormData, setManualFormData] = useState({
+    date: new Date().toISOString().split('T')[0],
+    description: '',
+    amount: '',
+    categoryId: ''
+  });
 
   const handleStepChange = (step, data = null) => {
     setUploadStep(step);
@@ -381,10 +394,46 @@ export const TransactionImport = ({ onNavigate }) => {
         )}
 
         {activeView === 'manual' && (
-          <ManualTransactionForm
-            categories={categories}
-            onAdd={handleManualAdd}
-          />
+          <>
+            <ManualTransactionForm
+              categories={categories}
+              onAdd={handleManualAdd}
+              formData={manualFormData}
+              setFormData={setManualFormData}
+            />
+            
+            {/* Navigation buttons for manual entry */}
+            <div className="flex justify-between items-center mt-16">
+              <button
+                onClick={() => setActiveView('upload')}
+                className={`text-lg font-light transition-colors ${
+                  isDarkMode 
+                    ? 'text-gray-400 hover:text-white border-b border-gray-700 hover:border-white pb-1' 
+                    : 'text-gray-600 hover:text-black border-b border-gray-300 hover:border-black pb-1'
+                }`}
+              >
+                Cancel
+              </button>
+              
+              <button
+                onClick={() => {
+                  if (transactions.length > 0) {
+                    setActiveView('review');
+                  }
+                }}
+                disabled={transactions.length === 0}
+                className={`text-xl font-light transition-all ${
+                  transactions.length > 0
+                    ? isDarkMode
+                      ? 'text-white border-b-2 border-white hover:border-gray-400 pb-2'
+                      : 'text-black border-b-2 border-black hover:border-gray-600 pb-2'
+                    : 'text-gray-400 border-b-2 border-gray-400 cursor-not-allowed pb-2'
+                }`}
+              >
+                Import {transactions.length > 0 ? `${transactions.length} Transaction${transactions.length > 1 ? 's' : ''}` : 'Transactions'}
+              </button>
+            </div>
+          </>
         )}
 
         {(() => {
