@@ -5,9 +5,9 @@ import { useTheme } from 'contexts/ThemeContext';
 import { 
   buildClasses, 
   getAccentStyles, 
-  createAccentHover,
-  formatCurrency 
+  createAccentHover
 } from '../../utils/themeUtils';
+import { Currency } from 'utils/currency';
 
 // Page wrapper with consistent gradient background
 export const Page = ({ children, className = '' }) => {
@@ -303,7 +303,7 @@ export const SummaryCard = ({
           ? accentStyles.text(currentTheme)
           : isDarkMode ? 'text-white' : 'text-gray-900'
       }`}>
-        {typeof value === 'number' ? formatCurrency(value) : value}
+        {typeof value === 'number' ? Currency.format(value) : value}
       </div>
       {subtitle && (
         <div className={`text-sm mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>

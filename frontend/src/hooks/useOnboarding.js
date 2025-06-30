@@ -93,4 +93,3 @@ export const useOnboarding = () => {
   };
 };
 
-export const UseOnboarding = useOnboarding;

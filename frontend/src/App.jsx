@@ -12,5 +12,3 @@ export function App() {
   );
 }
 
-// AppRouter expects a default export for proper routing
-export default App;
