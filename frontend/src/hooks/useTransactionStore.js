@@ -89,4 +89,3 @@ export const useTransactionStore = () => {
   };
 };
 
-export const UseTransactionStore = useTransactionStore;
