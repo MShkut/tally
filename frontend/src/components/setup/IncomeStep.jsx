@@ -17,7 +17,7 @@ import {
   useItemManager,
   validation,
   formatCurrency
-} from '../shared/FormComponents';
+} from 'components/shared/FormComponents';
 import { 
   convertToYearly,
   calculateTotalYearlyIncome,

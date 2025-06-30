@@ -1,7 +1,7 @@
 // frontend/src/utils/budgetCalculations.js
 // Fixed budget calculations using centralized currency system
 
-import { Currency } from './currency';
+import { Currency } from 'utils/currency';
 
 /**
  * Calculate total income from multiple sources with proper currency handling

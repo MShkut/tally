@@ -12,9 +12,9 @@ import {
   TransactionListItem,
   EmptyState
 } from 'components/shared/FormComponents';
-import { BurgerMenu } from 'components/dashboard/BurgerMenu';
-import { BudgetPerformanceSection, calculateBudgetPerformance, calculateNetWorthData } from 'components/dashboard/BudgetPerformanceSection';
-import { DashboardViewSelector, generateAvailableMonths } from 'components/dashboard/DashboardViewSelector';
+import { BurgerMenu } from 'components/shared/BurgerMenu';
+import { BudgetPerformanceSection, calculateBudgetPerformance, calculateNetWorthData } from 'components/overview/dashboard/BudgetPerformanceSection';
+import { DashboardViewSelector, generateAvailableMonths } from 'components/overview/dashboard/DashboardViewSelector';
 import { handleMenuAction } from 'utils/navigationHandler';
 
 export const Dashboard = ({ onNavigate }) => {

@@ -15,7 +15,7 @@ import {
   SectionBorder,
   useItemManager,
   validation
-} from '../shared/FormComponents';
+} from 'components/shared/FormComponents';
 import { loadCategoriesWithCustom } from 'utils/categorySuggestions';
 
 // Enhanced net worth item component with smart suggestions

@@ -5,7 +5,7 @@ import {
   DataSection, 
   EmptyState, 
   TransactionListItem 
-} from '../shared/FormComponents';
+} from 'components/shared/FormComponents';
 
 export const RecentActivitySection = ({ transactions = [] }) => {
   // Get only real transactions - no mock data fallback

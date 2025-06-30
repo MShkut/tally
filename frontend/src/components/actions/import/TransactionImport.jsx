@@ -4,11 +4,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useTheme } from 'contexts/ThemeContext';
 import { ThemeToggle } from 'components/shared/ThemeToggle';
 import { Currency } from 'utils/currency';
-import { BurgerMenu } from './BurgerMenu';
+import { BurgerMenu } from 'components/shared/BurgerMenu';
 import { EnhancedCSVUpload } from './EnhancedCSVUpload';
 import { ReviewTransactions } from './ReviewTransactions';
-import { normalizeMerchantName, suggestCategory } from 'utils/transactionHelpers';
-import { enhanceCategories, shouldAutoIgnore, learnMerchantMapping } from 'utils/categoryEnhancer';
+import { normalizeMerchantName, suggestCategory } from 'utils/actions/import/transactionHelpers';
+import { enhanceCategories, shouldAutoIgnore, learnMerchantMapping } from 'utils/actions/import/categoryEnhancer';
 import { dataManager } from 'utils/dataManager';
 import { 
   EmptyState, 
@@ -18,8 +18,8 @@ import {
   FormField, 
   StandardInput, 
   StandardSelect 
-} from '../shared/FormComponents';
-import { DatePicker } from '../shared/DatePicker';
+} from 'components/shared/FormComponents';
+import { DatePicker } from 'components/shared/DatePicker';
 import { handleMenuAction } from 'utils/navigationHandler';
 
 const ManualTransactionForm = ({ categories, onAdd, formData, setFormData }) => {

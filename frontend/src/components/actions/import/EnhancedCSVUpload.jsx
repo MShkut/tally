@@ -15,7 +15,7 @@ import {
   SummaryCard,
   AddItemButton,
   validation
-} from '../shared/FormComponents';
+} from 'components/shared/FormComponents';
 
 export const EnhancedCSVUpload = ({ onComplete, onBack, onStepChange }) => {
   const { isDarkMode } = useTheme();
