@@ -151,6 +151,14 @@ export const TransactionImport = ({ onNavigate }) => {
   const [categories, setCategories] = useState([]);
   const [isProcessing, setIsProcessing] = useState(false);
   
+  // Burger menu state
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  // Handle menu actions using the standard navigation handler
+  const handleMenuActionWrapper = (action) => {
+    handleMenuAction(action, onNavigate, () => setMenuOpen(false), null);
+  };
+  
   // Manual entry state - array of transaction forms
   const [manualTransactions, setManualTransactions] = useState([{
     id: Date.now(),
@@ -173,11 +181,14 @@ export const TransactionImport = ({ onNavigate }) => {
   };
 
   useEffect(() => {
-    // Load existing transactions and categories
+    // Don't load any existing transactions - import page should start clean
+    // const userData = dataManager.loadUserData();
+    // if (userData?.transactions) {
+    //   setTransactions(userData.transactions);
+    // }
+    
+    // Load categories only
     const userData = dataManager.loadUserData();
-    if (userData?.transactions) {
-      setTransactions(userData.transactions);
-    }
     
     // Load all categories from onboarding data in order: Income, Savings, Expenses
     const allCategories = [];
@@ -302,13 +313,10 @@ export const TransactionImport = ({ onNavigate }) => {
     }
     
     if (validTransactions.length > 0) {
-      // Save to localStorage immediately
-      const userData = dataManager.loadUserData();
-      const allTransactions = [...(userData.transactions || []), ...validTransactions];
-      dataManager.saveUserData({
-        ...userData,
-        transactions: allTransactions
-      });
+      // Save to localStorage immediately using dedicated transaction storage
+      const existingTransactions = dataManager.loadTransactions() || [];
+      const allTransactions = [...existingTransactions, ...validTransactions];
+      dataManager.saveTransactions(allTransactions);
       
       // Show success notification and return to upload page
       setShowSuccessMessage(true);
@@ -333,21 +341,44 @@ export const TransactionImport = ({ onNavigate }) => {
       !t.category || t.category.id !== 'system-ignore'
     );
     
-    const userData = dataManager.loadUserData();
-    dataManager.saveUserData({
-      ...userData,
-      transactions: transactionsToSave
-    });
+    // Save transactions using the dedicated transaction storage
+    dataManager.saveTransactions(transactionsToSave);
     
-    setTransactions(transactionsToSave);
-    onNavigate('dashboard');
+    // Reset all import state to clean slate
+    setTransactions([]);
+    setActiveView('upload');
+    setUploadStep('upload');
+    setMappingData(null);
+    setIsProcessing(false);
+    
+    // Use setTimeout to ensure state updates before navigation
+    setTimeout(() => {
+      onNavigate('dashboard');
+    }, 0);
   };
 
   return (
     <div className={`min-h-screen transition-colors ${
       isDarkMode ? 'bg-black text-white' : 'bg-white text-black'
     }`}>
-      <BurgerMenu onNavigate={onNavigate} currentPage="transactions" />
+      <BurgerMenu 
+        isOpen={menuOpen} 
+        onClose={() => setMenuOpen(false)}
+        onAction={handleMenuActionWrapper}
+        currentPage="transactions"
+      />
+      
+      {/* Fixed Controls */}
+      <button
+        onClick={() => setMenuOpen(true)}
+        className={`
+          fixed top-8 left-8 z-40 p-2 transition-colors duration-200
+          ${isDarkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-black'}
+        `}
+        aria-label="Open menu"
+      >
+        <BurgerIcon />
+      </button>
       <ThemeToggle />
       
       <div className="max-w-6xl mx-auto px-8 py-12">
@@ -577,3 +608,12 @@ export const TransactionImport = ({ onNavigate }) => {
     </div>
   );
 };
+
+// Helper component - matches Dashboard.jsx pattern
+const BurgerIcon = () => (
+  <div className="w-5 h-5 flex flex-col justify-between">
+    <div className="w-full h-0.5 bg-current transition-all duration-300" />
+    <div className="w-full h-0.5 bg-current transition-all duration-300" />
+    <div className="w-full h-0.5 bg-current transition-all duration-300" />
+  </div>
+);

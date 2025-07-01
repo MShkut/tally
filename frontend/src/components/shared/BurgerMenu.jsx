@@ -174,7 +174,7 @@ const MenuSection = ({ title, items, onAction, isDarkMode, currentPage }) => (
           >
             {item.label}
             {isActive && (
-              <span className={`ml-2 text-xs ${
+              <span className={`ml-2 text-xl ${
                 isDarkMode ? 'text-gray-500' : 'text-gray-400'
               }`}>
                 •
