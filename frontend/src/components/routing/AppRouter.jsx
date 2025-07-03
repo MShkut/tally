@@ -5,6 +5,7 @@ import { OnboardingFlow } from 'components/setup/OnboardingFlow';
 import { Dashboard } from 'components/overview/dashboard/Dashboard';
 import { NetWorthDashboard } from 'components/overview/networth/NetWorthDashboard';
 import { TransactionImport } from 'components/actions/import/TransactionImport';
+import { AllTransactions } from 'components/actions/alltransactions/AllTransactions';
 import { GiftManagement } from 'components/actions/gifts/GiftManagement';
 import { EditWrapper } from 'components/actions/edit/EditWrapper';
 import { PlanNextPeriod } from 'components/actions/plan/PlanNextPeriod';
@@ -97,6 +98,7 @@ const HouseholdRoutes = () => {
       <Route path="dashboard" element={<Dashboard onNavigate={handleNavigate} />} />
       <Route path="networth" element={<NetWorthDashboard onNavigate={handleNavigate} />} />
       <Route path="import" element={<TransactionImport onNavigate={handleNavigate} />} />
+      <Route path="alltransactions" element={<AllTransactions onNavigate={handleNavigate} />} />
       <Route path="gifts" element={<GiftManagement onNavigate={handleNavigate} />} />
       <Route path="edit-income" element={
         <EditWrapper 
