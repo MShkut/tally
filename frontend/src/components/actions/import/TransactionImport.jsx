@@ -59,30 +59,41 @@ const ManualTransactionForm = ({ categories, formData, onUpdate, onAdd, showAddB
     onAdd();
   };
 
+  // Get unique types for the type dropdown
+  const typeOptions = [
+    { value: 'Income', label: 'Income' },
+    { value: 'Expense', label: 'Expense' },
+    { value: 'Savings', label: 'Savings' }
+  ];
+
+  // Filter categories based on selected type
+  const selectedType = formData.categoryId ? categories.find(c => c.id === formData.categoryId)?.type : formData.type;
   const categoryOptions = categories
     .filter(cat => !cat.isSystemCategory || cat.id !== 'system-ignore') // Exclude ignore category for manual entry
+    .filter(cat => !formData.type || cat.type === formData.type) // Filter by selected type
     .map(cat => ({
       value: cat.id,
-      label: cat.isSystemCategory ? cat.name : `${cat.name} (${cat.type})`
+      label: cat.name
     }));
 
   return (
     <div className="space-y-6">
-      {/* Horizontal form layout - copying ReviewTransactions approach */}
-      <FormGrid>
-        <FormField span={2} mobileSpan={2}>
+      {/* Horizontal form layout - 16 column grid with custom proportions */}
+      <div style={{display: 'grid', gridTemplateColumns: 'repeat(16, 1fr)', gap: '1rem'}}>
+        <div className="col-span-2">
           <div>
             <label className={`block text-base font-light mb-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-              Date *
+              Date
             </label>
             <DatePicker
               value={formData.date}
               onChange={(isoDate) => onUpdate({ ...formData, date: isoDate })}
               placeholder="Select date"
+              className="w-full [&>button]:py-3 [&>button]:pb-4 [&>button]:text-base [&>button]:font-light"
             />
           </div>
-        </FormField>
-        <FormField span={4} mobileSpan={4}>
+        </div>
+        <div className="col-span-4">
           <StandardInput
             label="Description"
             value={formData.description}
@@ -91,8 +102,8 @@ const ManualTransactionForm = ({ categories, formData, onUpdate, onAdd, showAddB
             error={errors.description}
             className="[&_label]:text-base [&_label]:font-light [&_input]:text-base [&_input]:font-light"
           />
-        </FormField>
-        <FormField span={3} mobileSpan={3}>
+        </div>
+        <div className="col-span-3">
           <StandardInput
             label="Amount"
             type="currency"
@@ -103,18 +114,30 @@ const ManualTransactionForm = ({ categories, formData, onUpdate, onAdd, showAddB
             error={errors.amount}
             className="[&_label]:text-base [&_label]:font-light [&_input]:text-base [&_input]:font-light"
           />
-        </FormField>
-        <FormField span={3} mobileSpan={3}>
+        </div>
+        <div className="col-span-3">
+          <StandardSelect
+            label="Type"
+            value={formData.type || ''}
+            onChange={(value) => onUpdate({ ...formData, type: value, categoryId: '' })} // Clear category when type changes
+            options={typeOptions}
+            placeholder="Select type"
+            className="[&_label]:text-base [&_label]:font-light [&_button]:text-base [&_button]:font-light"
+          />
+        </div>
+        <div className="col-span-4">
           <StandardSelect
             label="Category"
             value={formData.categoryId}
             onChange={(value) => onUpdate({ ...formData, categoryId: value })}
             options={categoryOptions}
             error={errors.category}
+            disabled={!formData.type}
+            placeholder={formData.type ? "Select category" : "Select type first"}
             className="[&_label]:text-base [&_label]:font-light [&_button]:text-base [&_button]:font-light"
           />
-        </FormField>
-      </FormGrid>
+        </div>
+      </div>
       
       {/* Add transaction button - dashed box format like CSV import */}
       {showAddButton && (
@@ -165,6 +188,7 @@ export const TransactionImport = ({ onNavigate }) => {
     date: new Date().toISOString().split('T')[0],
     description: '',
     amount: '',
+    type: '',
     categoryId: ''
   }]);
   
@@ -278,7 +302,8 @@ export const TransactionImport = ({ onNavigate }) => {
       date: new Date().toISOString().split('T')[0],
       description: '',
       amount: '',
-      categoryId: categories[0]?.id || ''
+      type: '',
+      categoryId: ''
     }]);
   };
 
@@ -329,7 +354,8 @@ export const TransactionImport = ({ onNavigate }) => {
           date: new Date().toISOString().split('T')[0],
           description: '',
           amount: '',
-          categoryId: categories[0]?.id || ''
+          type: '',
+          categoryId: ''
         }]);
       }, 2000);
     }

@@ -7,6 +7,8 @@ const STORAGE_KEYS = {
   GIFT_DATA: 'financeTracker_giftData',
   NET_WORTH_ITEMS: 'financeTracker_netWorthItems',
   NET_WORTH_HISTORY: 'financeTracker_netWorthHistory',
+  MERCHANT_MAPPINGS: 'merchantMappings',
+  CATEGORY_MAPPINGS: 'tally_categoryMappings',
   APP_VERSION: 'financeTracker_version'
 };
 
@@ -115,7 +117,16 @@ class DataManager {
 
   clearUserData() {
     localStorage.removeItem(STORAGE_KEYS.USER_DATA);
-    console.log('🗑️ User data cleared');
+    localStorage.removeItem(STORAGE_KEYS.MERCHANT_MAPPINGS);
+    localStorage.removeItem(STORAGE_KEYS.CATEGORY_MAPPINGS);
+    
+    // Clear dynamic custom category keys
+    const contexts = ['expenses', 'savings', 'income', 'assets', 'liabilities'];
+    contexts.forEach(context => {
+      localStorage.removeItem(`customCategories_${context}`);
+    });
+    
+    console.log('🗑️ User data and all category mappings cleared');
   }
 
   // ==================== TRANSACTIONS ====================
@@ -431,7 +442,16 @@ class DataManager {
       localStorage.removeItem(STORAGE_KEYS.GIFT_DATA);
       localStorage.removeItem(STORAGE_KEYS.NET_WORTH_ITEMS);
       localStorage.removeItem(STORAGE_KEYS.NET_WORTH_HISTORY);
+      localStorage.removeItem(STORAGE_KEYS.MERCHANT_MAPPINGS);
+      localStorage.removeItem(STORAGE_KEYS.CATEGORY_MAPPINGS);
       localStorage.removeItem(STORAGE_KEYS.APP_VERSION);
+      
+      // Clear dynamic custom category keys
+      const contexts = ['expenses', 'savings', 'income', 'assets', 'liabilities'];
+      contexts.forEach(context => {
+        localStorage.removeItem(`customCategories_${context}`);
+      });
+      
       console.log('🗑️ All application data cleared');
       return true;
     } catch (error) {
