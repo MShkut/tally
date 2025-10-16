@@ -5,7 +5,7 @@ import { useTheme } from 'contexts/ThemeContext';
 import { ConfirmationModal } from 'components/shared/FormComponents';
 import { handleMenuAction, getMenuItems, isCurrentPage } from 'utils/navigationHandler';
 
-export const BurgerMenu = ({ isOpen, onClose, onAction, currentPage = 'dashboard' }) => {
+export const BurgerMenu = ({ isOpen, onClose, onAction, currentPage = 'dashboard', onLogout }) => {
   const { isDarkMode } = useTheme();
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
@@ -42,6 +42,13 @@ export const BurgerMenu = ({ isOpen, onClose, onAction, currentPage = 'dashboard
   };
 
   const handleMenuItemClick = (actionId) => {
+    // Handle logout specially
+    if (actionId === 'logout' && onLogout) {
+      onClose();
+      onLogout();
+      return;
+    }
+
     // Use universal navigation handler
     handleMenuAction(actionId, onAction, onClose, setShowResetConfirm);
   };

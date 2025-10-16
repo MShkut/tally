@@ -1,0 +1,15 @@
+{
+  "name": "tally-api",
+  "version": "1.0.0",
+  "description": "Simple API server for Tally budget app",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

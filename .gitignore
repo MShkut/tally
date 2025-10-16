@@ -8,6 +8,9 @@ frontend/package-lock.json
 frontend/scripts
 frontend/backups
 
+# Docker artifacts
+docker/node_modules/
+
 # IDE/Editor files
 .vscode/
 .idea/
@@ -32,3 +35,6 @@ yarn-debug.log*
 # Claude Code working files
 CLAUDE.md
 CURRENT-TASK.md
+
+# Examples directory (not pushed to main repo)
+examples/
