@@ -66,7 +66,7 @@ export const handleMenuAction = (actionId, onNavigate, onClose, setShowResetConf
     case 'export':
       handleDataExport();
       return true;
-      
+
     case 'reset-data':
       if (setShowResetConfirm) {
         // If component has reset confirmation modal, show it
@@ -78,6 +78,12 @@ export const handleMenuAction = (actionId, onNavigate, onClose, setShowResetConf
         }
       }
       return true;
+
+    // Auth actions
+    case 'logout':
+      // This will be handled by the component that has access to the onLogout handler
+      // We return false to signal this needs to be handled externally
+      return 'logout';
 
     // Unhandled actions
     default:
@@ -172,6 +178,7 @@ export const getMenuItems = () => {
 
   const settingsItems = [
     { id: 'export', label: 'Export Data' },
+    { id: 'logout', label: 'Logout' },
     { id: 'reset-data', label: 'Reset All Data', danger: true }
   ];
 

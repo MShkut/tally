@@ -17,7 +17,7 @@ import { BudgetPerformanceSection, calculateBudgetPerformance, calculateNetWorth
 import { DashboardViewSelector, generateAvailableMonths } from 'components/overview/dashboard/DashboardViewSelector';
 import { handleMenuAction } from 'utils/navigationHandler';
 
-export const Dashboard = ({ onNavigate }) => {
+export const Dashboard = ({ onNavigate, onLogout }) => {
   const { isDarkMode } = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
   const [onboardingData, setOnboardingData] = useState(null);
@@ -130,11 +130,12 @@ export const Dashboard = ({ onNavigate }) => {
 
   return (
     <>
-      <BurgerMenu 
-        isOpen={menuOpen} 
+      <BurgerMenu
+        isOpen={menuOpen}
         onClose={() => setMenuOpen(false)}
         onAction={handleMenuActionWrapper}
         currentPage="dashboard"
+        onLogout={onLogout}
       />
       
       <div className={`min-h-screen transition-colors duration-300 ${

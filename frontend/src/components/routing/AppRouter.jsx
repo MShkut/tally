@@ -51,20 +51,20 @@ const ProtectedRoute = ({ children }) => {
 };
 
 // Main Router Component
-export const AppRouter = () => {
+export const AppRouter = ({ onLogout }) => {
   return (
     <BrowserRouter>
       <Routes>
         {/* Onboarding Route */}
         <Route path="/onboarding" element={<OnboardingRoute />} />
-        
+
         {/* Protected Routes with household name */}
         <Route path="/:household/*" element={
           <ProtectedRoute>
-            <HouseholdRoutes />
+            <HouseholdRoutes onLogout={onLogout} />
           </ProtectedRoute>
         } />
-        
+
         {/* Default redirect */}
         <Route path="/" element={<DefaultRedirect />} />
       </Routes>
@@ -85,21 +85,21 @@ const OnboardingRoute = () => {
 };
 
 // Household-specific routes
-const HouseholdRoutes = () => {
+const HouseholdRoutes = ({ onLogout }) => {
   const navigate = useNavigate();
   const { household } = useParams();
-  
+
   const handleNavigate = (view) => {
     navigate(`/${household}/${view}`);
   };
-  
+
   return (
     <Routes>
-      <Route path="dashboard" element={<Dashboard onNavigate={handleNavigate} />} />
-      <Route path="networth" element={<NetWorthDashboard onNavigate={handleNavigate} />} />
-      <Route path="import" element={<TransactionImport onNavigate={handleNavigate} />} />
-      <Route path="alltransactions" element={<AllTransactions onNavigate={handleNavigate} />} />
-      <Route path="gifts" element={<GiftManagement onNavigate={handleNavigate} />} />
+      <Route path="dashboard" element={<Dashboard onNavigate={handleNavigate} onLogout={onLogout} />} />
+      <Route path="networth" element={<NetWorthDashboard onNavigate={handleNavigate} onLogout={onLogout} />} />
+      <Route path="import" element={<TransactionImport onNavigate={handleNavigate} onLogout={onLogout} />} />
+      <Route path="alltransactions" element={<AllTransactions onNavigate={handleNavigate} onLogout={onLogout} />} />
+      <Route path="gifts" element={<GiftManagement onNavigate={handleNavigate} onLogout={onLogout} />} />
       <Route path="edit-income" element={
         <EditWrapper 
           editType="income"

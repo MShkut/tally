@@ -1,5 +1,7 @@
 // frontend/src/utils/dataManager.js
-// Data Manager - Handle localStorage persistence with enhanced net worth tracking
+// Data Manager - Handle localStorage or container API persistence
+
+import { ContainerStorage } from './containerStorage';
 
 const STORAGE_KEYS = {
   USER_DATA: 'financeTracker_userData',
@@ -15,18 +17,86 @@ const STORAGE_KEYS = {
 class DataManager {
   constructor() {
     this.currentVersion = '1.0.0';
+    this.containerMode = false;
+    this.containerData = null;
     this.initializeStorage();
   }
 
-  initializeStorage() {
-    // Check if we need to migrate data format
-    const savedVersion = localStorage.getItem(STORAGE_KEYS.APP_VERSION);
-    if (!savedVersion) {
-      localStorage.setItem(STORAGE_KEYS.APP_VERSION, this.currentVersion);
+  async initializeStorage() {
+    // Check if we're running in container mode
+    await this.detectContainerMode();
+
+    if (this.containerMode) {
+      console.log('🐳 Running in container mode - data will load after authentication');
+      // Initialize empty container data - will be loaded after login
+      this.containerData = {
+        userData: {},
+        transactions: [],
+        netWorthItems: [],
+        giftData: { people: [], gifts: [] },
+        version: this.currentVersion
+      };
+    } else {
+      console.log('💾 Running in localStorage mode');
+      // Check if we need to migrate data format
+      const savedVersion = localStorage.getItem(STORAGE_KEYS.APP_VERSION);
+      if (!savedVersion) {
+        localStorage.setItem(STORAGE_KEYS.APP_VERSION, this.currentVersion);
+      }
+
+      // Migrate old net worth data to new format if needed
+      this.migrateNetWorthData();
     }
-    
-    // Migrate old net worth data to new format if needed
-    this.migrateNetWorthData();
+  }
+
+  async detectContainerMode() {
+    try {
+      const isHealthy = await ContainerStorage.healthCheck();
+      this.containerMode = isHealthy;
+    } catch (error) {
+      this.containerMode = false;
+    }
+  }
+
+  async loadFromContainer() {
+    if (!this.containerMode) {
+      console.log('Not in container mode, skipping container data load');
+      return;
+    }
+
+    try {
+      this.containerData = await ContainerStorage.loadBudgetData();
+      console.log('📦 Loaded data from container:', this.containerData);
+    } catch (error) {
+      console.error('Failed to load from container:', error);
+      this.containerData = {
+        userData: {},
+        transactions: [],
+        netWorthItems: [],
+        giftData: { people: [], gifts: [] },
+        version: this.currentVersion
+      };
+    }
+  }
+
+  // Method to be called after authentication
+  async syncFromContainer() {
+    if (this.containerMode) {
+      console.log('🔄 Syncing data from container after authentication...');
+      await this.loadFromContainer();
+    }
+  }
+
+  async saveToContainer() {
+    if (!this.containerMode) return;
+
+    try {
+      await ContainerStorage.saveBudgetData(this.containerData);
+      console.log('💾 Saved data to container');
+    } catch (error) {
+      console.error('Failed to save to container:', error);
+      throw error;
+    }
   }
 
   migrateNetWorthData() {
@@ -84,15 +154,22 @@ class DataManager {
   }
 
   // ==================== USER DATA ====================
-  
-  saveUserData(data) {
+
+  async saveUserData(data) {
     try {
       const userData = {
         ...data,
         lastUpdated: new Date().toISOString(),
         version: this.currentVersion
       };
-      localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(userData));
+
+      if (this.containerMode) {
+        this.containerData.userData = userData;
+        await this.saveToContainer();
+      } else {
+        localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(userData));
+      }
+
       console.log('💾 User data saved:', userData);
       return true;
     } catch (error) {
@@ -103,9 +180,13 @@ class DataManager {
 
   loadUserData() {
     try {
+      if (this.containerMode) {
+        return this.containerData?.userData || null;
+      }
+
       const savedData = localStorage.getItem(STORAGE_KEYS.USER_DATA);
       if (!savedData) return null;
-      
+
       const userData = JSON.parse(savedData);
       console.log('📖 User data loaded:', userData);
       return userData;
@@ -131,14 +212,20 @@ class DataManager {
 
   // ==================== TRANSACTIONS ====================
 
-  saveTransactions(transactions) {
+  async saveTransactions(transactions) {
     try {
-      const transactionData = {
-        transactions,
-        lastUpdated: new Date().toISOString(),
-        count: transactions.length
-      };
-      localStorage.setItem(STORAGE_KEYS.TRANSACTIONS, JSON.stringify(transactionData));
+      if (this.containerMode) {
+        this.containerData.transactions = transactions;
+        await this.saveToContainer();
+      } else {
+        const transactionData = {
+          transactions,
+          lastUpdated: new Date().toISOString(),
+          count: transactions.length
+        };
+        localStorage.setItem(STORAGE_KEYS.TRANSACTIONS, JSON.stringify(transactionData));
+      }
+
       console.log(`💾 ${transactions.length} transactions saved`);
       return true;
     } catch (error) {
@@ -149,9 +236,13 @@ class DataManager {
 
   loadTransactions() {
     try {
+      if (this.containerMode) {
+        return this.containerData?.transactions || [];
+      }
+
       const savedData = localStorage.getItem(STORAGE_KEYS.TRANSACTIONS);
       if (!savedData) return [];
-      
+
       const transactionData = JSON.parse(savedData);
       console.log(`📖 ${transactionData.count || 0} transactions loaded`);
       return transactionData.transactions || [];
@@ -215,6 +306,10 @@ class DataManager {
 
   loadNetWorthItems() {
     try {
+      if (this.containerMode) {
+        return this.containerData?.netWorthItems || [];
+      }
+
       const savedData = localStorage.getItem(STORAGE_KEYS.NET_WORTH_ITEMS);
       if (!savedData) return [];
       return JSON.parse(savedData);
@@ -224,10 +319,16 @@ class DataManager {
     }
   }
 
-  saveNetWorthItems(items) {
+  async saveNetWorthItems(items) {
     try {
-      localStorage.setItem(STORAGE_KEYS.NET_WORTH_ITEMS, JSON.stringify(items));
-      this.updateNetWorthHistory();
+      if (this.containerMode) {
+        this.containerData.netWorthItems = items;
+        await this.saveToContainer();
+      } else {
+        localStorage.setItem(STORAGE_KEYS.NET_WORTH_ITEMS, JSON.stringify(items));
+      }
+
+      await this.updateNetWorthHistory();
       return true;
     } catch (error) {
       console.error('❌ Failed to save net worth items:', error);
@@ -296,6 +397,10 @@ class DataManager {
 
   loadNetWorthHistory() {
     try {
+      if (this.containerMode) {
+        return this.containerData?.netWorthHistory || [];
+      }
+
       const savedData = localStorage.getItem(STORAGE_KEYS.NET_WORTH_HISTORY);
       if (!savedData) return [];
       return JSON.parse(savedData);
@@ -305,20 +410,20 @@ class DataManager {
     }
   }
 
-  updateNetWorthHistory() {
+  async updateNetWorthHistory() {
     const items = this.loadNetWorthItems();
     const history = this.loadNetWorthHistory();
-    
+
     const totalAssets = items
       .filter(item => item.type === 'asset')
       .reduce((sum, asset) => sum + asset.currentValue, 0);
-    
+
     const totalLiabilities = items
       .filter(item => item.type === 'liability')
       .reduce((sum, liability) => sum + liability.currentValue, 0);
-    
+
     const netWorth = totalAssets - totalLiabilities;
-    
+
     const historyEntry = {
       date: new Date().toISOString(),
       totalAssets,
@@ -326,28 +431,40 @@ class DataManager {
       netWorth,
       itemCount: items.length
     };
-    
+
     // Add to history
     const updatedHistory = [...history, historyEntry];
-    
+
     // Keep last 1000 entries (about 3 years of daily updates)
     if (updatedHistory.length > 1000) {
       updatedHistory.shift();
     }
-    
-    localStorage.setItem(STORAGE_KEYS.NET_WORTH_HISTORY, JSON.stringify(updatedHistory));
+
+    if (this.containerMode) {
+      this.containerData.netWorthHistory = updatedHistory;
+      await this.saveToContainer();
+    } else {
+      localStorage.setItem(STORAGE_KEYS.NET_WORTH_HISTORY, JSON.stringify(updatedHistory));
+    }
   }
 
   // ==================== GIFT DATA ====================
 
-  saveGiftData(data) {
+  async saveGiftData(data) {
     try {
       const giftData = {
         ...data,
         lastUpdated: new Date().toISOString(),
         version: this.currentVersion
       };
-      localStorage.setItem(STORAGE_KEYS.GIFT_DATA, JSON.stringify(giftData));
+
+      if (this.containerMode) {
+        this.containerData.giftData = giftData;
+        await this.saveToContainer();
+      } else {
+        localStorage.setItem(STORAGE_KEYS.GIFT_DATA, JSON.stringify(giftData));
+      }
+
       console.log('💾 Gift data saved:', giftData);
       return true;
     } catch (error) {
@@ -358,9 +475,13 @@ class DataManager {
 
   loadGiftData() {
     try {
+      if (this.containerMode) {
+        return this.containerData?.giftData || null;
+      }
+
       const savedData = localStorage.getItem(STORAGE_KEYS.GIFT_DATA);
       if (!savedData) return null;
-      
+
       const giftData = JSON.parse(savedData);
       console.log('📖 Gift data loaded:', giftData);
       return giftData;
