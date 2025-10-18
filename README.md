@@ -62,15 +62,13 @@ make stop       # Stop container
 ### Option 3: Local Development
 
 ```bash
-# Backend (Rust - minimal, mostly placeholder)
-cd backend
-cargo run       # Runs on http://localhost:8080
-
-# Frontend (where everything actually happens)
+# Frontend only (all logic is here)
 cd frontend
 npm install
 npm run dev     # Runs on http://localhost:3000
 ```
+
+Note: In local dev mode, data is stored in browser localStorage only.
 
 ## Design Philosophy
 
@@ -90,9 +88,9 @@ Trying to make budget tracking feel less like a chore and more like reading some
 - Browser localStorage (fallback mode)
 
 **Backend:**
-- Rust + Warp (minimal, mostly a placeholder)
-- Node.js API (for Docker/Start9 mode)
+- Node.js API (Docker/Start9 container mode)
 - Docker + nginx (production deployment)
+- No backend in local dev mode (localStorage only)
 
 **Deployment:**
 - Start9 OS package (.s9pk)
@@ -102,7 +100,7 @@ Trying to make budget tracking feel less like a chore and more like reading some
 ## Project Structure
 
 ```
-├── frontend/          # React app (where all the logic lives)
+├── frontend/          # React app (all application logic)
 │   ├── src/components/
 │   │   ├── setup/              # Onboarding flow
 │   │   ├── overview/           # Dashboard & net worth pages
@@ -110,7 +108,6 @@ Trying to make budget tracking feel less like a chore and more like reading some
 │   │   ├── shared/             # Reusable components
 │   │   └── routing/            # Router config
 │   └── src/utils/              # All the helper functions
-├── backend/           # Rust server (placeholder for now)
 ├── docker/            # Docker containerization
 │   ├── Dockerfile
 │   ├── server.js      # Node.js API for container mode
@@ -154,7 +151,6 @@ Trying to make budget tracking feel less like a chore and more like reading some
 
 **What I'm Ignoring (Low Priority):**
 - Tests (yeah, I know...)
-- Backend is basically unused (everything happens in frontend)
 - Better icon for Start9 (currently just a blue square with "T")
 - Documentation beyond README files
 
