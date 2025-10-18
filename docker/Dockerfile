@@ -37,6 +37,11 @@ COPY docker/package.json /app/api/
 COPY docker/start.sh /start.sh
 RUN chmod +x /start.sh
 
+# Copy Start9 scripts (backup, restore, health-check)
+COPY startos/health-check.sh /health-check.sh
+COPY startos/scripts/ /scripts/
+RUN chmod +x /health-check.sh /scripts/backup/*.sh
+
 # Create data directory for budget files
 RUN mkdir -p /data
 

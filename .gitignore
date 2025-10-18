@@ -11,6 +11,10 @@ frontend/backups
 # Docker artifacts
 docker/node_modules/
 
+# Start9 build artifacts
+startos/docker-images/
+startos/*.s9pk
+
 # IDE/Editor files
 .vscode/
 .idea/
