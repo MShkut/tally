@@ -1,146 +1,182 @@
-# Tally🚧
+# Tally
 
-> **⚠️ Experimental Project**: This is a work-in-progress personal finance app that I'm building for fun and to learn new technologies. It's very much "vibe coded" - expect rough edges, incomplete features, and things that might break. Don't use this for your actual finances yet!
+> **Beta Software**: This is a privacy-first household budget tracker I'm building to actually use. It's beta 0.0.1 - it runs on Start9 OS and Docker, but the math is still wonky and there's a ton of polish work ahead. Don't trust it with your financial decisions yet.
 
-A privacy-first personal finance app that keeps all your data local. Built with React, Rust, and a lot of caffeine.
+A household budget app that runs entirely on your own hardware. No cloud, no tracking, no subscriptions.
 
-## 🎯 What I'm Building
+## What This Is
 
-The idea is simple: a finance tracker that doesn't send your data anywhere. Everything stays on your device. No accounts, no cloud, no tracking.
+Simple: track your household budget without sending your financial data to some random company's servers. Everything stays local - either in your browser or on your Start9 server.
 
-**Current vibe:**
-- ✅ Basic onboarding flow (mostly works)
-- ✅ CSV import with auto-categorization (surprisingly decent)
-- ✅ Dark/light themes (because why not)
-- ✅ Transaction splitting (for when Amazon orders get weird)
-- 🚧 Dashboard (exists but needs love)
-- 🚧 Budget tracking (half-baked)
-- ❌ Mobile app (maybe someday)
-- ❌ Proper error handling (who needs that?)
+**What's actually working (beta 0.0.1):**
+- Runs on Start9 OS (tested on real hardware!)
+- Docker container deployment (nginx + Node.js API)
+- Password authentication (shared household password)
+- Data persistence via Docker volumes
+- CSV import with auto-categorization
+- Transaction review and editing
+- Onboarding flow for household setup
+- Dark/light themes
+- Net worth tracking
+- Gift budget management
+- LAN and Tor access
 
-## 🚀 Try It Out (If You're Brave)
+**What's broken/incomplete:**
+- **Budget math is wrong** - calculations need serious work
+- **Period rollover doesn't work** - monthly transitions are broken
+- **Transaction categorization** - auto-categorization is hit or miss
+- **Mobile UI** - works but needs responsive fixes
+- **Error handling** - exists but isn't great
+- **Tests** - yeah, I know...
+- **Password recovery** - lose it and you're starting over
 
-### You'll Need
-- [Node.js](https://nodejs.org/) (v18+)
-- [Rust](https://rustup.rs/) (latest)
-- A sense of adventure
+## Running This Thing
 
-### Getting Started
+### Option 1: Start9 OS (Recommended)
+
+If you have a Start9 server:
+
 ```bash
-# Clone this experiment
-git clone https://github.com/yourusername/personal-finance-tracker.git
-cd personal-finance-tracker
+# Build the package
+cd startos
+make install           # Builds Docker image
+start-sdk pack .       # Creates .s9pk package
 
-# Start the Rust backend
+# Then sideload tally-budget.s9pk through your Start9 web UI
+```
+
+See `startos/INSTALL-GUIDE.md` for detailed instructions.
+
+### Option 2: Docker (Quick Testing)
+
+```bash
+# Build and run the container
+make build      # Build Docker image
+make run        # Start container on http://localhost:8080
+make logs       # View logs
+make stop       # Stop container
+
+# Data persists in Docker volume 'tally-data'
+```
+
+### Option 3: Local Development
+
+```bash
+# Backend (Rust - minimal, mostly placeholder)
 cd backend
-cargo run
-# Should start on http://localhost:8080
+cargo run       # Runs on http://localhost:8080
 
-# Start the React frontend
+# Frontend (where everything actually happens)
 cd frontend
 npm install
-npm run dev
-# Should start on http://localhost:3000
+npm run dev     # Runs on http://localhost:3000
 ```
 
-Cross your fingers and navigate to `http://localhost:3000`
+## Design Philosophy
 
-## 🎨 Design Philosophy (Pretentious Section)
-
-I'm going for an "editorial" look - think fancy magazine rather than typical SaaS app:
-- Big, light typography
+Going for an "editorial" look - like a well-designed magazine instead of typical finance app UI:
+- Big, readable typography
 - Lots of whitespace
-- No unnecessary colors or decorations
-- Clean, minimal interactions
+- Minimal colors and decoration
+- Clean interactions
 
-Basically trying to make budgeting feel less like a chore and more like reading a well-designed publication.
+Trying to make budget tracking feel less like a chore and more like reading something actually pleasant.
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 **Frontend:**
-- React 19 (because I like living dangerously)
-- Tailwind CSS (for rapid prototyping)
-- Vite (fast refresh is addictive)
+- React 19 + Vite
+- Tailwind CSS (editorial theme)
+- Browser localStorage (fallback mode)
 
 **Backend:**
-- Rust + Warp (learning Rust one compile error at a time)
-- Local file storage (keeping it simple)
+- Rust + Warp (minimal, mostly a placeholder)
+- Node.js API (for Docker/Start9 mode)
+- Docker + nginx (production deployment)
 
-## 📁 Project Structure
+**Deployment:**
+- Start9 OS package (.s9pk)
+- Docker containerization
+- Data persistence via volumes
+
+## Project Structure
+
 ```
-├── backend/           # Rust server (handles CSV processing)
-├── frontend/          # React app (where the magic happens)
-│   ├── src/components/    # UI components
-│   ├── src/hooks/         # Custom React hooks
-│   └── src/utils/         # Helper functions
-└── README.md          # You are here
+├── frontend/          # React app (where all the logic lives)
+│   ├── src/components/
+│   │   ├── setup/              # Onboarding flow
+│   │   ├── overview/           # Dashboard & net worth pages
+│   │   ├── actions/            # Import, gifts, planning
+│   │   ├── shared/             # Reusable components
+│   │   └── routing/            # Router config
+│   └── src/utils/              # All the helper functions
+├── backend/           # Rust server (placeholder for now)
+├── docker/            # Docker containerization
+│   ├── Dockerfile
+│   ├── server.js      # Node.js API for container mode
+│   ├── nginx.conf
+│   └── start.sh       # Container startup
+├── startos/           # Start9 OS package
+│   ├── manifest.yaml
+│   ├── Makefile
+│   └── (scripts and docs)
+└── Makefile           # Root-level Docker commands
 ```
 
-## 🎯 Current Status
+## Current Status (Beta 0.0.1)
+
+**Deployment:** Working on Start9 OS and Docker
 
 **What Actually Works:**
-- Onboarding flow (surprisingly smooth)
-- CSV import with decent auto-categorization
-- Transaction review and editing
-- Theme switching
-- Basic dashboard layout
+- Complete onboarding flow
+- CSV transaction import
+- Transaction categorization (needs improvement)
+- Net worth tracking (assets + liabilities)
+- Gift budget management
+- Theme switching (dark/light)
+- Password authentication
+- Data persistence across restarts
+- Multi-user shared household budget
 
-**What's Broken/Missing:**
-- Proper error handling
-- Data persistence (reloads reset everything)
-- Mobile responsiveness (desktop first, oops)
-- Tests (I know, I know...)
-- Documentation (this README is it)
+**What's Broken (High Priority):**
+1. **Budget calculations** - The math is wrong, needs complete review
+2. **Period transitions** - Monthly/period rollovers don't work properly
+3. **Transaction totals** - Categorization math doesn't add up correctly
+4. **Auto-categorization** - Suggestion logic needs improvement
+5. **UI consistency** - Needs polish across the board
 
-**What I'm Working On:**
-- Making the dashboard actually useful
-- Better transaction categorization
-- Debt tracking features
-- Not breaking things when I add new features
+**What's Missing (Medium Priority):**
+- Proper error messages
+- Mobile responsiveness (works but needs polish)
+- Data validation on CSV import
+- Better health check reporting for Start9
+- Password change mechanism in UI
 
-## 🤷‍♂️ Why Build This?
+**What I'm Ignoring (Low Priority):**
+- Tests (yeah, I know...)
+- Backend is basically unused (everything happens in frontend)
+- Better icon for Start9 (currently just a blue square with "T")
+- Documentation beyond README files
 
-Good question! Mostly because:
-1. I wanted to learn Rust
-2. Existing finance apps either suck or steal your data
-3. I enjoy the pain of building complex UIs
-4. Someone on Twitter said it couldn't be done (kidding)
+## Disclaimers
 
-## 🚨 Disclaimers
+- **Beta software** - it runs, but the math is wrong
+- **Household budget** - designed for shared use, not individual accounts
+- **Start9 or Docker only** - browser localStorage mode is just for development
+- **No cloud sync** - data lives on your hardware, nowhere else
+- **Shared password** - everyone in your household uses the same password
+- **Clear data = game over** - no password recovery, no data recovery (use Start9 backups!)
 
-- **Don't use this for real finances yet** - it's not ready
-- **Expect bugs** - there are definitely bugs
-- **Things will change** - I'm still figuring out what this should be
-- **No warranty** - if this breaks something, that's on you
-- **Local storage only** - clear your browser data and poof, it's gone
+## License
 
-## 🤝 Contributing
-
-If you want to help with this experiment:
-1. Fork it
-2. Make it better
-3. Send a PR
-4. Hope I don't break your changes
-
-No formal process yet - we're keeping it casual.
-
-## 📝 License
-
-MIT License - do whatever you want with this code. See [LICENSE](LICENSE) for the legal stuff.
-
-## 🙏 Inspiration
-
-- Built because existing finance apps are either terrible or invasive
-- Design inspired by good magazines and editorial layouts
-- Privacy approach inspired by the self-sovereign movement
-- Code quality inspired by "good enough to ship"
+MIT License - do whatever you want. See [LICENSE](LICENSE).
 
 ---
 
-**Current mood:** Cautiously optimistic that this might actually become useful someday.
+**Current status:** Running on Start9 OS, but needs math fixes before I trust it with actual budgeting.
 
-**Last updated:** When I remembered to update this README (probably weeks ago).
+**Next phase:** Code cleanup and fixing all the broken calculations.
 
 ---
 
-*Want to follow along with this experiment? Star the repo or something. No pressure though.*
+*Running this on Start9? Let me know what breaks. Github issues welcome.*
