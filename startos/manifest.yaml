@@ -1,0 +1,117 @@
+id: tally-budget
+title: Tally Budget
+version: 0.0.1
+description:
+  short: Privacy-first household budget tracker running on your Start9 server
+  long: |
+    Privacy-first household budget tracker that runs entirely on your Start9 server.
+    Track income, expenses, net worth, and manage your household budget with complete data ownership.
+
+    Features:
+    - CSV transaction import from your bank
+    - Budget tracking by category
+    - Net worth monitoring (assets and liabilities)
+    - Gift budget management
+    - All data stays on your server - complete privacy
+release-notes: |
+  Beta 0.0.1 - Initial working release
+  - Docker container implementation with nginx + Node.js API
+  - Password authentication and session management
+  - Data persistence via Docker volumes
+  - CSV transaction import
+  - Budget tracking and net worth management
+  - Successfully deployed to Start9 OS
+  - Note: Math calculations and UI polish still in progress
+license: MIT
+wrapper-repo: https://github.com/MShkut/tally
+upstream-repo: https://github.com/MShkut/tally
+support-site: https://github.com/MShkut/tally/issues
+marketing-site: https://github.com/MShkut/tally
+donation-url: null
+
+build: ["make"]
+os:
+  version: ">=0.3.0"
+  type: debian
+
+assets:
+  license: LICENSE
+  instructions: INSTRUCTIONS.md
+
+main:
+  type: docker
+  image: main
+  system: false
+  entrypoint: /start.sh
+  args: []
+  mounts:
+    main: /data
+
+health-checks:
+  web-ui:
+    name: Web Interface
+    success-message: Tally is accessible
+    type: docker
+    image: main
+    system: false
+    entrypoint: /health-check.sh
+    args: []
+    io-format: json
+
+config: ~
+
+properties: ~
+
+volumes:
+  main:
+    type: data
+
+interfaces:
+  main:
+    name: Web Interface
+    description: Main web interface for Tally Budget
+    ui: true
+    protocols:
+      - tcp
+      - http
+    lan-config:
+      443:
+        ssl: true
+        internal: 8080
+    tor-config:
+      port-mapping:
+        80: "8080"
+
+dependencies: {}
+
+backup:
+  create:
+    type: docker
+    image: compat
+    system: true
+    entrypoint: dup
+    args:
+      - duplicity
+      - create
+      - /mnt/backup
+      - /data
+    mounts:
+      BACKUP: /mnt/backup
+      main: /data
+  restore:
+    type: docker
+    image: compat
+    system: true
+    entrypoint: dup
+    args:
+      - duplicity
+      - restore
+      - /mnt/backup
+      - /data
+    mounts:
+      BACKUP: /mnt/backup
+      main: /data
+
+migrations:
+  from: {}
+  to: {}
