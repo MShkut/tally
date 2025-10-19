@@ -87,7 +87,9 @@ export const handleMenuAction = (actionId, onNavigate, onClose, setShowResetConf
 
     // Unhandled actions
     default:
-      console.warn(`Navigation action '${actionId}' not implemented`);
+      if (import.meta.env.DEV) {
+        console.warn(`Navigation action '${actionId}' not implemented`);
+      }
       return false;
   }
 };
@@ -116,8 +118,10 @@ const handleDataExport = () => {
     
     // Clean up
     URL.revokeObjectURL(url);
-    
-    console.log('✅ Data exported successfully');
+
+    if (import.meta.env.DEV) {
+      console.log('✅ Data exported successfully');
+    }
   } catch (error) {
     console.error('❌ Failed to export data:', error);
     alert('Failed to export data. Please try again.');
@@ -130,8 +134,10 @@ const handleDataExport = () => {
 const handleDataReset = (onNavigate) => {
   try {
     dataManager.resetAllData();
-    console.log('✅ All data reset successfully');
-    
+    if (import.meta.env.DEV) {
+      console.log('✅ All data reset successfully');
+    }
+
     // Force reload to ensure clean state
     window.location.reload();
   } catch (error) {

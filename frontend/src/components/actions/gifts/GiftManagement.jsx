@@ -2,9 +2,10 @@
 import React, { useState, useEffect } from 'react';
 
 import { useTheme } from 'contexts/ThemeContext';
+import { useGifts } from 'hooks/useGifts';
 import { ThemeToggle } from 'components/shared/ThemeToggle';
 import { Currency } from 'utils/currency';
-import { 
+import {
   FormSection,
   StandardFormLayout,
   SummaryCard,
@@ -25,27 +26,31 @@ export const GiftManagement = ({ onNavigate }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [view, setView] = useState('overview'); // 'overview', 'import', 'edit-person', 'add-person'
   const [giftBudget, setGiftBudget] = useState(0);
-  const [people, setPeople] = useState([]);
   const [selectedPerson, setSelectedPerson] = useState(null);
   const [onboardingData, setOnboardingData] = useState(null);
+
+  // Use gifts hook for data management
+  const {
+    people,
+    isLoading,
+    error,
+    addPerson,
+    updatePerson,
+    deletePerson,
+    getBudgetSummary
+  } = useGifts();
 
   useEffect(() => {
     // Load saved data
     const userData = dataManager.loadUserData();
-    const giftData = dataManager.loadGiftData();
-    
+
     setOnboardingData(userData);
-    
+
     // Check if gifts category exists and has budget
     const giftCategory = userData?.expenses?.expenseCategories?.find(
       cat => cat.name.toLowerCase() === 'gifts'
     );
     setGiftBudget(parseFloat(giftCategory?.amount) || 0);
-    
-    // Load people and occasions
-    if (giftData) {
-      setPeople(giftData.people || []);
-    }
   }, []);
 
   const handleMenuActionWrapper = (actionId) => {
@@ -53,30 +58,20 @@ export const GiftManagement = ({ onNavigate }) => {
   };
 
   const handleContactsImported = (importedContacts) => {
-    // Merge with existing people
-    const newPeople = importedContacts.map(contact => ({
-      id: `person-${Date.now()}-${Math.random()}`,
-      name: contact.name,
-      relationship: contact.relationship || '',
-      birthday: contact.birthday || null,
-      email: contact.email || '',
-      phone: contact.phone || '',
-      notes: contact.notes || '',
-      applicableHolidays: ['christmas'], // Default holidays
-      budgets: {}, // To be set later
-      createdAt: new Date().toISOString()
-    }));
-    
-    const updatedPeople = [...people, ...newPeople];
-    setPeople(updatedPeople);
-    
-    // Save to localStorage
-    dataManager.saveGiftData({
-      people: updatedPeople,
-      occasions: [],
-      lastUpdated: new Date().toISOString()
+    // Add new people using hook
+    importedContacts.forEach(contact => {
+      addPerson({
+        name: contact.name,
+        relationship: contact.relationship || '',
+        birthday: contact.birthday || null,
+        email: contact.email || '',
+        phone: contact.phone || '',
+        notes: contact.notes || '',
+        applicableHolidays: ['christmas'], // Default holidays
+        budgets: {}, // To be set later
+      });
     });
-    
+
     setView('overview');
   };
 
@@ -86,37 +81,18 @@ export const GiftManagement = ({ onNavigate }) => {
   };
 
   const handleSavePerson = (updatedPerson) => {
-    const updatedPeople = people.map(p => 
-      p.id === updatedPerson.id ? updatedPerson : p
-    );
-    setPeople(updatedPeople);
+    updatePerson(updatedPerson.id, updatedPerson);
     setView('overview');
     setSelectedPerson(null);
   };
 
   const handleAddPersonManually = (newPerson) => {
-    const updatedPeople = [...people, newPerson];
-    setPeople(updatedPeople);
-    
-    // Save to localStorage
-    dataManager.saveGiftData({
-      people: updatedPeople,
-      occasions: [],
-      lastUpdated: new Date().toISOString()
-    });
-    
+    addPerson(newPerson);
     setView('overview');
   };
 
   const handleDeletePerson = (personId) => {
-    const updatedPeople = people.filter(p => p.id !== personId);
-    setPeople(updatedPeople);
-    
-    dataManager.saveGiftData({
-      people: updatedPeople,
-      occasions: [], // TODO: Also filter occasions
-      lastUpdated: new Date().toISOString()
-    });
+    deletePerson(personId);
   };
 
   // Calculate gift budget allocation

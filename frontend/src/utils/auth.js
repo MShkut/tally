@@ -14,15 +14,21 @@ export const Auth = {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Login failed');
+        let errorMessage = 'Login failed';
+        try {
+          const error = await response.json();
+          errorMessage = error.error || errorMessage;
+        } catch (e) {
+          // Response body is not JSON or is empty
+        }
+        throw new Error(errorMessage);
       }
 
       const { token, expires } = await response.json();
-      
+
       localStorage.setItem(TOKEN_KEY, token);
       localStorage.setItem(TOKEN_EXPIRES_KEY, expires.toString());
-      
+
       return { success: true };
     } catch (error) {
       return { success: false, error: error.message };
@@ -41,10 +47,13 @@ export const Auth = {
           },
         });
       } catch (error) {
-        console.warn('Logout request failed:', error);
+        if (import.meta.env.DEV) {
+          console.warn('Logout request failed:', error);
+        }
       }
     }
-    
+
+
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(TOKEN_EXPIRES_KEY);
   },
@@ -67,8 +76,14 @@ export const Auth = {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Password change failed');
+        let errorMessage = 'Password change failed';
+        try {
+          const error = await response.json();
+          errorMessage = error.error || errorMessage;
+        } catch (e) {
+          // Response body is not JSON or is empty
+        }
+        throw new Error(errorMessage);
       }
 
       return await response.json();

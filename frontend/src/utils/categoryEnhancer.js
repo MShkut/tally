@@ -92,7 +92,9 @@ export const loadMerchantMappings = () => {
       return new Map(Object.entries(parsed));
     }
   } catch (error) {
-    console.warn('Failed to load merchant mappings:', error);
+    if (import.meta.env.DEV) {
+      console.warn('Failed to load merchant mappings:', error);
+    }
   }
   return new Map();
 };
@@ -104,7 +106,9 @@ export const saveMerchantMappings = (mappings) => {
     const obj = Object.fromEntries(mappings);
     localStorage.setItem('merchantMappings', JSON.stringify(obj));
   } catch (error) {
-    console.warn('Failed to save merchant mappings:', error);
+    if (import.meta.env.DEV) {
+      console.warn('Failed to save merchant mappings:', error);
+    }
   }
 };
 

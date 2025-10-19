@@ -2,6 +2,7 @@
 import React from 'react';
 
 import { useTheme } from 'contexts/ThemeContext';
+import { Currency } from 'utils/currency';
 
 export const PersonCard = ({ person, onEdit, onDelete }) => {
   const { isDarkMode } = useTheme();
@@ -113,7 +114,7 @@ export const PersonCard = ({ person, onEdit, onDelete }) => {
         <div className={`text-2xl font-light ${
           isDarkMode ? 'text-white' : 'text-black'
         }`}>
-          ${totalBudget.toFixed(0)}
+          {Currency.format(totalBudget, { showCents: false })}
         </div>
       </div>
       

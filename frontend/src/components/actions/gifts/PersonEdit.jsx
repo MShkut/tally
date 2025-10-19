@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 
 import { useTheme } from 'contexts/ThemeContext';
 import { ThemeToggle } from 'components/shared/ThemeToggle';
-import { 
+import {
   FormGrid,
   FormField,
   StandardInput,
@@ -12,6 +12,7 @@ import {
   useItemManager
 } from 'components/shared/FormComponents';
 import { dataManager } from 'utils/dataManager';
+import { Currency } from 'utils/currency';
 
 export const PersonEdit = ({ person, people, onSave, onBack }) => {
   const { isDarkMode } = useTheme();
@@ -236,7 +237,7 @@ export const PersonEdit = ({ person, people, onSave, onBack }) => {
             <div className={`text-3xl font-light ${
               isDarkMode ? 'text-white' : 'text-black'
             }`}>
-              ${getTotalBudget().toFixed(2)}
+              {Currency.format(getTotalBudget())}
             </div>
           </div>
         </FormSection>

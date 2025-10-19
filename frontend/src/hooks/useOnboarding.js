@@ -33,8 +33,6 @@ export const useOnboarding = () => {
   useEffect(() => {
     const savedData = dataManager.loadUserData();
     if (savedData && !savedData.onboardingComplete) {
-      console.log('📖 Loading saved onboarding progress:', savedData);
-      
       // Restore form data
       setFormData(prevData => ({
         ...prevData,

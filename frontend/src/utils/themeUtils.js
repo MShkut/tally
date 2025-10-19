@@ -57,7 +57,9 @@ export const buildClasses = {
 
   // Remove all card styling - violates editorial principles
   card: () => {
-    console.warn('Card components violate editorial design. Use clean sections with borders instead.');
+    if (import.meta.env.DEV) {
+      console.warn('Card components violate editorial design. Use clean sections with borders instead.');
+    }
     return '';
   },
 
@@ -91,7 +93,9 @@ export const buildClasses = {
 
 // NO ACCENT COLORS - This violates editorial design
 export const getAccentStyles = () => {
-  console.warn('Accent colors violate editorial design principles. Use only black/white/gray.');
+  if (import.meta.env.DEV) {
+    console.warn('Accent colors violate editorial design principles. Use only black/white/gray.');
+  }
   return {
     text: () => '',
     background: () => '',
@@ -100,8 +104,10 @@ export const getAccentStyles = () => {
   };
 };
 
-// NO ACCENT HOVER - This violates editorial design  
+// NO ACCENT HOVER - This violates editorial design
 export const createAccentHover = () => {
-  console.warn('Accent colors violate editorial design principles.');
+  if (import.meta.env.DEV) {
+    console.warn('Accent colors violate editorial design principles.');
+  }
   return {};
 };
