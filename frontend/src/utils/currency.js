@@ -344,7 +344,9 @@ export const convertFromYearly = (yearlyAmount, targetFrequency) => {
  * @deprecated Use formatCurrency instead
  */
 export const formatCurrencyLegacy = (amount) => {
-  console.warn('formatCurrencyLegacy is deprecated. Use formatCurrency instead.');
+  if (import.meta.env.DEV) {
+    console.warn('formatCurrencyLegacy is deprecated. Use formatCurrency instead.');
+  }
   return formatCurrency(amount);
 };
 

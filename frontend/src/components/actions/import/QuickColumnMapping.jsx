@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import ArrowRight from 'lucide-react/dist/esm/icons/arrow-right';
 
 import { useTheme } from 'contexts/ThemeContext';
+import { Currency } from 'utils/currency';
 
 export const QuickColumnMapping = ({ csvData, onMappingComplete, onCancel }) => {
   const { isDarkMode } = useTheme();
@@ -97,7 +98,7 @@ export const QuickColumnMapping = ({ csvData, onMappingComplete, onCancel }) => 
               <div key={i} className="flex gap-4">
                 <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>{row[columnMapping.date]}</span>
                 <span className={isDarkMode ? 'text-gray-100' : 'text-gray-900'}>{row[columnMapping.description]}</span>
-                <span className="font-medium">${parseFloat(row[columnMapping.amount]).toFixed(2)}</span>
+                <span className="font-medium">{Currency.format(parseFloat(row[columnMapping.amount]))}</span>
               </div>
             ))}
           </div>

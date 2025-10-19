@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 
 import { useTheme } from 'contexts/ThemeContext';
+import { useNetWorth } from 'hooks/useNetWorth';
 import { dataManager } from 'utils/dataManager';
 import { BurgerMenu } from 'components/shared/BurgerMenu';
 import { 
@@ -16,7 +17,6 @@ import {
 export const NetWorthDashboard = ({ onNavigate }) => {
   const { isDarkMode, toggleTheme } = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [netWorthData, setNetWorthData] = useState(null);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
   const [chartView, setChartView] = useState('all-time'); // 'all-time', 'this-period', 'by-month'
@@ -24,14 +24,18 @@ export const NetWorthDashboard = ({ onNavigate }) => {
   const [showAddLiability, setShowAddLiability] = useState(false);
   const [newItem, setNewItem] = useState({ name: '', value: '' });
 
-  useEffect(() => {
-    loadNetWorthData();
-  }, []);
-
-  const loadNetWorthData = () => {
-    const data = dataManager.loadNetWorthData();
-    setNetWorthData(data);
-  };
+  // Use custom hook for net worth management
+  const {
+    items,
+    isLoading,
+    error,
+    getNetWorthData,
+    getAssets,
+    getLiabilities,
+    addItem,
+    updateItemValue,
+    deleteItem
+  } = useNetWorth();
 
   const handleMenuAction = (actionId) => {
     setMenuOpen(false);
@@ -62,42 +66,30 @@ export const NetWorthDashboard = ({ onNavigate }) => {
         break;
       case 'export':
         const exportData = dataManager.exportData();
-        console.log('Export data:', exportData);
         break;
       case 'reset-data':
         dataManager.resetAllData();
         onNavigate('onboarding');
         break;
       default:
-        console.log(`Action ${actionId} not implemented`);
     }
   };
 
   const handleAddItem = (type) => {
     if (!newItem.name || !newItem.value) return;
-    
+
     const value = parseFloat(newItem.value);
     if (isNaN(value)) return;
 
     const item = {
-      id: `${type}-${Date.now()}`,
       name: newItem.name,
       type: type,
-      currentValue: value,
-      createdAt: new Date().toISOString(),
-      lastUpdated: new Date().toISOString(),
-      history: [{
-        date: new Date().toISOString(),
-        value: value,
-        source: 'manual',
-        note: 'Initial value'
-      }]
+      amount: value
     };
 
-    dataManager.addNetWorthItem(item);
-    loadNetWorthData();
+    addItem(item);
     setNewItem({ name: '', value: '' });
-    
+
     if (type === 'asset') {
       setShowAddAsset(false);
     } else {
@@ -106,8 +98,7 @@ export const NetWorthDashboard = ({ onNavigate }) => {
   };
 
   const handleDeleteItem = (itemId) => {
-    dataManager.deleteNetWorthItem(itemId);
-    loadNetWorthData();
+    deleteItem(itemId);
     setShowDeleteConfirm(null);
   };
 
@@ -118,14 +109,13 @@ export const NetWorthDashboard = ({ onNavigate }) => {
   const handleSaveUpdates = (updates) => {
     Object.entries(updates).forEach(([itemId, newValue]) => {
       if (newValue !== null) {
-        dataManager.updateNetWorthItemValue(itemId, newValue, 'Manual update');
+        updateItemValue(itemId, newValue, 'Manual update');
       }
     });
-    loadNetWorthData();
     setShowUpdateModal(false);
   };
 
-  if (!netWorthData) {
+  if (isLoading) {
     return (
       <div className={`min-h-screen flex items-center justify-center transition-colors duration-300 ${
         isDarkMode ? 'bg-black text-white' : 'bg-gray-50 text-gray-900'
@@ -135,7 +125,14 @@ export const NetWorthDashboard = ({ onNavigate }) => {
     );
   }
 
-  const { assets, liabilities, totalAssets, totalLiabilities, netWorth, history } = netWorthData;
+  const netWorthData = getNetWorthData();
+  const assets = getAssets();
+  const liabilities = getLiabilities();
+  const { totalAssets, totalLiabilities, netWorth } = netWorthData;
+
+  // Get history from dataManager (until we add history tracking to hook)
+  const fullData = dataManager.loadNetWorthData();
+  const history = fullData.history || [];
 
   return (
     <>

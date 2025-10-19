@@ -5,7 +5,7 @@ import { ThemeToggle } from 'components/shared/ThemeToggle';
 import { useTheme } from 'contexts/ThemeContext';
 import { dataManager } from 'utils/dataManager';
 import { Currency } from 'utils/currency';
-import { 
+import {
   FormSection,
   SummaryCard,
   SectionBorder,
@@ -13,29 +13,40 @@ import {
   EmptyState
 } from 'components/shared/FormComponents';
 import { BurgerMenu } from 'components/shared/BurgerMenu';
-import { BudgetPerformanceSection, calculateBudgetPerformance, calculateNetWorthData } from 'components/overview/dashboard/BudgetPerformanceSection';
+import { BudgetPerformanceSection } from 'components/overview/dashboard/BudgetPerformanceSection';
 import { DashboardViewSelector, generateAvailableMonths } from 'components/overview/dashboard/DashboardViewSelector';
 import { handleMenuAction } from 'utils/navigationHandler';
+import { useBudgetMath } from 'hooks/useBudgetMath';
 
 export const Dashboard = ({ onNavigate, onLogout }) => {
   const { isDarkMode } = useTheme();
+  const budgetMath = useBudgetMath();
   const [menuOpen, setMenuOpen] = useState(false);
   const [onboardingData, setOnboardingData] = useState(null);
   const [transactions, setTransactions] = useState([]);
   const [categories, setCategories] = useState([]);
-    
+
   // Global view state
   const [viewMode, setViewMode] = useState('month'); // 'month' or 'period'
   const [selectedMonth, setSelectedMonth] = useState(null); // null = current month
-  
-  // Process data based on current view mode
-  const dashboardData = useMemo(() => 
-    processDashboardData(onboardingData, transactions, viewMode, selectedMonth, categories),
-    [onboardingData, transactions, viewMode, selectedMonth, categories]
+
+  // Process data based on current view mode using budgetMath hook
+  const dashboardData = useMemo(() =>
+    processDashboardData(onboardingData, transactions, viewMode, selectedMonth, categories, budgetMath),
+    [onboardingData, transactions, viewMode, selectedMonth, categories, budgetMath]
   );
-  
-  const performanceData = calculateBudgetPerformance(onboardingData, transactions, viewMode, selectedMonth, categories);
-  const netWorthData = calculateNetWorthData(onboardingData, viewMode);
+
+  // Calculate performance using budgetMath hook
+  const performanceData = budgetMath.calculatePerformanceData(
+    onboardingData,
+    transactions,
+    viewMode,
+    selectedMonth,
+    categories
+  );
+
+  // Calculate net worth
+  const netWorthData = calculateNetWorthData(onboardingData);
   const availableMonths = generateAvailableMonths(onboardingData, transactions);
 
   // Handle menu state changes to prevent layout shift
@@ -393,18 +404,23 @@ const CleanSavingsGoalItem = ({ goal }) => {
   );
 };
 
-// Enhanced data processing function
-function processDashboardData(onboardingData, transactions, viewMode, selectedMonth, categories) {
+// Enhanced data processing function using budgetMath hook
+function processDashboardData(onboardingData, transactions, viewMode, selectedMonth, categories, budgetMath) {
   const household = getPersonalizedDashboardTitle(onboardingData?.household?.name);
   const period = formatPeriodInfo(onboardingData);
-  
-  // Filter transactions based on view mode
-  const filteredTransactions = getFilteredTransactions(transactions, viewMode, selectedMonth, onboardingData);
-  
-  const budgetCategories = processBudgetCategories(onboardingData, filteredTransactions, viewMode, categories);
+
+  // Filter transactions based on view mode using budgetMath
+  const filteredTransactions = budgetMath.filterTransactionsByPeriod(
+    transactions,
+    viewMode,
+    selectedMonth,
+    onboardingData
+  );
+
+  const budgetCategories = processBudgetCategories(filteredTransactions, viewMode, categories, budgetMath, onboardingData);
   const savingsGoals = processSavingsGoals(onboardingData, filteredTransactions, viewMode);
   const netWorth = processNetWorth(onboardingData);
-  const incomeBreakdown = processIncomeBreakdown(onboardingData, filteredTransactions, viewMode);
+  const incomeBreakdown = processIncomeBreakdown(onboardingData, filteredTransactions, viewMode, budgetMath);
 
   return {
     household,
@@ -416,77 +432,24 @@ function processDashboardData(onboardingData, transactions, viewMode, selectedMo
   };
 }
 
-function processIncomeBreakdown(onboardingData, filteredTransactions, viewMode) {
+function processIncomeBreakdown(onboardingData, filteredTransactions, viewMode, budgetMath) {
   const incomeSources = onboardingData?.income?.incomeSources || [];
-  
+
   return incomeSources.map(source => {
-    // Calculate expected income based on view mode and frequency
+    // Calculate expected income using budgetMath (fixes the 4.33/2.17 bug!)
     let expectedAmount = 0;
-    const sourceAmount = parseFloat(source.amount) || 0;
-    
+
     if (viewMode === 'period') {
-      const periodStart = new Date(onboardingData?.period?.start_date || new Date());
-      const now = new Date();
-      const monthsElapsed = Math.max(1, 
-        ((now.getFullYear() - periodStart.getFullYear()) * 12) + 
-        (now.getMonth() - periodStart.getMonth()) + 1
-      );
-      
-      // Convert to yearly based on frequency
-      let yearlyAmount = sourceAmount;
-      switch(source.frequency) {
-        case 'Weekly': yearlyAmount = sourceAmount * 52; break;
-        case 'Bi-weekly': yearlyAmount = sourceAmount * 26; break;
-        case 'Monthly': yearlyAmount = sourceAmount * 12; break;
-        case 'Yearly': yearlyAmount = sourceAmount; break;
-        default: yearlyAmount = sourceAmount * 12;
-      }
-      
-      expectedAmount = (yearlyAmount / 12) * monthsElapsed;
+      const monthsElapsed = budgetMath.calculateMonthsElapsed(onboardingData?.period?.start_date);
+      expectedAmount = budgetMath.calculatePeriodIncome([source], monthsElapsed);
     } else {
-      // Monthly view - convert frequency to monthly
-      switch(source.frequency) {
-        case 'Weekly': expectedAmount = sourceAmount * 4.33; break;
-        case 'Bi-weekly': expectedAmount = sourceAmount * 2.17; break;
-        case 'Monthly': expectedAmount = sourceAmount; break;
-        case 'Yearly': expectedAmount = sourceAmount / 12; break;
-        default: expectedAmount = sourceAmount;
-      }
+      // Monthly view - use correct conversion
+      expectedAmount = budgetMath.calculateMonthlyIncome([source]);
     }
-    
-    // Better income matching from transactions
-    const actualAmount = filteredTransactions
-      .filter(t => {
-        if (t.amount <= 0) return false; // Only positive amounts for income
-        
-        // Match by category
-        if (t.category) {
-          if (typeof t.category === 'string') {
-            return t.category === source.name || 
-                   t.category.toLowerCase() === source.name.toLowerCase();
-          }
-          if (typeof t.category === 'object') {
-            return t.category.name === source.name ||
-                   t.category.name?.toLowerCase() === source.name.toLowerCase();
-          }
-        }
-        
-        // Match by description keywords
-        if (t.description) {
-          const desc = t.description.toLowerCase();
-          const sourceName = source.name.toLowerCase();
-          
-          if (desc.includes(sourceName)) return true;
-          
-          // Common income keywords
-          if (sourceName.includes('salary') && desc.includes('payroll')) return true;
-          if (sourceName.includes('freelance') && (desc.includes('contract') || desc.includes('freelance'))) return true;
-        }
-        
-        return false;
-      })
-      .reduce((sum, t) => sum + t.amount, 0);
-    
+
+    // Calculate actual income from transactions using budgetMath
+    const actualAmount = budgetMath.calculateActualIncome(filteredTransactions, [source]);
+
     return {
       name: source.name,
       expected: expectedAmount,
@@ -495,51 +458,23 @@ function processIncomeBreakdown(onboardingData, filteredTransactions, viewMode) 
   });
 }
 
-function getFilteredTransactions(transactions, viewMode, selectedMonth, onboardingData) {
-  if (viewMode === 'period') {
-    const periodStart = new Date(onboardingData?.period?.start_date || new Date());
-    return transactions.filter(t => {
-      const transactionDate = new Date(t.date);
-      return transactionDate >= periodStart;
-    });
-  } else {
-    let targetMonth, targetYear;
-    
-    if (selectedMonth) {
-      const [year, month] = selectedMonth.split('-').map(Number);
-      targetMonth = month;
-      targetYear = year;
-    } else {
-      const now = new Date();
-      targetMonth = now.getMonth();
-      targetYear = now.getFullYear();
-    }
-    
-    return transactions.filter(t => {
-      const transactionDate = new Date(t.date);
-      return transactionDate.getMonth() === targetMonth && 
-             transactionDate.getFullYear() === targetYear;
-    });
-  }
-}
-
-function processBudgetCategories(onboardingData, filteredTransactions, viewMode, categories) {
+function processBudgetCategories(filteredTransactions, viewMode, categories, budgetMath, onboardingData) {
   return categories
     .filter(category => category.type === 'expense')
     .map(category => {
-      // Calculate spent amount using currency precision
+      // Calculate spent amount using budgetMath
       const spent = filteredTransactions
-        .filter(t => matchesCategory(t, category))
+        .filter(t => budgetMath.matchesCategory(t, [category]))
         .filter(t => Currency.compare(t.amount, 0) < 0)
         .reduce((sum, t) => Currency.add(sum, Currency.abs(t.amount)), 0);
-      
+
       // Adjust budget based on view mode
       let budget = category.amount || 0;
       if (viewMode === 'period') {
-        const monthsElapsed = calculateMonthsElapsed(onboardingData);
+        const monthsElapsed = budgetMath.calculateMonthsElapsed(onboardingData?.period?.start_date);
         budget = Currency.multiply(budget, monthsElapsed);
       }
-      
+
       return {
         name: category.name,
         spent: spent,
@@ -620,28 +555,18 @@ function processNetWorth(onboardingData) {
   };
 }
 
-// Helper functions
-function matchesCategory(transaction, category) {
-  if (!transaction.category || !category) return false;
-  
-  // Handle both string and object categories
-  const transactionCategoryName = typeof transaction.category === 'string' 
-    ? transaction.category 
-    : transaction.category.name;
-  
-  return transactionCategoryName?.toLowerCase() === category.name.toLowerCase();
-}
+// Calculate net worth data with trend
+function calculateNetWorthData(onboardingData) {
+  const netWorthValue = onboardingData?.netWorth?.netWorth || 0;
 
-function calculateMonthsElapsed(onboardingData) {
-  if (!onboardingData?.period?.start_date) return 1;
-  
-  const periodStart = new Date(onboardingData.period.start_date);
-  const now = new Date();
-  
-  return Math.max(1, 
-    ((now.getFullYear() - periodStart.getFullYear()) * 12) + 
-    (now.getMonth() - periodStart.getMonth()) + 1
-  );
+  // For now, we don't have historical data to calculate actual trend
+  // In the future, this could track period-over-period changes
+  const trend = 0; // Placeholder for future implementation
+
+  return {
+    value: netWorthValue,
+    trend: trend
+  };
 }
 
 // Helper function to extract first name and format dashboard title

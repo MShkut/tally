@@ -10,10 +10,23 @@ import { dataManager } from 'utils/dataManager';
 export function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [containerMode, setContainerMode] = useState(false);
 
   useEffect(() => {
     // Check if user is already authenticated
     const checkAuth = async () => {
+      // First, check if we're in container mode
+      const inContainerMode = dataManager.containerMode;
+      setContainerMode(inContainerMode);
+
+      // If not in container mode, skip auth and go straight to app
+      if (!inContainerMode) {
+        setIsAuthenticated(true);
+        setIsCheckingAuth(false);
+        return;
+      }
+
+      // In container mode - check authentication
       const authenticated = Auth.isAuthenticated();
 
       if (authenticated) {
@@ -23,7 +36,6 @@ export function App() {
           setIsAuthenticated(true);
         } catch (error) {
           // Auth token is invalid/expired, need to re-login
-          console.log('Auth token invalid, requiring re-login');
           Auth.logout();
           setIsAuthenticated(false);
         }
@@ -39,9 +51,7 @@ export function App() {
 
   const handleLoginSuccess = async () => {
     // Sync data from container after successful login
-    console.log('🔄 Login successful, syncing data before showing app...');
     await dataManager.syncFromContainer();
-    console.log('✅ Sync complete, showing app');
     setIsAuthenticated(true);
   };
 
@@ -59,8 +69,8 @@ export function App() {
     );
   }
 
-  // Show login screen if not authenticated
-  if (!isAuthenticated) {
+  // Show login screen only if in container mode and not authenticated
+  if (containerMode && !isAuthenticated) {
     return (
       <ThemeProvider>
         <LoginScreen onLoginSuccess={handleLoginSuccess} />

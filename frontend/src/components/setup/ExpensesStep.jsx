@@ -131,7 +131,6 @@ export const ExpensesStep = ({ onNext, onBack, incomeData, savingsData, savedDat
   // Load saved data on mount
   useEffect(() => {
     if (savedData?.expenses?.expenseCategories?.length > 0) {
-      console.log('🔄 Loading saved expense categories:', savedData.expenses.expenseCategories);
       setItems(savedData.expenses.expenseCategories);
     }
   }, [savedData, setItems]);

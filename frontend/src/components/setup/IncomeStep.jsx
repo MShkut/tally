@@ -101,10 +101,9 @@ useEffect(() => {
     setItems 
   } = useItemManager();
  
-  
+
   useEffect(() => {
     if (savedData?.income?.incomeSources?.length > 0) {
-      console.log('🔄 Loading saved income sources:', savedData.income.incomeSources);
       setItems(savedData.income.incomeSources);
     }
   }, [savedData, setItems]);

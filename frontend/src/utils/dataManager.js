@@ -27,7 +27,9 @@ class DataManager {
     await this.detectContainerMode();
 
     if (this.containerMode) {
-      console.log('🐳 Running in container mode - data will load after authentication');
+      if (import.meta.env.DEV) {
+        console.log('🐳 Running in container mode - data will load after authentication');
+      }
       // Initialize empty container data - will be loaded after login
       this.containerData = {
         userData: {},
@@ -37,7 +39,9 @@ class DataManager {
         version: this.currentVersion
       };
     } else {
-      console.log('💾 Running in localStorage mode');
+      if (import.meta.env.DEV) {
+        console.log('💾 Running in localStorage mode');
+      }
       // Check if we need to migrate data format
       const savedVersion = localStorage.getItem(STORAGE_KEYS.APP_VERSION);
       if (!savedVersion) {
@@ -60,13 +64,17 @@ class DataManager {
 
   async loadFromContainer() {
     if (!this.containerMode) {
-      console.log('Not in container mode, skipping container data load');
+      if (import.meta.env.DEV) {
+        console.log('Not in container mode, skipping container data load');
+      }
       return;
     }
 
     try {
       this.containerData = await ContainerStorage.loadBudgetData();
-      console.log('📦 Loaded data from container:', this.containerData);
+      if (import.meta.env.DEV) {
+        console.log('📦 Loaded data from container:', this.containerData);
+      }
     } catch (error) {
       console.error('Failed to load from container:', error);
       this.containerData = {
@@ -82,7 +90,9 @@ class DataManager {
   // Method to be called after authentication
   async syncFromContainer() {
     if (this.containerMode) {
-      console.log('🔄 Syncing data from container after authentication...');
+      if (import.meta.env.DEV) {
+        console.log('🔄 Syncing data from container after authentication...');
+      }
       await this.loadFromContainer();
     }
   }
@@ -92,7 +102,9 @@ class DataManager {
 
     try {
       await ContainerStorage.saveBudgetData(this.containerData);
-      console.log('💾 Saved data to container');
+      if (import.meta.env.DEV) {
+        console.log('💾 Saved data to container');
+      }
     } catch (error) {
       console.error('Failed to save to container:', error);
       throw error;
@@ -170,7 +182,9 @@ class DataManager {
         localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(userData));
       }
 
-      console.log('💾 User data saved:', userData);
+      if (import.meta.env.DEV) {
+        console.log('💾 User data saved:', userData);
+      }
       return true;
     } catch (error) {
       console.error('❌ Failed to save user data:', error);
@@ -188,7 +202,9 @@ class DataManager {
       if (!savedData) return null;
 
       const userData = JSON.parse(savedData);
-      console.log('📖 User data loaded:', userData);
+      if (import.meta.env.DEV) {
+        console.log('📖 User data loaded:', userData);
+      }
       return userData;
     } catch (error) {
       console.error('❌ Failed to load user data:', error);
@@ -206,8 +222,11 @@ class DataManager {
     contexts.forEach(context => {
       localStorage.removeItem(`customCategories_${context}`);
     });
-    
-    console.log('🗑️ User data and all category mappings cleared');
+
+
+    if (import.meta.env.DEV) {
+      console.log('🗑️ User data and all category mappings cleared');
+    }
   }
 
   // ==================== TRANSACTIONS ====================
@@ -226,7 +245,9 @@ class DataManager {
         localStorage.setItem(STORAGE_KEYS.TRANSACTIONS, JSON.stringify(transactionData));
       }
 
-      console.log(`💾 ${transactions.length} transactions saved`);
+      if (import.meta.env.DEV) {
+        console.log(`💾 ${transactions.length} transactions saved`);
+      }
       return true;
     } catch (error) {
       console.error('❌ Failed to save transactions:', error);
@@ -244,7 +265,9 @@ class DataManager {
       if (!savedData) return [];
 
       const transactionData = JSON.parse(savedData);
-      console.log(`📖 ${transactionData.count || 0} transactions loaded`);
+      if (import.meta.env.DEV) {
+        console.log(`📖 ${transactionData.count || 0} transactions loaded`);
+      }
       return transactionData.transactions || [];
     } catch (error) {
       console.error('❌ Failed to load transactions:', error);
@@ -465,7 +488,9 @@ class DataManager {
         localStorage.setItem(STORAGE_KEYS.GIFT_DATA, JSON.stringify(giftData));
       }
 
-      console.log('💾 Gift data saved:', giftData);
+      if (import.meta.env.DEV) {
+        console.log('💾 Gift data saved:', giftData);
+      }
       return true;
     } catch (error) {
       console.error('❌ Failed to save gift data:', error);
@@ -483,7 +508,9 @@ class DataManager {
       if (!savedData) return null;
 
       const giftData = JSON.parse(savedData);
-      console.log('📖 Gift data loaded:', giftData);
+      if (import.meta.env.DEV) {
+        console.log('📖 Gift data loaded:', giftData);
+      }
       return giftData;
     } catch (error) {
       console.error('❌ Failed to load gift data:', error);
@@ -493,7 +520,9 @@ class DataManager {
 
   clearGiftData() {
     localStorage.removeItem(STORAGE_KEYS.GIFT_DATA);
-    console.log('🗑️ Gift data cleared');
+    if (import.meta.env.DEV) {
+      console.log('🗑️ Gift data cleared');
+    }
   }
 
   // ==================== HELPER METHODS ====================
@@ -572,8 +601,11 @@ class DataManager {
       contexts.forEach(context => {
         localStorage.removeItem(`customCategories_${context}`);
       });
-      
-      console.log('🗑️ All application data cleared');
+
+
+      if (import.meta.env.DEV) {
+        console.log('🗑️ All application data cleared');
+      }
       return true;
     } catch (error) {
       console.error('❌ Failed to clear data:', error);

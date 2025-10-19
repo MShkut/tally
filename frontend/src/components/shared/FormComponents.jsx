@@ -690,7 +690,7 @@ export const TransactionListItem = ({
         )}
       </div>
       <div className={`text-sm font-mono ml-4 ${amountColor}`}>
-        {isIncome ? '+' : ''}${Math.abs(amount || 0).toFixed(2)}
+        {isIncome ? '+' : ''}{Currency.format(Math.abs(amount || 0))}
       </div>
     </ListItem>
   );

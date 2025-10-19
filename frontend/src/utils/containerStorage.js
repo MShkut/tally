@@ -6,7 +6,9 @@ export const ContainerStorage = {
   async loadBudgetData() {
     try {
       const authHeaders = Auth.getAuthHeaders();
-      console.log('🔑 Auth headers for budget load:', authHeaders.Authorization ? 'Token present' : 'NO TOKEN');
+      if (import.meta.env.DEV) {
+        console.log('🔑 Auth headers for budget load:', authHeaders.Authorization ? 'Token present' : 'NO TOKEN');
+      }
 
       const response = await fetch(`${API_BASE}/budget`, {
         method: 'GET',
@@ -25,7 +27,9 @@ export const ContainerStorage = {
       }
 
       const data = await response.json();
-      console.log('✅ Budget data loaded successfully');
+      if (import.meta.env.DEV) {
+        console.log('✅ Budget data loaded successfully');
+      }
       return data;
     } catch (error) {
       console.error('Load budget data error:', error);
@@ -61,7 +65,17 @@ export const ContainerStorage = {
   async healthCheck() {
     try {
       const response = await fetch(`${API_BASE}/health`);
-      return response.ok;
+      if (!response.ok) return false;
+
+      // Verify it's actually JSON (not HTML from dev server)
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        return false;
+      }
+
+      // Verify the response has the expected structure
+      const data = await response.json();
+      return data && data.status === 'ok';
     } catch {
       return false;
     }

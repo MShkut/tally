@@ -7,7 +7,7 @@ import {
   FormSection,
   EmptyState
 } from 'components/shared/FormComponents';
-import { TransactionHelpers } from 'utils/actions/import/transactionHelpers';
+import { TransactionHelpers } from 'utils/transactionHelpers';
 import { Currency } from 'utils/currency';
 import { TransactionReviewItem } from './TransactionReviewItem';
 import { TransactionModal } from './TransactionModal';

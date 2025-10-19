@@ -2,13 +2,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 
 import { useTheme } from 'contexts/ThemeContext';
+import { useTransactions } from 'hooks/useTransactions';
 import { ThemeToggle } from 'components/shared/ThemeToggle';
 import { Currency } from 'utils/currency';
 import { BurgerMenu } from 'components/shared/BurgerMenu';
 import { EnhancedCSVUpload } from './EnhancedCSVUpload';
 import { ReviewTransactions } from './ReviewTransactions';
-import { normalizeMerchantName, suggestCategory } from 'utils/actions/import/transactionHelpers';
-import { enhanceCategories, shouldAutoIgnore, learnMerchantMapping } from 'utils/actions/import/categoryEnhancer';
+import { normalizeMerchantName, suggestCategory } from 'utils/transactionHelpers';
+import { enhanceCategories, shouldAutoIgnore, learnMerchantMapping } from 'utils/categoryEnhancer';
 import { dataManager } from 'utils/dataManager';
 import { 
   EmptyState, 
@@ -173,9 +174,15 @@ export const TransactionImport = ({ onNavigate }) => {
   const [transactions, setTransactions] = useState([]);
   const [categories, setCategories] = useState([]);
   const [isProcessing, setIsProcessing] = useState(false);
-  
+
   // Burger menu state
   const [menuOpen, setMenuOpen] = useState(false);
+
+  // Use transactions hook for data management
+  const {
+    addTransactions: saveNewTransactions,
+    getAllTransactions
+  } = useTransactions();
 
   // Handle menu actions using the standard navigation handler
   const handleMenuActionWrapper = (action) => {
@@ -338,11 +345,9 @@ export const TransactionImport = ({ onNavigate }) => {
     }
     
     if (validTransactions.length > 0) {
-      // Save to localStorage immediately using dedicated transaction storage
-      const existingTransactions = dataManager.loadTransactions() || [];
-      const allTransactions = [...existingTransactions, ...validTransactions];
-      dataManager.saveTransactions(allTransactions);
-      
+      // Save transactions using hook
+      saveNewTransactions(validTransactions);
+
       // Show success notification and return to upload page
       setShowSuccessMessage(true);
       setTimeout(() => {
@@ -363,20 +368,20 @@ export const TransactionImport = ({ onNavigate }) => {
 
   const handleTransactionsSave = (finalTransactions) => {
     // Filter out ignored transactions - they should not be saved
-    const transactionsToSave = finalTransactions.filter(t => 
+    const transactionsToSave = finalTransactions.filter(t =>
       !t.category || t.category.id !== 'system-ignore'
     );
-    
-    // Save transactions using the dedicated transaction storage
-    dataManager.saveTransactions(transactionsToSave);
-    
+
+    // Save transactions using hook
+    saveNewTransactions(transactionsToSave);
+
     // Reset all import state to clean slate
     setTransactions([]);
     setActiveView('upload');
     setUploadStep('upload');
     setMappingData(null);
     setIsProcessing(false);
-    
+
     // Use setTimeout to ensure state updates before navigation
     setTimeout(() => {
       onNavigate('dashboard');

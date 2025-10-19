@@ -41,27 +41,19 @@ export const EnhancedCSVUpload = ({ onComplete, onBack, onStepChange }) => {
   const [mappingName, setMappingName] = useState('');
 
   const handleFiles = async (files) => {
-    console.log('handleFiles called with:', files);
     if (!files?.[0]) return;
     const file = files[0];
-    console.log('Processing file:', file.name);
-    
+
     if (!file.name.toLowerCase().endsWith('.csv')) {
       alert('Please upload a CSV file');
       return;
     }
 
     const text = await file.text();
-    console.log('=== CSV PARSING DEBUG ===');
-    console.log('Raw file text length:', text.length);
-    console.log('First 200 chars of file:', text.substring(0, 200));
-    
+
     const lines = text.split('\n').filter(line => line.trim());
-    console.log('Total lines after filtering:', lines.length);
-    console.log('First line (headers):', lines[0]);
-    
+
     const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
-    console.log('Parsed headers:', headers);
     
     // Better CSV parsing that handles quoted values
     const parseCSVLine = (line) => {
@@ -96,10 +88,6 @@ export const EnhancedCSVUpload = ({ onComplete, onBack, onStepChange }) => {
       );
     });
 
-    console.log('Processed data rows:', data.length);
-    console.log('First data row:', data[0]);
-    console.log('========================');
-
     setCsvData(data);
     setFileName(file.name);
     
@@ -116,7 +104,7 @@ export const EnhancedCSVUpload = ({ onComplete, onBack, onStepChange }) => {
           return;
         }
       } catch (e) {
-        console.log('Invalid default mapping, falling back to auto-detect');
+        // Invalid default mapping, fall back to auto-detect
       }
     }
     
@@ -193,26 +181,45 @@ export const EnhancedCSVUpload = ({ onComplete, onBack, onStepChange }) => {
   };
 
   const handleMappingComplete = (dataOverride = null, mappingOverride = null) => {
-    console.log('handleMappingComplete called');
     const dataToUse = dataOverride || csvData;
     const mappingToUse = mappingOverride || columnMapping;
-    
-    console.log('columnMapping:', mappingToUse);
-    console.log('csvData:', dataToUse);
-    
+
+    if (import.meta.env.DEV) {
+      console.log('handleMappingComplete called');
+      console.log('dataOverride:', dataOverride);
+      console.log('mappingOverride:', mappingOverride);
+      console.log('dataToUse type:', Array.isArray(dataToUse) ? 'array' : typeof dataToUse);
+      console.log('Mapping:', mappingToUse);
+      console.log('csvData length:', csvData?.length);
+    }
+
     if (!mappingToUse.date || !mappingToUse.description || !mappingToUse.amount) {
-      console.log('Missing column mapping, returning early');
+      if (import.meta.env.DEV) {
+        console.log('Missing column mapping - cannot proceed');
+      }
       return;
     }
-    
+
+    // Ensure we have an array
+    if (!Array.isArray(dataToUse)) {
+      if (import.meta.env.DEV) {
+        console.error('dataToUse is not an array:', dataToUse);
+      }
+      return;
+    }
+
     // Process CSV data using column mapping
     const processedTransactions = dataToUse.map(row => ({
       date: row[mappingToUse.date],
       description: row[mappingToUse.description],
       amount: parseFloat(row[mappingToUse.amount]?.replace(/[,$]/g, '') || '0')
     }));
-    
-    console.log('Calling onComplete with:', processedTransactions);
+
+    if (import.meta.env.DEV) {
+      console.log('Processed transactions:', processedTransactions.length);
+      console.log('First transaction:', processedTransactions[0]);
+    }
+
     onComplete(processedTransactions);
   };
 
@@ -467,7 +474,7 @@ export const EnhancedCSVUpload = ({ onComplete, onBack, onStepChange }) => {
           </button>
           
           <button
-            onClick={handleMappingComplete}
+            onClick={() => handleMappingComplete()}
             disabled={!isValid}
             className={`text-xl font-light transition-all ${
               isValid

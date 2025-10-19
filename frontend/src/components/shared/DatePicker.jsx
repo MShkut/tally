@@ -22,15 +22,11 @@ export const DatePicker = ({
     try {
       const userData = dataManager.loadUserData();
       const period = userData?.period;
-      
-      console.log('Budget period data loaded:', period); // Debug log
-      
+
       if (period?.start_date && period?.end_date) {
         const startDate = new Date(period.start_date);
         const endDate = new Date(period.end_date);
-        
-        console.log('Parsed dates - Start:', startDate, 'End:', endDate); // Debug log
-        
+
         return {
           startDate: startDate,
           endDate: endDate
@@ -39,10 +35,9 @@ export const DatePicker = ({
     } catch (error) {
       console.warn('Could not load budget period constraints:', error);
     }
-    
+
     // Fallback to current year if no period defined
     const now = new Date();
-    console.log('Using fallback period for current year:', now.getFullYear()); // Debug log
     return {
       startDate: new Date(now.getFullYear(), 0, 1), // Jan 1 of current year
       endDate: new Date(now.getFullYear(), 11, 31)  // Dec 31 of current year
