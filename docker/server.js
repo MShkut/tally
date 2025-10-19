@@ -2,9 +2,18 @@ const express = require('express');
 const fs = require('fs').promises;
 const path = require('path');
 const crypto = require('crypto');
+const argon2 = require('argon2');
 
 const app = express();
 const PORT = 3001;
+
+// Argon2id configuration (matching Vaultwarden/Start9 parameters)
+const ARGON2_OPTIONS = {
+  type: argon2.argon2id,
+  memoryCost: 65536,  // 64 MB
+  timeCost: 3,        // 3 iterations
+  parallelism: 4      // 4 threads
+};
 
 // Middleware
 app.use(express.json({ limit: '50mb' }));
@@ -41,15 +50,42 @@ async function getPassword() {
     const password = await fs.readFile(PASSWORD_FILE, 'utf8');
     return password.trim();
   } catch {
-    // Default password on first run
+    // Default password on first run - hash it
     const defaultPassword = 'changeme';
-    await fs.writeFile(PASSWORD_FILE, defaultPassword);
-    return defaultPassword;
+    const hashedPassword = await argon2.hash(defaultPassword, ARGON2_OPTIONS);
+    await fs.writeFile(PASSWORD_FILE, hashedPassword);
+    console.log('[AUTH] Default password created and hashed');
+    return hashedPassword;
   }
 }
 
 async function setPassword(newPassword) {
-  await fs.writeFile(PASSWORD_FILE, newPassword.trim());
+  const hashedPassword = await argon2.hash(newPassword.trim(), ARGON2_OPTIONS);
+  await fs.writeFile(PASSWORD_FILE, hashedPassword);
+  console.log('[AUTH] Password updated and hashed with Argon2id');
+}
+
+async function verifyPassword(plainPassword, storedHash) {
+  // Check if stored hash is actually a plain text password (migration case)
+  if (!storedHash.startsWith('$argon2')) {
+    console.warn('[AUTH] WARNING: Plain text password detected! Migrating to Argon2id hash...');
+    // This is a plain text password - compare directly for this login
+    if (plainPassword === storedHash) {
+      // Migrate to hashed password
+      await setPassword(plainPassword);
+      console.log('[AUTH] Password successfully migrated to Argon2id hash');
+      return true;
+    }
+    return false;
+  }
+
+  // Verify Argon2id hash
+  try {
+    return await argon2.verify(storedHash, plainPassword);
+  } catch (err) {
+    console.error('[AUTH] Error verifying password hash:', err);
+    return false;
+  }
 }
 
 function generateToken() {
@@ -87,20 +123,27 @@ app.get('/api/health', (req, res) => {
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { password } = req.body;
-    const correctPassword = await getPassword();
-    
-    if (password !== correctPassword) {
-      return res.status(401).json({ error: 'Invalid password' });
+
+    if (!password || password.trim() === '') {
+      return res.status(400).json({ error: 'Password is required' });
     }
-    
+
+    const storedPassword = await getPassword();
+    const isValid = await verifyPassword(password, storedPassword);
+
+    if (!isValid) {
+      return res.status(401).json({ error: 'Incorrect password' });
+    }
+
     const token = generateToken();
-    const expires = Date.now() + (24 * 60 * 60 * 1000); // 24 hours
-    
+    const expires = Date.now() + (30 * 24 * 60 * 60 * 1000); // 30 days (increased from 24 hours)
+
     sessions.set(token, { expires });
-    
+
+    console.log('[AUTH] Successful login, token expires in 30 days');
     res.json({ token, expires });
   } catch (error) {
-    console.error('Login error:', error);
+    console.error('[AUTH] Login error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -109,24 +152,31 @@ app.post('/api/auth/login', async (req, res) => {
 app.post('/api/auth/change-password', validateToken, async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
-    const correctPassword = await getPassword();
-    
-    if (currentPassword !== correctPassword) {
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: 'Current and new password are required' });
+    }
+
+    if (newPassword.length < 8) {
+      return res.status(400).json({ error: 'New password must be at least 8 characters' });
+    }
+
+    const storedPassword = await getPassword();
+    const isValid = await verifyPassword(currentPassword, storedPassword);
+
+    if (!isValid) {
       return res.status(401).json({ error: 'Current password is incorrect' });
     }
-    
-    if (!newPassword || newPassword.length < 4) {
-      return res.status(400).json({ error: 'New password must be at least 4 characters' });
-    }
-    
+
     await setPassword(newPassword);
-    
+
     // Invalidate all existing sessions
     sessions.clear();
-    
+
+    console.log('[AUTH] Password changed successfully, all sessions invalidated');
     res.json({ success: true });
   } catch (error) {
-    console.error('Change password error:', error);
+    console.error('[AUTH] Change password error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
