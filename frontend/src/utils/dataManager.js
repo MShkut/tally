@@ -201,7 +201,19 @@ class DataManager {
       const savedData = localStorage.getItem(STORAGE_KEYS.USER_DATA);
       if (!savedData) return null;
 
-      const userData = JSON.parse(savedData);
+      let userData = JSON.parse(savedData);
+
+      // Migration: Add householdId if missing
+      if (userData?.household && !userData.household.id) {
+        console.log('[MIGRATION] Adding householdId to existing household data');
+        const migrationId = `household-${userData.household.name.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
+        userData.household.id = migrationId;
+
+        // Save migrated data
+        this.saveUserData(userData);
+        console.log('[MIGRATION] HouseholdId added:', migrationId);
+      }
+
       if (import.meta.env.DEV) {
         console.log('📖 User data loaded:', userData);
       }
@@ -369,7 +381,7 @@ class DataManager {
   updateNetWorthItemValue(itemId, newValue, note = '') {
     const items = this.loadNetWorthItems();
     const index = items.findIndex(item => item.id === itemId);
-    
+
     if (index !== -1) {
       const item = items[index];
       const historyEntry = {
@@ -378,16 +390,79 @@ class DataManager {
         source: 'manual',
         note: note
       };
-      
+
       item.currentValue = newValue;
       item.lastUpdated = new Date().toISOString();
       item.history = [...(item.history || []), historyEntry];
-      
+
       items[index] = item;
       this.saveNetWorthItems(items);
       return item;
     }
     return null;
+  }
+
+  /**
+   * Update price for stock/crypto item from AlphaVantage
+   * Adds price history for daily graphing
+   */
+  async updateNetWorthItemPrice(itemId, price, source = 'alphavantage') {
+    const items = this.loadNetWorthItems();
+    const index = items.findIndex(item => item.id === itemId);
+
+    if (index !== -1) {
+      const item = items[index];
+
+      // Calculate current value based on price and quantity
+      let currentValue = price;
+      if (item.itemType === 'stock' || item.itemType === 'crypto') {
+        currentValue = price * (item.quantity || 0);
+      }
+
+      // Add to price history
+      const priceEntry = {
+        date: new Date().toISOString(),
+        price: price,
+        source: source
+      };
+
+      item.lastPrice = price;
+      item.lastPriceUpdate = new Date().toISOString();
+      item.priceHistory = [...(item.priceHistory || []), priceEntry];
+
+      // Keep last 365 days of price history
+      if (item.priceHistory.length > 365) {
+        item.priceHistory = item.priceHistory.slice(-365);
+      }
+
+      // Update current value and add to value history
+      const historyEntry = {
+        date: new Date().toISOString(),
+        value: currentValue,
+        source: source,
+        note: `Price update: ${source}`
+      };
+
+      item.currentValue = currentValue;
+      item.lastUpdated = new Date().toISOString();
+      item.history = [...(item.history || []), historyEntry];
+
+      items[index] = item;
+      await this.saveNetWorthItems(items);
+      return item;
+    }
+    return null;
+  }
+
+  /**
+   * Get items that need price updates (stock/crypto only)
+   */
+  getItemsNeedingPriceUpdate() {
+    const items = this.loadNetWorthItems();
+    return items.filter(item =>
+      (item.itemType === 'stock' || item.itemType === 'crypto') &&
+      item.symbol
+    );
   }
 
   deleteNetWorthItem(itemId) {
@@ -548,12 +623,35 @@ class DataManager {
     return (income / 12) - savings;
   }
 
+  // ==================== MANUAL SAVE ====================
+
+  async saveAllData() {
+    try {
+      if (!this.containerMode) {
+        // In localStorage mode, data is already saved incrementally
+        if (import.meta.env.DEV) {
+          console.log('💾 Data is auto-saved in localStorage mode');
+        }
+        return { success: true, message: 'Data saved locally' };
+      }
+
+      // In container mode, manually trigger save to backend
+      console.log('💾 Manually saving all data to container...');
+      await this.saveToContainer();
+      console.log('✅ All data saved successfully to server');
+      return { success: true, message: 'Data saved to server' };
+    } catch (error) {
+      console.error('❌ Failed to save data:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
   exportData() {
     const userData = this.loadUserData();
     const transactions = this.loadTransactions();
     const netWorthData = this.loadNetWorthData();
     const giftData = this.loadGiftData();
-    
+
     return {
       userData,
       transactions,
@@ -566,16 +664,46 @@ class DataManager {
 
   importData(data) {
     try {
-      if (data.userData) this.saveUserData(data.userData);
-      if (data.transactions) this.saveTransactions(data.transactions);
-      if (data.netWorthData?.assets || data.netWorthData?.liabilities) {
-        const items = [
-          ...(data.netWorthData.assets || []),
-          ...(data.netWorthData.liabilities || [])
-        ];
-        this.saveNetWorthItems(items);
+      if (this.containerMode) {
+        // In container mode, update containerData directly
+        if (data.userData) {
+          this.containerData.userData = data.userData;
+        }
+        if (data.transactions) {
+          this.containerData.transactions = data.transactions;
+        }
+        if (data.netWorthData?.assets || data.netWorthData?.liabilities) {
+          const items = [
+            ...(data.netWorthData.assets || []),
+            ...(data.netWorthData.liabilities || [])
+          ];
+          this.containerData.netWorthItems = items;
+        }
+        if (data.giftData) {
+          this.containerData.giftData = data.giftData;
+        }
+        this.containerData.version = this.currentVersion;
+
+        if (import.meta.env.DEV) {
+          console.log('📦 Imported data into containerData');
+        }
+      } else {
+        // In localStorage mode, use existing save methods
+        if (data.userData) this.saveUserData(data.userData);
+        if (data.transactions) this.saveTransactions(data.transactions);
+        if (data.netWorthData?.assets || data.netWorthData?.liabilities) {
+          const items = [
+            ...(data.netWorthData.assets || []),
+            ...(data.netWorthData.liabilities || [])
+          ];
+          this.saveNetWorthItems(items);
+        }
+        if (data.giftData) this.saveGiftData(data.giftData);
+
+        if (import.meta.env.DEV) {
+          console.log('💾 Imported data into localStorage');
+        }
       }
-      if (data.giftData) this.saveGiftData(data.giftData);
       return true;
     } catch (error) {
       console.error('❌ Failed to import data:', error);

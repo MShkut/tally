@@ -6,8 +6,23 @@ cd /app/api
 node server.js &
 API_PID=$!
 
-# Wait a moment for the API to start
-sleep 2
+# Wait for API server to be ready with health check loop
+echo "Waiting for API server to be ready..."
+MAX_ATTEMPTS=30
+ATTEMPT=0
+while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+    if wget -q -O /dev/null http://localhost:3001/api/health 2>/dev/null; then
+        echo "API server is ready!"
+        break
+    fi
+    ATTEMPT=$((ATTEMPT + 1))
+    if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
+        echo "ERROR: API server failed to start after 30 seconds"
+        exit 1
+    fi
+    echo "Waiting for API server... (attempt $ATTEMPT/$MAX_ATTEMPTS)"
+    sleep 1
+done
 
 # Start nginx in the foreground
 echo "Starting nginx..."

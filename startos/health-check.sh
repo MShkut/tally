@@ -1,10 +1,9 @@
-#!/bin/bash
+#!/bin/sh
 set -e
 
-# Check if nginx is responding
-curl -f -s http://localhost:8080/api/health > /dev/null
-
-if [ $? -eq 0 ]; then
+# Check if the API server is responding
+# Using wget instead of curl (alpine has wget by default)
+if wget -q -O /dev/null http://localhost:8080/api/health 2>/dev/null; then
   echo '{"status": "healthy"}'
   exit 0
 else

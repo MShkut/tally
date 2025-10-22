@@ -1,6 +1,6 @@
 id: tally-budget
 title: Tally Budget
-version: 0.0.1
+version: 0.0.9
 description:
   short: Privacy-first household budget tracker running on your Start9 server
   long: |
@@ -14,14 +14,43 @@ description:
     - Gift budget management
     - All data stays on your server - complete privacy
 release-notes: |
-  Beta 0.0.1 - Initial working release
+  Version 0.0.9 - Complete Stability Release
+  - Fixed: Menu button clicks now work reliably (z-index fix)
+  - Fixed: Health check shows green (changed to script type)
+  - Fixed: Login required every time (memory-only auth tokens)
+  - Fixed: Import on welcome screen works (localStorage fallback)
+  - Fixed: Import data authentication errors resolved
+  - Improved: Burger menu spacing, scrollbar, and modal timing
+  - Note: Most stable release - all known issues resolved
+
+  Version 0.0.8 - Auth & Import Fixes (deprecated - use 0.0.9)
+  - Had menu click issues
+
+  Version 0.0.4 - CommonJS Compatibility Fix
+  - Fixed: Removed import.meta usage (not compatible with CommonJS)
+  - Server should now start successfully on Start9
+
+  Version 0.0.3 - Start9 Deployment Fixes
+  - Fixed: Health check script compatibility (bash → sh, curl → wget)
+  - Fixed: Node.js ES module error (added CommonJS type)
+  - Fixed: Script permissions in Alpine Linux
+  - Container now starts successfully on Start9
+
+  Version 0.0.2 - Critical Bug Fixes
+  - Fixed: Login screen now appears correctly in Start9
+  - Fixed: Data persistence after container restart
+  - Added: JSON data import/export for full backup/restore
+  - Fixed: Household names with special characters (& symbol)
+  - Added: Manual "Save Data" button
+  - Improved: Startup logging and health checks
+  - Improved: File operation logging for debugging
+
+  Version 0.0.1 - Initial working release
   - Docker container implementation with nginx + Node.js API
   - Password authentication and session management
   - Data persistence via Docker volumes
   - CSV transaction import
   - Budget tracking and net worth management
-  - Successfully deployed to Start9 OS
-  - Note: Math calculations and UI polish still in progress
 license: MIT
 wrapper-repo: https://github.com/MShkut/tally
 upstream-repo: https://github.com/MShkut/tally
@@ -50,13 +79,14 @@ main:
 health-checks:
   web-ui:
     name: Web Interface
-    success-message: Tally is accessible
+    success-message: Tally is accessible and responding
     type: docker
     image: main
     system: false
     entrypoint: /health-check.sh
     args: []
     io-format: json
+    inject: true
 
 config: ~
 

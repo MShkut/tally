@@ -63,9 +63,28 @@ export const handleMenuAction = (actionId, onNavigate, onClose, setShowResetConf
       return true;
 
     // Data Management
+    case 'save':
+      handleDataSave();
+      return true;
+
+    case 'import-data':
+      // This will be handled by the component that has the import modal
+      // We return 'import-data' to signal it needs external handling
+      return 'import-data';
+
     case 'export':
       handleDataExport();
       return true;
+
+    case 'alphavantage-settings':
+      // This will be handled by the component that has the AlphaVantage settings modal
+      // We return 'alphavantage-settings' to signal it needs external handling
+      return 'alphavantage-settings';
+
+    case 'change-password':
+      // This will be handled by the component that has the change password modal
+      // We return 'change-password' to signal it needs external handling
+      return 'change-password';
 
     case 'reset-data':
       if (setShowResetConfirm) {
@@ -91,6 +110,26 @@ export const handleMenuAction = (actionId, onNavigate, onClose, setShowResetConf
         console.warn(`Navigation action '${actionId}' not implemented`);
       }
       return false;
+  }
+};
+
+/**
+ * Handle manual data save
+ */
+const handleDataSave = async () => {
+  try {
+    const result = await dataManager.saveAllData();
+    if (result.success) {
+      alert(`✓ ${result.message}`);
+      if (import.meta.env.DEV) {
+        console.log('✅ Manual save successful');
+      }
+    } else {
+      alert(`Failed to save data: ${result.error}`);
+    }
+  } catch (error) {
+    console.error('❌ Failed to save data:', error);
+    alert('Failed to save data. Please try again.');
   }
 };
 
@@ -183,7 +222,11 @@ export const getMenuItems = () => {
   ];
 
   const settingsItems = [
+    { id: 'save', label: 'Save Data' },
+    { id: 'import-data', label: 'Import Data' },
     { id: 'export', label: 'Export Data' },
+    { id: 'alphavantage-settings', label: 'AlphaVantage API Key' },
+    { id: 'change-password', label: 'Change Password' },
     { id: 'logout', label: 'Logout' },
     { id: 'reset-data', label: 'Reset All Data', danger: true }
   ];

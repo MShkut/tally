@@ -3,11 +3,17 @@ import React, { useEffect, useState } from 'react';
 
 import { useTheme } from 'contexts/ThemeContext';
 import { ConfirmationModal } from 'components/shared/FormComponents';
+import { ImportDataModal } from 'components/shared/ImportDataModal';
+import { ChangePasswordModal } from 'components/shared/ChangePasswordModal';
+import { AlphaVantageSettingsModal } from 'components/shared/AlphaVantageSettingsModal';
 import { handleMenuAction, getMenuItems, isCurrentPage } from 'utils/navigationHandler';
 
 export const BurgerMenu = ({ isOpen, onClose, onAction, currentPage = 'dashboard', onLogout }) => {
   const { isDarkMode } = useTheme();
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+  const [showAlphaVantageSettings, setShowAlphaVantageSettings] = useState(false);
 
   // Close menu on escape key
   useEffect(() => {
@@ -30,8 +36,6 @@ export const BurgerMenu = ({ isOpen, onClose, onAction, currentPage = 'dashboard
   }, [isOpen, onClose]);
 
 
-  if (!isOpen) return null;
-
   // Get menu items from universal handler
   const menuItems = getMenuItems();
 
@@ -49,26 +53,50 @@ export const BurgerMenu = ({ isOpen, onClose, onAction, currentPage = 'dashboard
       return;
     }
 
+    // Handle import-data specially (show modal)
+    if (actionId === 'import-data') {
+      setShowImportModal(true);
+      onClose();
+      return;
+    }
+
+    // Handle alphavantage-settings specially (show modal)
+    if (actionId === 'alphavantage-settings') {
+      setShowAlphaVantageSettings(true);
+      onClose();
+      return;
+    }
+
+    // Handle change-password specially (show modal)
+    if (actionId === 'change-password') {
+      setShowChangePasswordModal(true);
+      onClose();
+      return;
+    }
+
     // Use universal navigation handler
     handleMenuAction(actionId, onAction, onClose, setShowResetConfirm);
   };
 
   return (
     <>
-      {/* Overlay */}
-      <div 
-        className="fixed inset-0 bg-black bg-opacity-50 z-50 transition-opacity duration-300"
-        onClick={onClose}
-      />
-      
-      {/* Menu Panel */}
+      {isOpen && (
+        <>
+          {/* Overlay */}
+          <div
+            className="fixed inset-0 bg-black bg-opacity-50 z-40 transition-opacity duration-300"
+            onClick={onClose}
+          />
+
+          {/* Menu Panel */}
       <div className={`
         fixed top-0 left-0 h-full w-80 z-50 transform transition-transform duration-300
         ${isDarkMode ? 'bg-black border-gray-800' : 'bg-white border-gray-200'} border-r
+        overflow-y-auto
       `}>
         <div className="p-8">
           {/* Header */}
-          <div className="flex items-center justify-between mb-12 pb-6 border-b border-current border-opacity-10">
+          <div className="flex items-center justify-between mb-6 pb-6 border-b border-current border-opacity-10">
             <h2 className={`text-lg font-medium ${isDarkMode ? 'text-white' : 'text-black'}`}>
               Tally
             </h2>
@@ -148,6 +176,29 @@ export const BurgerMenu = ({ isOpen, onClose, onAction, currentPage = 'dashboard
           confirmDanger={true}
         />
       </div>
+        </>
+      )}
+
+      {/* Import Data Modal */}
+      <ImportDataModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onSuccess={() => setShowImportModal(false)}
+      />
+
+      {/* Change Password Modal */}
+      <ChangePasswordModal
+        isOpen={showChangePasswordModal}
+        onClose={() => setShowChangePasswordModal(false)}
+        onSuccess={() => setShowChangePasswordModal(false)}
+      />
+
+      {/* AlphaVantage Settings Modal */}
+      <AlphaVantageSettingsModal
+        isOpen={showAlphaVantageSettings}
+        onClose={() => setShowAlphaVantageSettings(false)}
+        onSuccess={() => setShowAlphaVantageSettings(false)}
+      />
     </>
   );
 };
@@ -167,7 +218,11 @@ const MenuSection = ({ title, items, onAction, isDarkMode, currentPage }) => (
         return (
           <button
             key={item.id}
-            onClick={() => onAction(item.id)}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onAction(item.id);
+            }}
             className={`
               block w-full text-left py-3 text-base transition-all duration-200
               border-b border-transparent hover:border-current

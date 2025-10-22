@@ -4,6 +4,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { dataManager } from 'utils/dataManager';
 import { Currency } from 'utils/currency';
+import { alphaVantage } from 'utils/alphaVantageService';
 
 /**
  * Custom hook for managing net worth items and calculations
@@ -223,6 +224,66 @@ export const useNetWorth = () => {
   }, [getItemsByType]);
 
   // ============================================
+  // PRICE UPDATES (AlphaVantage)
+  // ============================================
+
+  /**
+   * Refresh prices for all stock/crypto items
+   * @returns {Object} Results with success count and errors
+   */
+  const refreshPrices = useCallback(async () => {
+    if (!alphaVantage.hasApiKey()) {
+      return {
+        success: false,
+        error: 'AlphaVantage API key not configured',
+        updated: 0,
+        errors: []
+      };
+    }
+
+    const itemsToUpdate = dataManager.getItemsNeedingPriceUpdate();
+
+    if (itemsToUpdate.length === 0) {
+      return {
+        success: true,
+        message: 'No stock/crypto items to update',
+        updated: 0,
+        errors: []
+      };
+    }
+
+    const results = {
+      updated: 0,
+      errors: []
+    };
+
+    for (const item of itemsToUpdate) {
+      try {
+        console.log(`[PRICE] Fetching price for ${item.symbol} (${item.itemType})...`);
+        const priceData = await alphaVantage.fetchPrice(item.symbol, item.itemType);
+        await dataManager.updateNetWorthItemPrice(item.id, priceData.price, 'alphavantage');
+        results.updated++;
+      } catch (error) {
+        console.error(`[PRICE] Failed to update ${item.symbol}:`, error);
+        results.errors.push({
+          symbol: item.symbol,
+          error: error.message
+        });
+      }
+    }
+
+    // Reload items after updates
+    loadItems();
+
+    return {
+      success: results.errors.length === 0,
+      updated: results.updated,
+      errors: results.errors,
+      message: `Updated ${results.updated} of ${itemsToUpdate.length} items`
+    };
+  }, [loadItems]);
+
+  // ============================================
   // ERROR HANDLING
   // ============================================
 
@@ -257,6 +318,9 @@ export const useNetWorth = () => {
     getAssets,
     getLiabilities,
     getItemsByType,
+
+    // Price Updates
+    refreshPrices,
 
     // Reload
     reload: loadItems

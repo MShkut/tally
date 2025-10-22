@@ -43,3 +43,6 @@ CURRENT-TASK.md
 
 # Examples directory (not pushed to main repo)
 examples/
+
+# Test data (contains passwords and test files)
+test-data/
