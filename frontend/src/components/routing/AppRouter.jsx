@@ -10,14 +10,23 @@ import { GiftManagement } from 'components/actions/gifts/GiftManagement';
 import { EditWrapper } from 'components/actions/edit/EditWrapper';
 import { PlanNextPeriod } from 'components/actions/plan/PlanNextPeriod';
 
-// Create a household name URL formatter
-const formatHouseholdUrl = (name) => {
-  if (!name) return 'user';
-  return name.toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
-    .replace(/\s+/g, '-') // Replace spaces with hyphens
-    .replace(/-+/g, '-') // Replace multiple hyphens with single
-    .trim();
+// Get household ID from userData
+const getHouseholdId = (userData) => {
+  if (!userData?.household) return null;
+
+  // Use household.id if it exists (new format)
+  if (userData.household.id) {
+    return userData.household.id;
+  }
+
+  // Migration: Generate ID from household name for existing users
+  if (userData.household.name) {
+    const migrationId = `household-${userData.household.name.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
+    console.log('[MIGRATION] Generating householdId for existing user:', migrationId);
+    return migrationId;
+  }
+
+  return null;
 };
 
 // Protected Route wrapper
@@ -32,10 +41,14 @@ const ProtectedRoute = ({ children }) => {
     if (!userData || !userData.onboardingComplete) {
       navigate('/onboarding');
     } else {
-      // Check if the URL household matches the stored household
-      const urlHousehold = formatHouseholdUrl(userData.household?.name);
-      if (household !== urlHousehold) {
-        navigate(`/${urlHousehold}/dashboard`);
+      // Check if the URL household matches the stored household ID
+      const householdId = getHouseholdId(userData);
+      if (!householdId) {
+        console.error('[ROUTER] No householdId found, redirecting to onboarding');
+        navigate('/onboarding');
+      } else if (household !== householdId) {
+        console.log('[ROUTER] Household mismatch, redirecting to:', householdId);
+        navigate(`/${householdId}/dashboard`);
       } else {
         setIsAuthenticated(true);
       }
@@ -75,12 +88,17 @@ export const AppRouter = ({ onLogout }) => {
 // Onboarding Route Handler
 const OnboardingRoute = () => {
   const navigate = useNavigate();
-  
+
   const handleOnboardingComplete = (data) => {
-    const householdUrl = formatHouseholdUrl(data.household?.name);
-    navigate(`/${householdUrl}/dashboard`);
+    const householdId = data.household?.id;
+    if (householdId) {
+      navigate(`/${householdId}/dashboard`);
+    } else {
+      console.error('[ONBOARDING] No householdId in onboarding data');
+      navigate('/onboarding');
+    }
   };
-  
+
   return <OnboardingFlow onComplete={handleOnboardingComplete} />;
 };
 
@@ -144,17 +162,31 @@ const HouseholdRoutes = ({ onLogout }) => {
 const DefaultRedirect = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  
+
   useEffect(() => {
+    // Check if there's a return path from data import
+    const returnPath = sessionStorage.getItem('tally_returnPath');
+    if (returnPath) {
+      console.log('[ROUTER] Returning to saved path after import:', returnPath);
+      sessionStorage.removeItem('tally_returnPath');
+      navigate(returnPath);
+      setLoading(false);
+      return;
+    }
+
     const userData = dataManager.loadUserData();
-    if (userData && userData.onboardingComplete && userData.household?.name) {
-      const householdUrl = formatHouseholdUrl(userData.household.name);
-      navigate(`/${householdUrl}/dashboard`);
+    if (userData && userData.onboardingComplete) {
+      const householdId = getHouseholdId(userData);
+      if (householdId) {
+        navigate(`/${householdId}/dashboard`);
+      } else {
+        navigate('/onboarding');
+      }
     } else {
       navigate('/onboarding');
     }
     setLoading(false);
   }, [navigate]);
-  
+
   return loading ? <div>Loading...</div> : null;
 };

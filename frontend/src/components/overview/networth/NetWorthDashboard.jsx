@@ -23,6 +23,7 @@ export const NetWorthDashboard = ({ onNavigate }) => {
   const [showAddAsset, setShowAddAsset] = useState(false);
   const [showAddLiability, setShowAddLiability] = useState(false);
   const [newItem, setNewItem] = useState({ name: '', value: '' });
+  const [refreshingPrices, setRefreshingPrices] = useState(false);
 
   // Use custom hook for net worth management
   const {
@@ -34,7 +35,8 @@ export const NetWorthDashboard = ({ onNavigate }) => {
     getLiabilities,
     addItem,
     updateItemValue,
-    deleteItem
+    deleteItem,
+    refreshPrices
   } = useNetWorth();
 
   const handleMenuAction = (actionId) => {
@@ -114,6 +116,49 @@ export const NetWorthDashboard = ({ onNavigate }) => {
     });
     setShowUpdateModal(false);
   };
+
+  const handleRefreshPrices = async () => {
+    setRefreshingPrices(true);
+    try {
+      const result = await refreshPrices();
+
+      if (result.success) {
+        if (result.updated > 0) {
+          alert(`✓ ${result.message}`);
+        } else {
+          alert('No stock/crypto items to update');
+        }
+      } else {
+        alert(`Failed to refresh prices: ${result.error || 'Unknown error'}`);
+      }
+
+      if (result.errors && result.errors.length > 0) {
+        console.error('[PRICE] Update errors:', result.errors);
+        const errorList = result.errors.map(e => `${e.symbol}: ${e.error}`).join('\n');
+        alert(`Some prices failed to update:\n${errorList}`);
+      }
+    } catch (error) {
+      console.error('[PRICE] Refresh error:', error);
+      alert(`Failed to refresh prices: ${error.message}`);
+    } finally {
+      setRefreshingPrices(false);
+    }
+  };
+
+  // Auto-refresh prices on load (only for stock/crypto items)
+  useEffect(() => {
+    const autoRefresh = async () => {
+      const itemsNeedingUpdate = dataManager.getItemsNeedingPriceUpdate();
+      if (itemsNeedingUpdate.length > 0) {
+        console.log('[PRICE] Auto-refreshing prices on load...');
+        await handleRefreshPrices();
+      }
+    };
+
+    if (!isLoading) {
+      autoRefresh();
+    }
+  }, [isLoading]);
 
   if (isLoading) {
     return (
@@ -216,8 +261,8 @@ export const NetWorthDashboard = ({ onNavigate }) => {
             </div>
           </FormSection>
 
-          {/* Update Values Button */}
-          <div className="text-center my-8">
+          {/* Action Buttons */}
+          <div className="flex justify-center gap-8 my-8">
             <button
               onClick={handleUpdateValues}
               className={`
@@ -230,6 +275,27 @@ export const NetWorthDashboard = ({ onNavigate }) => {
             >
               Update Values
             </button>
+
+            {/* Check if there are stock/crypto items */}
+            {items.some(item => item.itemType === 'stock' || item.itemType === 'crypto') && (
+              <button
+                onClick={handleRefreshPrices}
+                disabled={refreshingPrices}
+                className={`
+                  text-lg font-light border-b-2 pb-2 transition-all
+                  ${refreshingPrices
+                    ? 'opacity-50 cursor-not-allowed'
+                    : ''
+                  }
+                  ${isDarkMode
+                    ? 'text-white border-white hover:border-gray-400'
+                    : 'text-black border-black hover:border-gray-600'
+                  }
+                `}
+              >
+                {refreshingPrices ? 'Refreshing Prices...' : 'Refresh Prices'}
+              </button>
+            )}
           </div>
 
           <SectionBorder />
@@ -419,7 +485,8 @@ const NetWorthItem = ({ item, type, onDelete }) => {
   const { isDarkMode } = useTheme();
   const amount = item.currentValue || 0;
   const lastUpdated = new Date(item.lastUpdated).toLocaleDateString();
-  
+  const isStockOrCrypto = item.itemType === 'stock' || item.itemType === 'crypto';
+
   return (
     <div className={`flex items-center justify-between py-4 border-b ${
       isDarkMode ? 'border-gray-800' : 'border-gray-200'
@@ -428,17 +495,31 @@ const NetWorthItem = ({ item, type, onDelete }) => {
         <div className={`text-base font-light ${
           isDarkMode ? 'text-white' : 'text-black'
         }`}>
-          {item.name}
+          {isStockOrCrypto && item.symbol ? (
+            <>
+              <span className="font-mono font-medium">{item.symbol}</span>
+              {item.name && <span className="ml-2 text-sm opacity-75">({item.name})</span>}
+            </>
+          ) : (
+            item.name
+          )}
         </div>
         <div className={`text-xs font-light mt-1 ${
           isDarkMode ? 'text-gray-500' : 'text-gray-400'
         }`}>
-          Updated {lastUpdated}
+          {isStockOrCrypto && item.lastPrice ? (
+            <>
+              {item.quantity} {item.itemType === 'stock' ? 'shares' : 'coins'} @ ${item.lastPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })}
+              {item.lastPriceUpdate && ` • Updated ${new Date(item.lastPriceUpdate).toLocaleDateString()}`}
+            </>
+          ) : (
+            `Updated ${lastUpdated}`
+          )}
         </div>
       </div>
       <div className="flex items-center gap-4">
         <div className={`text-base font-mono ${
-          type === 'asset' 
+          type === 'asset'
             ? isDarkMode ? 'text-white' : 'text-black'
             : 'text-red-500'
         }`}>

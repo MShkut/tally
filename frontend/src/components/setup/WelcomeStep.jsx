@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useTheme } from 'contexts/ThemeContext';
 import { ThemeToggle } from 'components/shared/ThemeToggle';
 import { DateRangePicker } from 'components/shared/DateRangePicker';
+import { ImportDataModal } from 'components/shared/ImportDataModal';
 import { dataManager } from 'utils/dataManager';
 import {
   FormGrid,
@@ -20,6 +21,7 @@ export const WelcomeStep = ({ onNext, savedData = null }) => {
     householdName: ''
   });
   const [periodData, setPeriodData] = useState(null);
+  const [showImportModal, setShowImportModal] = useState(false);
 
   // Pre-populate form with saved data
   useEffect(() => {
@@ -43,8 +45,12 @@ export const WelcomeStep = ({ onNext, savedData = null }) => {
 
   const handleNext = () => {
     if (canContinue) {
+      // Generate unique household ID (timestamp-based)
+      const householdId = `household-${Date.now()}`;
+
       const welcomeData = {
         household: {
+          id: householdId,
           name: formData.householdName,
           created_date: new Date().toISOString().split('T')[0]
         },
@@ -55,7 +61,7 @@ export const WelcomeStep = ({ onNext, savedData = null }) => {
           period_number: 1
         }
       };
-      
+
       onNext(welcomeData);
     }
   };
@@ -66,6 +72,18 @@ export const WelcomeStep = ({ onNext, savedData = null }) => {
                      periodData.durationMonths >= 1 &&
                      periodData.durationMonths <= 12;
 
+  const handleImportSuccess = () => {
+    // After successful import, redirect to dashboard
+    // Get the household ID from imported data
+    const userData = dataManager.loadUserData();
+    if (userData?.household?.id) {
+      window.location.href = `/${userData.household.id}/dashboard`;
+    } else {
+      // Fallback: reload to re-detect data
+      window.location.reload();
+    }
+  };
+
   // Development helper to load complete sample data and skip to dashboard
   const loadCompleteSampleData = () => {
     if (import.meta.env.DEV) {
@@ -74,8 +92,10 @@ export const WelcomeStep = ({ onNext, savedData = null }) => {
       sixMonthsFromNow.setMonth(today.getMonth() + 6);
 
       // Create complete onboarding data
+      const householdId = `household-${Date.now()}`;
       const completeData = {
         household: {
+          id: householdId,
           name: 'Test Household',
           created_date: today.toISOString().split('T')[0]
         },
@@ -131,16 +151,8 @@ export const WelcomeStep = ({ onNext, savedData = null }) => {
       // Save complete data
       dataManager.saveUserData(completeData);
 
-      // Format household name for URL
-      const householdUrl = completeData.household.name
-        .toLowerCase()
-        .replace(/[^a-z0-9\s-]/g, '')
-        .replace(/\s+/g, '-')
-        .replace(/-+/g, '-')
-        .trim();
-
-      // Navigate directly to dashboard
-      window.location.href = `/${householdUrl}/dashboard`;
+      // Navigate directly to dashboard using householdId
+      window.location.href = `/${householdId}/dashboard`;
     }
   };
 
@@ -185,6 +197,25 @@ export const WelcomeStep = ({ onNext, savedData = null }) => {
             />
           </FormSection>
 
+          {/* Import Existing Data Option */}
+          <div className="mt-8 text-center">
+            <p className={`text-sm mb-3 ${
+              isDarkMode ? 'text-gray-400' : 'text-gray-600'
+            }`}>
+              Already have Tally data?
+            </p>
+            <button
+              onClick={() => setShowImportModal(true)}
+              className={`text-sm font-medium px-6 py-2 border rounded transition-colors ${
+                isDarkMode
+                  ? 'border-gray-600 text-gray-300 hover:border-gray-400 hover:text-white'
+                  : 'border-gray-300 text-gray-700 hover:border-gray-600 hover:text-black'
+              }`}
+            >
+              Import Existing Data
+            </button>
+          </div>
+
           {/* DEV-ONLY: Quick load button */}
           {import.meta.env.DEV && (
             <div className="mt-8 text-center">
@@ -204,6 +235,13 @@ export const WelcomeStep = ({ onNext, savedData = null }) => {
 
         </StandardFormLayout>
       </div>
+
+      {/* Import Data Modal */}
+      <ImportDataModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onSuccess={handleImportSuccess}
+      />
     </>
   );
 };

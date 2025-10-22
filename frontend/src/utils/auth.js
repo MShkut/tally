@@ -1,6 +1,9 @@
 const API_BASE = '/api';
-const TOKEN_KEY = 'tally_auth_token';
-const TOKEN_EXPIRES_KEY = 'tally_auth_expires';
+
+// Store auth token only in memory - no persistence
+// Users must login every time they open/refresh the app
+let authToken = null;
+let tokenExpires = null;
 
 export const Auth = {
   async login(password) {
@@ -26,8 +29,15 @@ export const Auth = {
 
       const { token, expires } = await response.json();
 
-      localStorage.setItem(TOKEN_KEY, token);
-      localStorage.setItem(TOKEN_EXPIRES_KEY, expires.toString());
+      // Store in memory only
+      authToken = token;
+      tokenExpires = expires;
+
+      // Clean up any old persisted tokens from previous versions
+      localStorage.removeItem('tally_auth_token');
+      localStorage.removeItem('tally_auth_expires');
+      sessionStorage.removeItem('tally_auth_token');
+      sessionStorage.removeItem('tally_auth_expires');
 
       return { success: true };
     } catch (error) {
@@ -37,7 +47,7 @@ export const Auth = {
 
   async logout() {
     const token = this.getToken();
-    
+
     if (token) {
       try {
         await fetch(`${API_BASE}/auth/logout`, {
@@ -53,9 +63,15 @@ export const Auth = {
       }
     }
 
+    // Clear in-memory token
+    authToken = null;
+    tokenExpires = null;
 
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(TOKEN_EXPIRES_KEY);
+    // Clean up any old persisted tokens
+    localStorage.removeItem('tally_auth_token');
+    localStorage.removeItem('tally_auth_expires');
+    sessionStorage.removeItem('tally_auth_token');
+    sessionStorage.removeItem('tally_auth_expires');
   },
 
   async changePassword(currentPassword, newPassword) {
@@ -93,19 +109,17 @@ export const Auth = {
   },
 
   getToken() {
-    const token = localStorage.getItem(TOKEN_KEY);
-    const expires = localStorage.getItem(TOKEN_EXPIRES_KEY);
-    
-    if (!token || !expires) {
+    if (!authToken || !tokenExpires) {
       return null;
     }
-    
-    if (Date.now() > parseInt(expires)) {
+
+    // Check if token is expired
+    if (Date.now() > parseInt(tokenExpires)) {
       this.logout();
       return null;
     }
-    
-    return token;
+
+    return authToken;
   },
 
   isAuthenticated() {

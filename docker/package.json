@@ -2,6 +2,7 @@
   "name": "tally-api",
   "version": "1.0.0",
   "description": "Simple API server for Tally budget app",
+  "type": "commonjs",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"

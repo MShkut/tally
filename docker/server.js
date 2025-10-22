@@ -116,6 +116,9 @@ function validateToken(req, res, next) {
 
 // Health check
 app.get('/api/health', (req, res) => {
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[HEALTH] Health check requested');
+  }
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
@@ -190,13 +193,16 @@ app.post('/api/auth/logout', validateToken, (req, res) => {
 // Load budget data
 app.get('/api/budget', validateToken, async (req, res) => {
   try {
+    console.log('[DATA] Loading budget data from:', BUDGET_FILE);
     let budgetData = {};
-    
+
     try {
       const data = await fs.readFile(BUDGET_FILE, 'utf8');
       budgetData = JSON.parse(data);
-    } catch {
+      console.log('[DATA] ✓ Budget data loaded successfully');
+    } catch (error) {
       // File doesn't exist or is invalid, return empty data
+      console.log('[DATA] No existing budget.json, returning empty data structure');
       budgetData = {
         userData: {},
         transactions: [],
@@ -206,10 +212,10 @@ app.get('/api/budget', validateToken, async (req, res) => {
         lastModified: new Date().toISOString()
       };
     }
-    
+
     res.json(budgetData);
   } catch (error) {
-    console.error('Load budget error:', error);
+    console.error('[DATA] Load budget error:', error);
     res.status(500).json({ error: 'Failed to load budget data' });
   }
 });
@@ -217,17 +223,19 @@ app.get('/api/budget', validateToken, async (req, res) => {
 // Save budget data
 app.put('/api/budget', validateToken, async (req, res) => {
   try {
+    console.log('[DATA] Saving budget data to:', BUDGET_FILE);
     const budgetData = req.body;
-    
+
     // Add metadata
     budgetData.lastModified = new Date().toISOString();
     budgetData.version = budgetData.version || '1.0.0';
-    
+
     await fs.writeFile(BUDGET_FILE, JSON.stringify(budgetData, null, 2));
-    
+    console.log('[DATA] ✓ Budget data saved successfully at', budgetData.lastModified);
+
     res.json({ success: true, lastModified: budgetData.lastModified });
   } catch (error) {
-    console.error('Save budget error:', error);
+    console.error('[DATA] Save budget error:', error);
     res.status(500).json({ error: 'Failed to save budget data' });
   }
 });
@@ -235,14 +243,45 @@ app.put('/api/budget', validateToken, async (req, res) => {
 // Initialize and start server
 async function start() {
   try {
+    console.log('[STARTUP] Initializing Tally API server...');
+    console.log(`[STARTUP] Node version: ${process.version}`);
+    console.log(`[STARTUP] Data directory: ${DATA_DIR}`);
+
     await ensureDataDir();
-    
+    console.log('[STARTUP] Data directory verified');
+
+    // Check if data directory is writable
+    const testFile = path.join(DATA_DIR, '.write-test');
+    try {
+      await fs.writeFile(testFile, 'test');
+      await fs.unlink(testFile);
+      console.log('[STARTUP] Data directory is writable ✓');
+    } catch (error) {
+      console.error('[STARTUP] ERROR: Data directory is not writable!', error);
+      throw error;
+    }
+
+    // Check for existing data files
+    try {
+      await fs.access(BUDGET_FILE);
+      console.log('[STARTUP] Found existing budget.json');
+    } catch {
+      console.log('[STARTUP] No existing budget.json (will be created on first save)');
+    }
+
+    try {
+      await fs.access(PASSWORD_FILE);
+      console.log('[STARTUP] Found existing password file');
+    } catch {
+      console.log('[STARTUP] No existing password file (will create default)');
+    }
+
     app.listen(PORT, () => {
-      console.log(`Tally API server running on port ${PORT}`);
-      console.log(`Data directory: ${DATA_DIR}`);
+      console.log(`[STARTUP] ✓ Tally API server ready on port ${PORT}`);
+      console.log(`[STARTUP] Health check: http://localhost:${PORT}/api/health`);
     });
   } catch (error) {
-    console.error('Failed to start server:', error);
+    console.error('[STARTUP] Failed to start server:', error);
     process.exit(1);
   }
 }
