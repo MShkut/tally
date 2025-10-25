@@ -148,71 +148,23 @@ export class AlphaVantageService {
   }
 
   /**
-   * Fetch crypto price from AlphaVantage
-   * Uses CURRENCY_EXCHANGE_RATE endpoint
+   * NOTE: Crypto price fetching removed from AlphaVantage service
+   * AlphaVantage no longer supports cryptocurrency in free tier
+   * Use CoinGecko service instead (coinGeckoService.js)
    */
-  async fetchCryptoPrice(symbol, currency = 'USD') {
-    const apiKey = this.getApiKey();
-    if (!apiKey) {
-      throw new Error('AlphaVantage API key not configured');
-    }
-
-    // Check cache first
-    const cached = this.getCachedPrice(symbol, 'crypto');
-    if (cached) {
-      console.log(`[ALPHAVANTAGE] Using cached crypto price for ${symbol}`);
-      return cached.price;
-    }
-
-    console.log(`[ALPHAVANTAGE] Fetching crypto price for ${symbol}...`);
-
-    const url = `https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE&from_currency=${symbol}&to_currency=${currency}&apikey=${apiKey}`;
-
-    try {
-      const response = await fetch(url);
-      const data = await response.json();
-
-      // Check for API errors
-      if (data['Error Message']) {
-        throw new Error(`Invalid crypto symbol: ${symbol}`);
-      }
-
-      if (data['Note']) {
-        throw new Error('API rate limit exceeded. Please try again later.');
-      }
-
-      const exchangeRate = data['Realtime Currency Exchange Rate'];
-      if (!exchangeRate || !exchangeRate['5. Exchange Rate']) {
-        throw new Error(`No price data available for ${symbol}`);
-      }
-
-      const price = parseFloat(exchangeRate['5. Exchange Rate']);
-
-      // Cache the result
-      this.setCachedPrice(symbol, 'crypto', price);
-
-      return price;
-    } catch (error) {
-      console.error(`[ALPHAVANTAGE] Failed to fetch crypto price for ${symbol}:`, error);
-      throw error;
-    }
-  }
 
   /**
-   * Fetch price for any item type
+   * Fetch price for stocks only
+   * For crypto, use CoinGecko service instead
    * Returns { price, timestamp }
    */
   async fetchPrice(symbol, type) {
     try {
-      let price;
-
-      if (type === 'stock') {
-        price = await this.fetchStockPrice(symbol);
-      } else if (type === 'crypto') {
-        price = await this.fetchCryptoPrice(symbol);
-      } else {
-        throw new Error(`Unsupported item type: ${type}`);
+      if (type !== 'stock') {
+        throw new Error(`AlphaVantage only supports stocks. For crypto, use CoinGecko service.`);
       }
+
+      const price = await this.fetchStockPrice(symbol);
 
       return {
         price,
@@ -250,6 +202,164 @@ export class AlphaVantageService {
         };
       })
     };
+  }
+
+  /**
+   * Fetch daily historical stock prices
+   * Returns full price history for charting
+   * Uses TIME_SERIES_DAILY endpoint
+   *
+   * @param {string} symbol - Stock ticker (e.g., 'AAPL')
+   * @param {string} outputsize - 'compact' (100 days) or 'full' (20+ years)
+   * @returns {Object} - Price history { 'YYYY-MM-DD': closePrice }
+   */
+  async fetchStockDailyHistory(symbol, outputsize = 'full') {
+    const apiKey = this.getApiKey();
+    if (!apiKey) {
+      throw new Error('AlphaVantage API key not configured');
+    }
+
+    console.log(`[ALPHAVANTAGE] Fetching daily history for ${symbol}...`);
+
+    const url = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${symbol}&outputsize=${outputsize}&apikey=${apiKey}`;
+
+    try {
+      const response = await fetch(url);
+      const data = await response.json();
+
+      // Check for API errors
+      if (data['Error Message']) {
+        throw new Error(`Invalid stock symbol: ${symbol}`);
+      }
+
+      if (data['Note']) {
+        const message = data['Note'];
+        if (message.includes('premium') || message.includes('upgrade')) {
+          throw new Error(`This stock requires a premium Alpha Vantage subscription. Symbol: ${symbol}`);
+        }
+        throw new Error('API rate limit exceeded (25 calls/day on free tier). Please try again later.');
+      }
+
+      if (data['Information']) {
+        throw new Error(`API limit: ${data['Information']}`);
+      }
+
+      const timeSeries = data['Time Series (Daily)'];
+      if (!timeSeries) {
+        console.error('[ALPHAVANTAGE] API response:', data);
+        throw new Error(`No historical data available for ${symbol}. This may be due to: 1) API rate limit reached, 2) Stock not supported on free tier, or 3) Invalid symbol.`);
+      }
+
+      // Convert to our format: { 'YYYY-MM-DD': closePrice }
+      const priceHistory = {};
+      for (const [date, values] of Object.entries(timeSeries)) {
+        priceHistory[date] = parseFloat(values['4. close']);
+      }
+
+      const dates = Object.keys(priceHistory).sort();
+      console.log(`[ALPHAVANTAGE] Fetched ${dates.length} daily prices for ${symbol} (${dates[0]} to ${dates[dates.length - 1]})`);
+
+      return priceHistory;
+    } catch (error) {
+      console.error(`[ALPHAVANTAGE] Failed to fetch daily history for ${symbol}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Fetch intraday stock prices for current day
+   * Returns prices at 5-minute intervals
+   * Uses TIME_SERIES_INTRADAY endpoint
+   *
+   * @param {string} symbol - Stock ticker (e.g., 'AAPL')
+   * @returns {Object} - Intraday prices { 'YYYY-MM-DD HH:MM:SS': closePrice }
+   */
+  async fetchStockIntradayHistory(symbol) {
+    const apiKey = this.getApiKey();
+    if (!apiKey) {
+      throw new Error('AlphaVantage API key not configured');
+    }
+
+    console.log(`[ALPHAVANTAGE] Fetching intraday data for ${symbol}...`);
+
+    const url = `https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol=${symbol}&interval=5min&apikey=${apiKey}`;
+
+    try {
+      const response = await fetch(url);
+      const data = await response.json();
+
+      // Check for API errors
+      if (data['Error Message']) {
+        throw new Error(`Invalid stock symbol: ${symbol}`);
+      }
+
+      if (data['Note']) {
+        const message = data['Note'];
+        if (message.includes('premium') || message.includes('upgrade')) {
+          throw new Error(`Intraday data requires premium subscription. Symbol: ${symbol}`);
+        }
+        throw new Error('API rate limit exceeded (25 calls/day on free tier). Please try again later.');
+      }
+
+      if (data['Information']) {
+        throw new Error(`API limit: ${data['Information']}`);
+      }
+
+      const timeSeries = data['Time Series (5min)'];
+      if (!timeSeries) {
+        console.error('[ALPHAVANTAGE] Intraday API response:', data);
+        throw new Error(`No intraday data available for ${symbol}. May not be supported on free tier or rate limit reached.`);
+      }
+
+      // Convert to our format: { 'YYYY-MM-DD HH:MM:SS': closePrice }
+      const intradayPrices = {};
+      for (const [datetime, values] of Object.entries(timeSeries)) {
+        intradayPrices[datetime] = parseFloat(values['4. close']);
+      }
+
+      const times = Object.keys(intradayPrices).sort();
+      console.log(`[ALPHAVANTAGE] Fetched ${times.length} intraday prices for ${symbol}`);
+
+      return intradayPrices;
+    } catch (error) {
+      console.error(`[ALPHAVANTAGE] Failed to fetch intraday data for ${symbol}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * NOTE: Bitcoin/crypto methods removed
+   * AlphaVantage no longer supports cryptocurrency in free tier
+   * Use CoinGecko service instead (coinGeckoService.js)
+   * - coinGecko.fetchCryptoHistory() for historical data
+   * - coinGecko.fetchCryptoPrice() for current price
+   */
+
+  /**
+   * Get latest price from intraday or daily data (stocks only)
+   * Prioritizes intraday (more current) with fallback to daily
+   *
+   * @param {string} symbol - Stock ticker
+   * @returns {number} - Latest price
+   */
+  async getLatestPrice(symbol) {
+    try {
+      // For stocks, try intraday first, then fallback to daily
+      try {
+        const intradayPrices = await this.fetchStockIntradayHistory(symbol);
+        const times = Object.keys(intradayPrices).sort();
+        return intradayPrices[times[times.length - 1]];
+      } catch (error) {
+        // Fallback to daily price if intraday fails
+        console.log(`[ALPHAVANTAGE] Intraday failed, falling back to daily for ${symbol}`);
+        const dailyPrices = await this.fetchStockDailyHistory(symbol, 'compact');
+        const dates = Object.keys(dailyPrices).sort();
+        return dailyPrices[dates[dates.length - 1]];
+      }
+    } catch (error) {
+      console.error(`[ALPHAVANTAGE] Failed to get latest price for ${symbol}:`, error);
+      throw error;
+    }
   }
 }
 

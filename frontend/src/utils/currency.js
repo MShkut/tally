@@ -43,27 +43,28 @@ export const formatCurrency = (amount, options = {}) => {
   const {
     showCents = true,
     symbol = '$',
-    locale = 'en-US'
+    locale = 'en-US',
+    currencyCode = 'USD'
   } = options;
-  
+
   const num = typeof amount === 'string' ? parseFloat(amount) : amount;
   if (isNaN(num)) return `${symbol}0.00`;
-  
+
   // Convert to cents and back to eliminate floating point errors
   const cents = toCents(num);
   const cleanAmount = fromCents(cents);
-  
+
   if (showCents) {
     return new Intl.NumberFormat(locale, {
       style: 'currency',
-      currency: 'USD',
+      currency: currencyCode,
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
     }).format(cleanAmount);
   } else {
     return new Intl.NumberFormat(locale, {
       style: 'currency',
-      currency: 'USD',
+      currency: currencyCode,
       minimumFractionDigits: 0,
       maximumFractionDigits: 0
     }).format(cleanAmount);
@@ -337,6 +338,46 @@ export const convertFromYearly = (yearlyAmount, targetFrequency) => {
   return fromCents(resultCents);
 };
 
+// ==================== SETTINGS-AWARE FORMATTING ====================
+
+/**
+ * Get user's preferred currency from settings
+ * @returns {string} - Currency code (USD, EUR, GBP, JPY, CAD)
+ */
+export const getUserCurrency = () => {
+  try {
+    // Try to get from dataManager if available
+    if (typeof window !== 'undefined' && window.dataManager) {
+      const settings = window.dataManager.loadSettings();
+      return settings?.currency || 'USD';
+    }
+
+    // Fallback to localStorage
+    const settingsStr = localStorage.getItem('financeTracker_settings');
+    if (settingsStr) {
+      const settings = JSON.parse(settingsStr);
+      return settings?.currency || 'USD';
+    }
+  } catch (error) {
+    // Silent fallback to USD
+  }
+  return 'USD';
+};
+
+/**
+ * Format currency with user's preferred currency from settings
+ * @param {string|number} amount - Amount to format
+ * @param {object} options - Additional formatting options
+ * @returns {string} - Formatted currency string
+ */
+export const formatWithUserCurrency = (amount, options = {}) => {
+  const userCurrency = getUserCurrency();
+  return formatCurrency(amount, {
+    ...options,
+    currencyCode: userCurrency
+  });
+};
+
 // ==================== LEGACY COMPATIBILITY ====================
 
 /**
@@ -358,10 +399,12 @@ export const Currency = {
   toCents,
   fromCents,
   format: formatCurrency,
+  formatWithUserCurrency,
+  getUserCurrency,
   formatInput: formatCurrencyInput,
   parseInput: parseCurrencyInput,
   formatPercentage,
-  
+
   // Calculations
   add: addCurrency,
   subtract: subtractCurrency,
@@ -371,11 +414,11 @@ export const Currency = {
   isEqual: isEqualCurrency,
   isPositive: isPositiveCurrency,
   abs: absCurrency,
-  
+
   // Validation
   validate: validateCurrencyInput,
   checkBalance: checkBudgetBalance,
-  
+
   // Frequency conversion
   toYearly: convertToYearly,
   fromYearly: convertFromYearly

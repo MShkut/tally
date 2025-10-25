@@ -16,7 +16,7 @@ export const handleMenuAction = (actionId, onNavigate, onClose, setShowResetConf
   if (actionId !== 'reset-data') {
     onClose();
   }
-  
+
   switch (actionId) {
     // Overview Actions
     case 'dashboard':
@@ -62,7 +62,11 @@ export const handleMenuAction = (actionId, onNavigate, onClose, setShowResetConf
       onNavigate('onboarding');
       return true;
 
-    // Data Management
+    // Settings & Data Management
+    case 'settings':
+      onNavigate('settings');
+      return true;
+
     case 'save':
       handleDataSave();
       return true;
@@ -75,11 +79,6 @@ export const handleMenuAction = (actionId, onNavigate, onClose, setShowResetConf
     case 'export':
       handleDataExport();
       return true;
-
-    case 'alphavantage-settings':
-      // This will be handled by the component that has the AlphaVantage settings modal
-      // We return 'alphavantage-settings' to signal it needs external handling
-      return 'alphavantage-settings';
 
     case 'change-password':
       // This will be handled by the component that has the change password modal
@@ -222,13 +221,8 @@ export const getMenuItems = () => {
   ];
 
   const settingsItems = [
-    { id: 'save', label: 'Save Data' },
-    { id: 'import-data', label: 'Import Data' },
-    { id: 'export', label: 'Export Data' },
-    { id: 'alphavantage-settings', label: 'AlphaVantage API Key' },
-    { id: 'change-password', label: 'Change Password' },
-    { id: 'logout', label: 'Logout' },
-    { id: 'reset-data', label: 'Reset All Data', danger: true }
+    { id: 'settings', label: 'Settings' },
+    { id: 'logout', label: 'Logout' }
   ];
 
   return {

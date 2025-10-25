@@ -5,11 +5,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useTheme } from 'contexts/ThemeContext';
 import { dataManager } from 'utils/dataManager';
 
-export const DatePicker = ({ 
-  value, 
-  onChange, 
+export const DatePicker = ({
+  value,
+  onChange,
   placeholder = 'Select date',
-  className = '' 
+  className = '',
+  align = 'right' // 'left' or 'right'
 }) => {
   const { isDarkMode } = useTheme();
   const [showCalendar, setShowCalendar] = useState(false);
@@ -211,11 +212,13 @@ export const DatePicker = ({
         {displayValue || placeholder}
       </button>
 
-      {/* Calendar popup - positioned to the right of the date field */}
+      {/* Calendar popup - positioned based on align prop */}
       {showCalendar && (
-        <div className={`absolute top-0 left-full ml-4 p-4 border rounded-lg z-50 w-80 ${
-          isDarkMode 
-            ? 'bg-black border-gray-800 shadow-2xl shadow-black/50' 
+        <div className={`absolute top-0 p-4 border rounded-lg z-50 w-80 ${
+          align === 'left' ? 'left-0' : 'left-full ml-4'
+        } ${
+          isDarkMode
+            ? 'bg-black border-gray-800 shadow-2xl shadow-black/50'
             : 'bg-white border-gray-200 shadow-xl shadow-gray-500/25'
         }`}>
           {/* Month Navigation with Arrows Only */}

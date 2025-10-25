@@ -11,6 +11,7 @@ const STORAGE_KEYS = {
   NET_WORTH_HISTORY: 'financeTracker_netWorthHistory',
   MERCHANT_MAPPINGS: 'merchantMappings',
   CATEGORY_MAPPINGS: 'tally_categoryMappings',
+  SETTINGS: 'financeTracker_settings',
   APP_VERSION: 'financeTracker_version'
 };
 
@@ -35,7 +36,10 @@ class DataManager {
         userData: {},
         transactions: [],
         netWorthItems: [],
+        netWorthHistory: [],
+        priceHistory: {},
         giftData: { people: [], gifts: [] },
+        settings: { currency: 'USD' },
         version: this.currentVersion
       };
     } else {
@@ -81,7 +85,10 @@ class DataManager {
         userData: {},
         transactions: [],
         netWorthItems: [],
+        netWorthHistory: [],
+        priceHistory: {},
         giftData: { people: [], gifts: [] },
+        settings: { currency: 'USD' },
         version: this.currentVersion
       };
     }
@@ -114,55 +121,64 @@ class DataManager {
   migrateNetWorthData() {
     const userData = this.loadUserData();
     if (!userData?.netWorth) return;
-    
+
     const existingItems = localStorage.getItem(STORAGE_KEYS.NET_WORTH_ITEMS);
     if (existingItems) return; // Already migrated
-    
+
     // Convert old format to new format
     const items = [];
     const timestamp = userData.netWorth.lastUpdated || new Date().toISOString();
-    
+    const purchaseDate = timestamp.split('T')[0]; // ISO date format
+
     // Convert assets
     (userData.netWorth.assets || []).forEach(asset => {
+      const value = parseFloat(asset.amount) || 0;
       items.push({
         id: `asset-${Date.now()}-${Math.random()}`,
-        name: asset.name,
         type: 'asset',
-        currentValue: parseFloat(asset.amount) || 0,
-        createdAt: timestamp,
+        category: 'Other', // Default category - user can recategorize later
+        name: asset.name,
+        purchaseDate: purchaseDate,
+        purchaseValue: value, // Treat current value as purchase value for migration
+        quantity: 1,
+        totalCost: value,
+        currentValue: value,
         lastUpdated: timestamp,
-        history: [{
-          date: timestamp,
-          value: parseFloat(asset.amount) || 0,
-          source: 'migration',
-          note: 'Migrated from old format'
-        }]
+        autoUpdate: false, // Require manual updates for migrated items
+        ticker: null,
+        notes: 'Migrated from old format'
       });
     });
-    
+
     // Convert liabilities
     (userData.netWorth.liabilities || []).forEach(liability => {
+      const value = parseFloat(liability.amount) || 0;
       items.push({
         id: `liability-${Date.now()}-${Math.random()}`,
-        name: liability.name,
         type: 'liability',
-        currentValue: parseFloat(liability.amount) || 0,
-        createdAt: timestamp,
+        category: 'Other', // Default category - user can recategorize later
+        name: liability.name,
+        purchaseDate: purchaseDate,
+        purchaseValue: value, // Original liability amount
+        quantity: 1,
+        totalCost: value,
+        currentValue: value,
         lastUpdated: timestamp,
-        history: [{
-          date: timestamp,
-          value: parseFloat(liability.amount) || 0,
-          source: 'migration',
-          note: 'Migrated from old format'
-        }]
+        autoUpdate: false, // Manual updates only for liabilities
+        ticker: null,
+        notes: 'Migrated from old format'
       });
     });
-    
+
     // Save migrated data
     localStorage.setItem(STORAGE_KEYS.NET_WORTH_ITEMS, JSON.stringify(items));
-    
+
     // Create initial history entry
     this.updateNetWorthHistory();
+
+    if (import.meta.env.DEV) {
+      console.log(`📦 Migrated ${items.length} net worth items from old format`);
+    }
   }
 
   // ==================== USER DATA ====================
@@ -378,6 +394,22 @@ class DataManager {
     return item;
   }
 
+  updateNetWorthItem(itemId, updates) {
+    const items = this.loadNetWorthItems();
+    const index = items.findIndex(item => item.id === itemId);
+
+    if (index !== -1) {
+      items[index] = {
+        ...items[index],
+        ...updates,
+        lastUpdated: new Date().toISOString()
+      };
+      this.saveNetWorthItems(items);
+      return items[index];
+    }
+    return null;
+  }
+
   updateNetWorthItemValue(itemId, newValue, note = '') {
     const items = this.loadNetWorthItems();
     const index = items.findIndex(item => item.id === itemId);
@@ -546,6 +578,121 @@ class DataManager {
     }
   }
 
+  // ==================== PRICE HISTORY ====================
+
+  /**
+   * Load price history from storage
+   * Returns: { 'AAPL': { '2024-01-15': 150.00, ... }, 'BTC': { ... }, ... }
+   */
+  loadPriceHistory() {
+    try {
+      if (this.containerMode) {
+        return this.containerData?.priceHistory || {};
+      }
+
+      const savedData = localStorage.getItem('financeTracker_priceHistory');
+      if (!savedData) return {};
+      return JSON.parse(savedData);
+    } catch (error) {
+      console.error('❌ Failed to load price history:', error);
+      return {};
+    }
+  }
+
+  /**
+   * Save price history to storage
+   */
+  async savePriceHistory(priceHistory) {
+    try {
+      if (this.containerMode) {
+        this.containerData.priceHistory = priceHistory;
+        await this.saveToContainer();
+      } else {
+        localStorage.setItem('financeTracker_priceHistory', JSON.stringify(priceHistory));
+      }
+
+      if (import.meta.env.DEV) {
+        const tickers = Object.keys(priceHistory);
+        console.log(`💾 Price history saved for ${tickers.length} tickers`);
+      }
+      return true;
+    } catch (error) {
+      console.error('❌ Failed to save price history:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Update price for single ticker on specific date
+   */
+  async updatePriceForTicker(ticker, date, price) {
+    const priceHistory = this.loadPriceHistory();
+
+    if (!priceHistory[ticker]) {
+      priceHistory[ticker] = {};
+    }
+
+    priceHistory[ticker][date] = price;
+    await this.savePriceHistory(priceHistory);
+  }
+
+  /**
+   * Get price for ticker on specific date
+   */
+  getPriceOnDate(ticker, date) {
+    const priceHistory = this.loadPriceHistory();
+
+    if (!priceHistory[ticker]) {
+      return null;
+    }
+
+    return priceHistory[ticker][date] || null;
+  }
+
+  /**
+   * Get price history for ticker within date range
+   */
+  getPriceHistoryForTicker(ticker, startDate = null, endDate = null) {
+    const priceHistory = this.loadPriceHistory();
+
+    if (!priceHistory[ticker]) {
+      return {};
+    }
+
+    const prices = priceHistory[ticker];
+
+    // If no date range specified, return all prices
+    if (!startDate && !endDate) {
+      return prices;
+    }
+
+    // Filter by date range
+    const filtered = {};
+    for (const [date, price] of Object.entries(prices)) {
+      if (startDate && date < startDate) continue;
+      if (endDate && date > endDate) continue;
+      filtered[date] = price;
+    }
+
+    return filtered;
+  }
+
+  /**
+   * Clear price history for specific ticker
+   */
+  async clearPriceHistoryForTicker(ticker) {
+    const priceHistory = this.loadPriceHistory();
+    delete priceHistory[ticker];
+    await this.savePriceHistory(priceHistory);
+  }
+
+  /**
+   * Clear all price history
+   */
+  async clearAllPriceHistory() {
+    await this.savePriceHistory({});
+  }
+
   // ==================== GIFT DATA ====================
 
   async saveGiftData(data) {
@@ -621,6 +768,102 @@ class DataManager {
     const income = userData.income?.totalYearlyIncome || 0;
     const savings = userData.savingsAllocation?.monthlySavings || 0;
     return (income / 12) - savings;
+  }
+
+  // ==================== SETTINGS ====================
+
+  /**
+   * Load settings from storage
+   */
+  loadSettings() {
+    try {
+      if (this.containerMode) {
+        return this.containerData?.settings || { currency: 'USD' };
+      }
+
+      const savedData = localStorage.getItem(STORAGE_KEYS.SETTINGS);
+      if (!savedData) return { currency: 'USD' };
+      return JSON.parse(savedData);
+    } catch (error) {
+      console.error('❌ Failed to load settings:', error);
+      return { currency: 'USD' };
+    }
+  }
+
+  /**
+   * Save settings to storage
+   */
+  async saveSettings(settings) {
+    try {
+      const settingsData = {
+        ...settings,
+        lastUpdated: new Date().toISOString()
+      };
+
+      if (this.containerMode) {
+        this.containerData.settings = settingsData;
+        await this.saveToContainer();
+      } else {
+        localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settingsData));
+      }
+
+      if (import.meta.env.DEV) {
+        console.log('💾 Settings saved:', settingsData);
+      }
+      return true;
+    } catch (error) {
+      console.error('❌ Failed to save settings:', error);
+      return false;
+    }
+  }
+
+  // ==================== NET WORTH CHART CONFIG ====================
+
+  /**
+   * Load net worth chart configuration
+   * Returns default config if none exists
+   */
+  loadNetWorthChartConfig() {
+    try {
+      const settings = this.loadSettings();
+      return settings.netWorthChartConfig || {
+        leftChart: 'fiat-total',
+        rightChart: 'btc-holdings',
+        dateRange: {
+          startDate: null, // null = all time
+          endDate: null
+        }
+      };
+    } catch (error) {
+      console.error('❌ Failed to load chart config:', error);
+      return {
+        leftChart: 'fiat-total',
+        rightChart: 'btc-holdings',
+        dateRange: {
+          startDate: null,
+          endDate: null
+        }
+      };
+    }
+  }
+
+  /**
+   * Save net worth chart configuration
+   */
+  async saveNetWorthChartConfig(chartConfig) {
+    try {
+      const settings = this.loadSettings();
+      settings.netWorthChartConfig = chartConfig;
+      await this.saveSettings(settings);
+
+      if (import.meta.env.DEV) {
+        console.log('💾 Chart config saved:', chartConfig);
+      }
+      return true;
+    } catch (error) {
+      console.error('❌ Failed to save chart config:', error);
+      return false;
+    }
   }
 
   // ==================== MANUAL SAVE ====================
@@ -743,3 +986,8 @@ class DataManager {
 }
 
 export const dataManager = new DataManager();
+
+// Make dataManager available globally for currency utilities
+if (typeof window !== 'undefined') {
+  window.dataManager = dataManager;
+}
