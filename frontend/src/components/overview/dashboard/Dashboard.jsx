@@ -17,6 +17,7 @@ import { BudgetPerformanceSection } from 'components/overview/dashboard/BudgetPe
 import { DashboardViewSelector, generateAvailableMonths } from 'components/overview/dashboard/DashboardViewSelector';
 import { handleMenuAction } from 'utils/navigationHandler';
 import { useBudgetMath } from 'hooks/useBudgetMath';
+import { calculateNetWorth } from 'utils/netWorthCalculations';
 
 export const Dashboard = ({ onNavigate, onLogout }) => {
   const { isDarkMode } = useTheme();
@@ -124,6 +125,12 @@ export const Dashboard = ({ onNavigate, onLogout }) => {
   }, [availableMonths]);
   
   const handleMenuActionWrapper = (actionId) => {
+    // Handle preferences specially to avoid recursion
+    if (actionId === 'preferences') {
+      setMenuOpen(false);
+      onNavigate('settings');
+      return;
+    }
     handleMenuAction(actionId, onNavigate, () => setMenuOpen(false));
   };
 
@@ -440,8 +447,9 @@ function processIncomeBreakdown(onboardingData, filteredTransactions, viewMode, 
     let expectedAmount = 0;
 
     if (viewMode === 'period') {
-      const monthsElapsed = budgetMath.calculateMonthsElapsed(onboardingData?.period?.start_date);
-      expectedAmount = budgetMath.calculatePeriodIncome([source], monthsElapsed);
+      // Use full period duration, not months elapsed
+      const periodDuration = onboardingData?.period?.duration_months || 12;
+      expectedAmount = budgetMath.calculatePeriodIncome([source], periodDuration);
     } else {
       // Monthly view - use correct conversion
       expectedAmount = budgetMath.calculateMonthlyIncome([source]);
@@ -471,8 +479,9 @@ function processBudgetCategories(filteredTransactions, viewMode, categories, bud
       // Adjust budget based on view mode
       let budget = category.amount || 0;
       if (viewMode === 'period') {
-        const monthsElapsed = budgetMath.calculateMonthsElapsed(onboardingData?.period?.start_date);
-        budget = Currency.multiply(budget, monthsElapsed);
+        // Use full period duration, not months elapsed
+        const periodDuration = onboardingData?.period?.duration_months || 12;
+        budget = Currency.multiply(budget, periodDuration);
       }
 
       return {
@@ -557,7 +566,9 @@ function processNetWorth(onboardingData) {
 
 // Calculate net worth data with trend
 function calculateNetWorthData(onboardingData) {
-  const netWorthValue = onboardingData?.netWorth?.netWorth || 0;
+  // Load current net worth items from the new system
+  const netWorthItems = dataManager.loadNetWorthItems();
+  const netWorthValue = calculateNetWorth(netWorthItems);
 
   // For now, we don't have historical data to calculate actual trend
   // In the future, this could track period-over-period changes

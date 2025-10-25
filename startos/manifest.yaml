@@ -1,6 +1,6 @@
 id: tally-budget
 title: Tally Budget
-version: 0.0.9
+version: 0.0.10
 description:
   short: Privacy-first household budget tracker running on your Start9 server
   long: |
@@ -14,6 +14,9 @@ description:
     - Gift budget management
     - All data stays on your server - complete privacy
 release-notes: |
+  Version 0.0.10
+  - Networth Dashboard test
+  
   Version 0.0.9 - Complete Stability Release
   - Fixed: Menu button clicks now work reliably (z-index fix)
   - Fixed: Health check shows green (changed to script type)

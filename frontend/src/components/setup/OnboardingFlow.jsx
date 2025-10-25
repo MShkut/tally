@@ -5,22 +5,19 @@ import { WelcomeStep } from './WelcomeStep';
 import { IncomeStep } from './IncomeStep';
 import { SavingsAllocationStep } from './SavingsAllocationStep';
 import { ExpensesStep } from './ExpensesStep';
-import { NetWorthStep } from './NetWorthStep';
 
 const STEPS = {
   WELCOME: 'welcome',
   INCOME: 'income',
   SAVINGS: 'savings',
-  EXPENSES: 'expenses',
-  NETWORTH: 'networth'
+  EXPENSES: 'expenses'
 };
 
 const STEP_ORDER = [
   STEPS.WELCOME,
   STEPS.INCOME,
   STEPS.SAVINGS,
-  STEPS.EXPENSES,
-  STEPS.NETWORTH
+  STEPS.EXPENSES
 ];
 
 export const OnboardingFlow = ({ onComplete }) => {
@@ -30,8 +27,7 @@ export const OnboardingFlow = ({ onComplete }) => {
     period: null,
     income: null,
     savingsAllocation: null,
-    expenses: null,
-    netWorth: null
+    expenses: null
   });
 
   // Load any existing onboarding data on mount
@@ -41,9 +37,7 @@ export const OnboardingFlow = ({ onComplete }) => {
       setOnboardingData(userData);
       
       // Determine which step to start on based on completed data
-      if (userData.netWorth) {
-        setCurrentStep(STEPS.NETWORTH);
-      } else if (userData.expenses) {
+      if (userData.expenses) {
         setCurrentStep(STEPS.EXPENSES);
       } else if (userData.savingsAllocation) {
         setCurrentStep(STEPS.SAVINGS);
@@ -85,10 +79,6 @@ export const OnboardingFlow = ({ onComplete }) => {
         
       case STEPS.EXPENSES:
         sectionKey = 'expenses';
-        break;
-        
-      case STEPS.NETWORTH:
-        sectionKey = 'netWorth';
         break;
     }
     
@@ -163,24 +153,14 @@ export const OnboardingFlow = ({ onComplete }) => {
         
       case STEPS.EXPENSES:
         return (
-          <ExpensesStep 
+          <ExpensesStep
             {...commonProps}
             incomeData={onboardingData.income}
             savingsData={onboardingData.savingsAllocation}
-          />
-        );
-        
-      case STEPS.NETWORTH:
-        return (
-          <NetWorthStep 
-            {...commonProps}
-            incomeData={onboardingData.income}
-            savingsData={onboardingData.savingsAllocation}
-            expensesData={onboardingData.expenses}
             nextLabel="Complete Setup"
           />
         );
-        
+
       default:
         console.error('❌ Unknown step:', currentStep);
         return <WelcomeStep {...commonProps} />;

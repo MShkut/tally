@@ -338,19 +338,20 @@ export const useBudgetMath = () => {
         }
       };
     } else {
-      const monthsElapsed = calculateMonthsElapsed(onboardingData?.period?.start_date);
+      // Use full period duration, not months elapsed
+      const periodDuration = onboardingData?.period?.duration_months || 12;
 
       return {
         income: {
-          planned: calculatePeriodIncome(onboardingData?.income?.incomeSources, monthsElapsed),
+          planned: calculatePeriodIncome(onboardingData?.income?.incomeSources, periodDuration),
           actual: calculateActualIncome(filteredTransactions, onboardingData?.income?.incomeSources)
         },
         expenses: {
-          planned: calculatePeriodExpenses(onboardingData?.expenses?.expenseCategories, monthsElapsed),
+          planned: calculatePeriodExpenses(onboardingData?.expenses?.expenseCategories, periodDuration),
           actual: calculateActualExpenses(filteredTransactions, categories)
         },
         savings: {
-          planned: calculatePeriodSavings(onboardingData?.savingsAllocation, monthsElapsed),
+          planned: calculatePeriodSavings(onboardingData?.savingsAllocation, periodDuration),
           actual: calculateActualSavings(filteredTransactions, onboardingData?.savingsAllocation)
         }
       };

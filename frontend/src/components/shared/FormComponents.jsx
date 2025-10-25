@@ -34,18 +34,19 @@ export const FormField = ({
 // ==================== INPUT COMPONENTS ====================
 
 // Standardized input field with consistent styling and fixed currency handling
-export const StandardInput = ({ 
-  label, 
-  type = 'text', 
-  value, 
-  onChange, 
-  placeholder = '', 
+export const StandardInput = ({
+  label,
+  type = 'text',
+  value,
+  onChange,
+  placeholder = '',
   prefix = null,
   suffix = null,
   error = null,
+  helpText = null,
   required = false,
   className = '',
-  ...props 
+  ...props
 }) => {
   const { isDarkMode } = useTheme();
 
@@ -107,6 +108,13 @@ export const StandardInput = ({
       {error && (
         <div className="mt-2 text-red-500 text-sm font-light">
           {error}
+        </div>
+      )}
+      {helpText && !error && (
+        <div className={`mt-2 text-sm font-light ${
+          isDarkMode ? 'text-gray-500' : 'text-gray-400'
+        }`}>
+          {helpText}
         </div>
       )}
     </div>

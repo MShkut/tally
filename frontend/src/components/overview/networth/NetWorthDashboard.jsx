@@ -1,197 +1,103 @@
-// frontend/src/components/dashboard/NetWorthDashboard.jsx
+// frontend/src/components/overview/networth/NetWorthDashboard.jsx
 import React, { useState, useEffect } from 'react';
-
+import { useParams } from 'react-router-dom';
 import { useTheme } from 'contexts/ThemeContext';
-import { useNetWorth } from 'hooks/useNetWorth';
-import { dataManager } from 'utils/dataManager';
+import { ThemeToggle } from 'components/shared/ThemeToggle';
 import { BurgerMenu } from 'components/shared/BurgerMenu';
-import { 
-  FormSection,
-  SummaryCard,
-  SectionBorder,
-  EmptyState,
-  StandardInput,
-  ConfirmationModal
-} from 'components/shared/FormComponents';
+import { dataManager } from 'utils/dataManager';
+import { Currency } from 'utils/currency';
+import { handleMenuAction } from 'utils/navigationHandler';
+import { calculateNetWorth, backfillAllPrices } from 'utils/netWorthCalculations';
+import { alphaVantage } from 'utils/alphaVantageService';
+import { OverviewTab } from './OverviewTab';
+import { ManageTab } from './ManageTab';
+import { ImportTab } from './ImportTab';
 
-export const NetWorthDashboard = ({ onNavigate }) => {
-  const { isDarkMode, toggleTheme } = useTheme();
+const TABS = {
+  OVERVIEW: 'overview',
+  MANAGE: 'manage',
+  IMPORT: 'import'
+};
+
+export const NetWorthDashboard = ({ onNavigate, onLogout }) => {
+  const { isDarkMode } = useTheme();
+  const { household } = useParams();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [showUpdateModal, setShowUpdateModal] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
-  const [chartView, setChartView] = useState('all-time'); // 'all-time', 'this-period', 'by-month'
-  const [showAddAsset, setShowAddAsset] = useState(false);
-  const [showAddLiability, setShowAddLiability] = useState(false);
-  const [newItem, setNewItem] = useState({ name: '', value: '' });
-  const [refreshingPrices, setRefreshingPrices] = useState(false);
+  const [activeTab, setActiveTab] = useState(TABS.OVERVIEW);
+  const [netWorthItems, setNetWorthItems] = useState([]);
+  const previousTab = React.useRef(activeTab);
 
-  // Use custom hook for net worth management
-  const {
-    items,
-    isLoading,
-    error,
-    getNetWorthData,
-    getAssets,
-    getLiabilities,
-    addItem,
-    updateItemValue,
-    deleteItem,
-    refreshPrices
-  } = useNetWorth();
-
-  const handleMenuAction = (actionId) => {
-    setMenuOpen(false);
-    
-    switch (actionId) {
-      case 'dashboard':
-        onNavigate('dashboard');
-        break;
-      case 'networth':
-        break; // Already here
-      case 'import':
-        onNavigate('import');
-        break;
-      case 'gifts':
-        onNavigate('gifts');
-        break;
-      case 'edit-income':
-        onNavigate('edit-income');
-        break;
-      case 'edit-savings':
-        onNavigate('edit-savings');
-        break;
-      case 'edit-expenses':
-        onNavigate('edit-expenses');
-        break;
-      case 'plan-next-period':
-        onNavigate('plan-next-period');
-        break;
-      case 'export':
-        const exportData = dataManager.exportData();
-        break;
-      case 'reset-data':
-        dataManager.resetAllData();
-        onNavigate('onboarding');
-        break;
-      default:
-    }
-  };
-
-  const handleAddItem = (type) => {
-    if (!newItem.name || !newItem.value) return;
-
-    const value = parseFloat(newItem.value);
-    if (isNaN(value)) return;
-
-    const item = {
-      name: newItem.name,
-      type: type,
-      amount: value
-    };
-
-    addItem(item);
-    setNewItem({ name: '', value: '' });
-
-    if (type === 'asset') {
-      setShowAddAsset(false);
-    } else {
-      setShowAddLiability(false);
-    }
-  };
-
-  const handleDeleteItem = (itemId) => {
-    deleteItem(itemId);
-    setShowDeleteConfirm(null);
-  };
-
-  const handleUpdateValues = () => {
-    setShowUpdateModal(true);
-  };
-
-  const handleSaveUpdates = (updates) => {
-    Object.entries(updates).forEach(([itemId, newValue]) => {
-      if (newValue !== null) {
-        updateItemValue(itemId, newValue, 'Manual update');
-      }
-    });
-    setShowUpdateModal(false);
-  };
-
-  const handleRefreshPrices = async () => {
-    setRefreshingPrices(true);
-    try {
-      const result = await refreshPrices();
-
-      if (result.success) {
-        if (result.updated > 0) {
-          alert(`✓ ${result.message}`);
-        } else {
-          alert('No stock/crypto items to update');
-        }
-      } else {
-        alert(`Failed to refresh prices: ${result.error || 'Unknown error'}`);
-      }
-
-      if (result.errors && result.errors.length > 0) {
-        console.error('[PRICE] Update errors:', result.errors);
-        const errorList = result.errors.map(e => `${e.symbol}: ${e.error}`).join('\n');
-        alert(`Some prices failed to update:\n${errorList}`);
-      }
-    } catch (error) {
-      console.error('[PRICE] Refresh error:', error);
-      alert(`Failed to refresh prices: ${error.message}`);
-    } finally {
-      setRefreshingPrices(false);
-    }
-  };
-
-  // Auto-refresh prices on load (only for stock/crypto items)
+  // Load net worth data
   useEffect(() => {
-    const autoRefresh = async () => {
-      const itemsNeedingUpdate = dataManager.getItemsNeedingPriceUpdate();
-      if (itemsNeedingUpdate.length > 0) {
-        console.log('[PRICE] Auto-refreshing prices on load...');
-        await handleRefreshPrices();
-      }
+    const loadData = () => {
+      const items = dataManager.loadNetWorthItems();
+      setNetWorthItems(items);
     };
 
-    if (!isLoading) {
-      autoRefresh();
+    loadData();
+  }, [activeTab]); // Reload when tab changes to pick up any changes
+
+  // Auto-backfill prices when leaving Import tab
+  useEffect(() => {
+    // Check if we're leaving the Import tab
+    if (previousTab.current === TABS.IMPORT && activeTab !== TABS.IMPORT) {
+      const hasApiKey = alphaVantage.hasApiKey();
+
+      if (hasApiKey && netWorthItems.length > 0) {
+        // Trigger backfill in background (don't await, let it run)
+        backfillAllPrices(netWorthItems).then(results => {
+          if (import.meta.env.DEV) {
+            console.log('[AUTO_BACKFILL] Backfill completed:', results);
+          }
+        }).catch(error => {
+          if (import.meta.env.DEV) {
+            console.error('[AUTO_BACKFILL] Backfill failed:', error);
+          }
+        });
+      }
     }
-  }, [isLoading]);
 
-  if (isLoading) {
-    return (
-      <div className={`min-h-screen flex items-center justify-center transition-colors duration-300 ${
-        isDarkMode ? 'bg-black text-white' : 'bg-gray-50 text-gray-900'
-      }`}>
-        <div className="text-xl font-light">Loading net worth data...</div>
-      </div>
-    );
-  }
+    previousTab.current = activeTab;
+  }, [activeTab, netWorthItems]);
 
-  const netWorthData = getNetWorthData();
-  const assets = getAssets();
-  const liabilities = getLiabilities();
-  const { totalAssets, totalLiabilities, netWorth } = netWorthData;
+  // Handle menu state changes to prevent layout shift
+  useEffect(() => {
+    if (menuOpen) {
+      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+      document.body.style.paddingRight = `${scrollbarWidth}px`;
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.paddingRight = '';
+      document.body.style.overflow = '';
+    }
 
-  // Get history from dataManager (until we add history tracking to hook)
-  const fullData = dataManager.loadNetWorthData();
-  const history = fullData.history || [];
+    return () => {
+      document.body.style.paddingRight = '';
+      document.body.style.overflow = '';
+    };
+  }, [menuOpen]);
+
+  const handleMenu = (actionId) => {
+    setMenuOpen(false);
+    handleMenuAction(actionId, onNavigate, onLogout, household);
+  };
+
+  const totalNetWorth = calculateNetWorth(netWorthItems);
 
   return (
     <>
-      <BurgerMenu 
-        isOpen={menuOpen} 
+      <BurgerMenu
+        isOpen={menuOpen}
         onClose={() => setMenuOpen(false)}
-        onAction={handleMenuAction}
+        onAction={handleMenu}
         currentPage="networth"
+        onLogout={onLogout}
       />
-      
+
       <div className={`min-h-screen transition-colors duration-300 ${
         isDarkMode ? 'bg-black text-white' : 'bg-gray-50 text-gray-900'
       }`}>
-        
+
         {/* Fixed Controls */}
         <button
           onClick={() => setMenuOpen(true)}
@@ -204,275 +110,124 @@ export const NetWorthDashboard = ({ onNavigate }) => {
           <BurgerIcon />
         </button>
 
-        <div className="fixed top-8 right-8 z-40">
-          <button
-            onClick={toggleTheme}
-            className={`
-              p-3 transition-colors focus:outline-none
-              ${isDarkMode 
-                ? 'text-gray-400 hover:text-gray-300' 
-                : 'text-gray-600 hover:text-gray-800'
-              }
-            `}
-            title={`Switch to ${isDarkMode ? 'light' : 'dark'} mode`}
-          >
-            <span className="text-xl">{isDarkMode ? '◐' : '◑'}</span>
-          </button>
-        </div>
+        <ThemeToggle />
 
         {/* Main Content */}
         <div className="max-w-6xl mx-auto px-6 py-12">
-          
+
           {/* Header Section */}
-          <div className="mb-16 ml-16">
-            <h1 className={`text-6xl font-light leading-tight mb-4 ${
-              isDarkMode ? 'text-white' : 'text-black'
-            }`}>
-              Net Worth
-            </h1>
-            <p className={`text-2xl font-light ${
-              netWorth >= 0 
-                ? isDarkMode ? 'text-white' : 'text-black'
-                : 'text-red-500'
-            }`}>
-              ${netWorth.toLocaleString()}
-            </p>
+          <div className="mb-12 ml-16">
+            <div className="flex items-baseline gap-4">
+              <h1 className={`text-6xl font-light leading-tight ${
+                isDarkMode ? 'text-white' : 'text-black'
+              }`}>
+                Net Worth
+              </h1>
+              {netWorthItems.length > 0 && (
+                <>
+                  <span className={`text-4xl font-light ${
+                    isDarkMode ? 'text-white' : 'text-black'
+                  }`}>
+                    —
+                  </span>
+                  <span className={`text-4xl font-light ${
+                    isDarkMode ? 'text-white' : 'text-black'
+                  }`}>
+                    {Currency.formatWithUserCurrency(totalNetWorth)}
+                  </span>
+                </>
+              )}
+            </div>
           </div>
 
-          {/* Summary Cards */}
-          <FormSection>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-              <SummaryCard
-                title="Total Assets"
-                value={totalAssets}
-                subtitle="What you own"
-              />
-              <SummaryCard
-                title="Total Liabilities"
-                value={totalLiabilities}
-                subtitle="What you owe"
-              />
-              <SummaryCard
-                title="Asset/Debt Ratio"
-                value={totalLiabilities > 0 ? `${(totalAssets / totalLiabilities).toFixed(1)}x` : '∞'}
-                subtitle={totalLiabilities > 0 ? 'Assets to debt' : 'No debt'}
-                accent={true}
-              />
-            </div>
-          </FormSection>
-
-          {/* Action Buttons */}
-          <div className="flex justify-center gap-8 my-8">
-            <button
-              onClick={handleUpdateValues}
-              className={`
-                text-lg font-light border-b-2 pb-2 transition-all
-                ${isDarkMode
-                  ? 'text-white border-white hover:border-gray-400'
-                  : 'text-black border-black hover:border-gray-600'
-                }
-              `}
-            >
-              Update Values
-            </button>
-
-            {/* Check if there are stock/crypto items */}
-            {items.some(item => item.itemType === 'stock' || item.itemType === 'crypto') && (
+          {/* Tab Navigation */}
+          <div className={`border-b mb-12 ${isDarkMode ? 'border-gray-800' : 'border-gray-200'}`}>
+          <div className="flex gap-8">
               <button
-                onClick={handleRefreshPrices}
-                disabled={refreshingPrices}
-                className={`
-                  text-lg font-light border-b-2 pb-2 transition-all
-                  ${refreshingPrices
-                    ? 'opacity-50 cursor-not-allowed'
-                    : ''
-                  }
-                  ${isDarkMode
-                    ? 'text-white border-white hover:border-gray-400'
-                    : 'text-black border-black hover:border-gray-600'
-                  }
-                `}
+                onClick={() => setActiveTab(TABS.OVERVIEW)}
+                className={`py-4 px-2 text-lg font-light transition-colors duration-200 relative ${
+                  activeTab === TABS.OVERVIEW
+                    ? isDarkMode
+                      ? 'text-white'
+                      : 'text-black'
+                    : isDarkMode
+                    ? 'text-gray-500 hover:text-gray-300'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
               >
-                {refreshingPrices ? 'Refreshing Prices...' : 'Refresh Prices'}
+                Overview
+                {activeTab === TABS.OVERVIEW && (
+                  <div
+                    className={`absolute bottom-0 left-0 right-0 h-0.5 ${
+                      isDarkMode ? 'bg-white' : 'bg-black'
+                    }`}
+                  />
+                )}
               </button>
-            )}
+
+              <button
+                onClick={() => setActiveTab(TABS.MANAGE)}
+                className={`py-4 px-2 text-lg font-light transition-colors duration-200 relative ${
+                  activeTab === TABS.MANAGE
+                    ? isDarkMode
+                      ? 'text-white'
+                      : 'text-black'
+                    : isDarkMode
+                    ? 'text-gray-500 hover:text-gray-300'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                Manage
+                {activeTab === TABS.MANAGE && (
+                  <div
+                    className={`absolute bottom-0 left-0 right-0 h-0.5 ${
+                      isDarkMode ? 'bg-white' : 'bg-black'
+                    }`}
+                  />
+                )}
+              </button>
+
+              <button
+                onClick={() => setActiveTab(TABS.IMPORT)}
+                className={`py-4 px-2 text-lg font-light transition-colors duration-200 relative ${
+                  activeTab === TABS.IMPORT
+                    ? isDarkMode
+                      ? 'text-white'
+                      : 'text-black'
+                    : isDarkMode
+                    ? 'text-gray-500 hover:text-gray-300'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                Import
+                {activeTab === TABS.IMPORT && (
+                  <div
+                    className={`absolute bottom-0 left-0 right-0 h-0.5 ${
+                      isDarkMode ? 'bg-white' : 'bg-black'
+                    }`}
+                  />
+                )}
+              </button>
+            </div>
           </div>
 
-          <SectionBorder />
-
-          {/* Charts Section */}
-          <FormSection title="Net Worth Trends">
-            <ChartControls 
-              view={chartView} 
-              setView={setChartView}
-              isDarkMode={isDarkMode}
-            />
-            <div className="mt-8">
-              <NetWorthCharts 
-                history={history}
-                assets={assets}
-                liabilities={liabilities}
-                view={chartView}
-                isDarkMode={isDarkMode}
-              />
-            </div>
-          </FormSection>
-
-          <SectionBorder />
-
-          {/* Two Column Layout - Assets & Liabilities */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
-            
-            {/* Left Column - Assets */}
-            <div>
-              <FormSection title="Assets">
-                {assets.length > 0 ? (
-                  <div className="space-y-4">
-                    {assets.map((asset) => (
-                      <NetWorthItem 
-                        key={asset.id} 
-                        item={asset} 
-                        type="asset"
-                        onDelete={() => setShowDeleteConfirm(asset.id)}
-                      />
-                    ))}
-                    <div className={`pt-4 border-t font-medium ${
-                      isDarkMode ? 'border-gray-800' : 'border-gray-200'
-                    }`}>
-                      <div className="flex justify-between">
-                        <span>Total Assets</span>
-                        <span className="font-mono">${totalAssets.toLocaleString()}</span>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <EmptyState
-                    title="No assets recorded"
-                    description="Add your first asset below"
-                  />
-                )}
-                
-                {/* Add Asset Form */}
-                {showAddAsset ? (
-                  <QuickAddForm
-                    type="asset"
-                    newItem={newItem}
-                    setNewItem={setNewItem}
-                    onAdd={() => handleAddItem('asset')}
-                    onCancel={() => {
-                      setShowAddAsset(false);
-                      setNewItem({ name: '', value: '' });
-                    }}
-                    isDarkMode={isDarkMode}
-                  />
-                ) : (
-                  <button
-                    onClick={() => setShowAddAsset(true)}
-                    className={`
-                      w-full mt-6 py-4 border-2 border-dashed transition-colors text-center
-                      ${isDarkMode 
-                        ? 'border-gray-600 text-gray-400 hover:border-gray-500 hover:text-gray-300' 
-                        : 'border-gray-300 text-gray-600 hover:border-gray-400 hover:text-gray-700'
-                      }
-                    `}
-                  >
-                    <span className="text-lg font-light">Add Asset</span>
-                  </button>
-                )}
-              </FormSection>
-            </div>
-
-            {/* Right Column - Liabilities */}
-            <div>
-              <FormSection title="Liabilities">
-                {liabilities.length > 0 ? (
-                  <div className="space-y-4">
-                    {liabilities.map((liability) => (
-                      <NetWorthItem 
-                        key={liability.id} 
-                        item={liability} 
-                        type="liability"
-                        onDelete={() => setShowDeleteConfirm(liability.id)}
-                      />
-                    ))}
-                    <div className={`pt-4 border-t font-medium ${
-                      isDarkMode ? 'border-gray-800' : 'border-gray-200'
-                    }`}>
-                      <div className="flex justify-between">
-                        <span>Total Liabilities</span>
-                        <span className="font-mono text-red-500">${totalLiabilities.toLocaleString()}</span>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <EmptyState
-                    title="No liabilities recorded"
-                    description="Great! You have no debts"
-                  />
-                )}
-                
-                {/* Add Liability Form */}
-                {showAddLiability ? (
-                  <QuickAddForm
-                    type="liability"
-                    newItem={newItem}
-                    setNewItem={setNewItem}
-                    onAdd={() => handleAddItem('liability')}
-                    onCancel={() => {
-                      setShowAddLiability(false);
-                      setNewItem({ name: '', value: '' });
-                    }}
-                    isDarkMode={isDarkMode}
-                  />
-                ) : (
-                  <button
-                    onClick={() => setShowAddLiability(true)}
-                    className={`
-                      w-full mt-6 py-4 border-2 border-dashed transition-colors text-center
-                      ${isDarkMode 
-                        ? 'border-gray-600 text-gray-400 hover:border-gray-500 hover:text-gray-300' 
-                        : 'border-gray-300 text-gray-600 hover:border-gray-400 hover:text-gray-700'
-                      }
-                    `}
-                  >
-                    <span className="text-lg font-light">Add Liability</span>
-                  </button>
-                )}
-              </FormSection>
+          {/* Tab Content */}
+          <div className="mt-12">
+            <div className="transition-opacity duration-200">
+              {activeTab === TABS.OVERVIEW && <OverviewTab />}
+              {activeTab === TABS.MANAGE && <ManageTab />}
+              {activeTab === TABS.IMPORT && <ImportTab />}
             </div>
           </div>
 
           <div className="h-24"></div>
         </div>
       </div>
-
-      {/* Update Values Modal */}
-      {showUpdateModal && (
-        <UpdateValuesModal
-          assets={assets}
-          liabilities={liabilities}
-          onSave={handleSaveUpdates}
-          onClose={() => setShowUpdateModal(false)}
-          isDarkMode={isDarkMode}
-        />
-      )}
-
-      {/* Delete Confirmation */}
-      <ConfirmationModal
-        isOpen={showDeleteConfirm !== null}
-        title="Delete Item?"
-        description="Are you sure you want to delete this item? All historical data will be lost."
-        confirmText="Delete"
-        cancelText="Cancel"
-        onConfirm={() => handleDeleteItem(showDeleteConfirm)}
-        onCancel={() => setShowDeleteConfirm(null)}
-        confirmDanger={true}
-      />
     </>
   );
 };
 
-// Helper components
+// Helper component
 const BurgerIcon = () => (
   <div className="w-5 h-5 flex flex-col justify-between">
     <div className="w-full h-0.5 bg-current transition-all duration-300" />
@@ -480,259 +235,3 @@ const BurgerIcon = () => (
     <div className="w-full h-0.5 bg-current transition-all duration-300" />
   </div>
 );
-
-const NetWorthItem = ({ item, type, onDelete }) => {
-  const { isDarkMode } = useTheme();
-  const amount = item.currentValue || 0;
-  const lastUpdated = new Date(item.lastUpdated).toLocaleDateString();
-  const isStockOrCrypto = item.itemType === 'stock' || item.itemType === 'crypto';
-
-  return (
-    <div className={`flex items-center justify-between py-4 border-b ${
-      isDarkMode ? 'border-gray-800' : 'border-gray-200'
-    }`}>
-      <div>
-        <div className={`text-base font-light ${
-          isDarkMode ? 'text-white' : 'text-black'
-        }`}>
-          {isStockOrCrypto && item.symbol ? (
-            <>
-              <span className="font-mono font-medium">{item.symbol}</span>
-              {item.name && <span className="ml-2 text-sm opacity-75">({item.name})</span>}
-            </>
-          ) : (
-            item.name
-          )}
-        </div>
-        <div className={`text-xs font-light mt-1 ${
-          isDarkMode ? 'text-gray-500' : 'text-gray-400'
-        }`}>
-          {isStockOrCrypto && item.lastPrice ? (
-            <>
-              {item.quantity} {item.itemType === 'stock' ? 'shares' : 'coins'} @ ${item.lastPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })}
-              {item.lastPriceUpdate && ` • Updated ${new Date(item.lastPriceUpdate).toLocaleDateString()}`}
-            </>
-          ) : (
-            `Updated ${lastUpdated}`
-          )}
-        </div>
-      </div>
-      <div className="flex items-center gap-4">
-        <div className={`text-base font-mono ${
-          type === 'asset'
-            ? isDarkMode ? 'text-white' : 'text-black'
-            : 'text-red-500'
-        }`}>
-          ${amount.toLocaleString()}
-        </div>
-        <button
-          onClick={onDelete}
-          className="text-2xl font-light text-gray-400 hover:text-red-500 transition-colors"
-          title="Delete"
-        >
-          ×
-        </button>
-      </div>
-    </div>
-  );
-};
-
-const QuickAddForm = ({ type, newItem, setNewItem, onAdd, onCancel, isDarkMode }) => {
-  return (
-    <div className={`mt-6 p-4 border ${
-      isDarkMode ? 'border-gray-700' : 'border-gray-300'
-    }`}>
-      <div className="space-y-4">
-        <StandardInput
-          label={`${type === 'asset' ? 'Asset' : 'Liability'} Name`}
-          value={newItem.name}
-          onChange={(value) => setNewItem({ ...newItem, name: value })}
-          placeholder="e.g., Savings Account, Mortgage"
-        />
-        <StandardInput
-          label="Current Value"
-          type="currency"
-          value={newItem.value}
-          onChange={(value) => setNewItem({ ...newItem, value: value })}
-          prefix="$"
-          placeholder="0.00"
-        />
-        <div className="flex gap-4 justify-end">
-          <button
-            onClick={onCancel}
-            className={`
-              text-base font-light border-b border-transparent hover:border-current pb-1
-              ${isDarkMode 
-                ? 'text-gray-400 hover:text-white' 
-                : 'text-gray-600 hover:text-black'
-              }
-            `}
-          >
-            Cancel
-          </button>
-          <button
-            onClick={onAdd}
-            disabled={!newItem.name || !newItem.value}
-            className={`
-              text-base font-light border-b-2 pb-1 transition-all
-              ${newItem.name && newItem.value
-                ? isDarkMode
-                  ? 'text-white border-white hover:border-gray-400'
-                  : 'text-black border-black hover:border-gray-600'
-                : 'text-gray-400 border-gray-400 cursor-not-allowed'
-              }
-            `}
-          >
-            Add {type === 'asset' ? 'Asset' : 'Liability'}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const ChartControls = ({ view, setView, isDarkMode }) => {
-  const views = [
-    { id: 'all-time', label: 'All Time' },
-    { id: 'this-period', label: 'This Period' },
-    { id: 'by-month', label: 'By Month' }
-  ];
-
-  return (
-    <div className="flex gap-6 justify-center">
-      {views.map(v => (
-        <button
-          key={v.id}
-          onClick={() => setView(v.id)}
-          className={`
-            text-sm font-light border-b-2 pb-1 transition-all
-            ${view === v.id
-              ? isDarkMode
-                ? 'text-white border-white'
-                : 'text-black border-black'
-              : isDarkMode
-                ? 'text-gray-500 border-transparent hover:text-gray-300'
-                : 'text-gray-400 border-transparent hover:text-gray-600'
-            }
-          `}
-        >
-          {v.label}
-        </button>
-      ))}
-    </div>
-  );
-};
-
-const NetWorthCharts = ({ history, assets, liabilities, view, isDarkMode }) => {
-  // Placeholder for actual chart implementation
-  // You would use Chart.js or a similar library here
-  return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-      {/* Growth Chart */}
-      <div className={`p-8 border ${
-        isDarkMode ? 'border-gray-800' : 'border-gray-200'
-      }`}>
-        <h3 className={`text-lg font-light mb-6 ${
-          isDarkMode ? 'text-white' : 'text-black'
-        }`}>
-          Net Worth Over Time
-        </h3>
-        <div className="h-64 flex items-center justify-center text-gray-500">
-          [Line chart showing net worth history]
-        </div>
-      </div>
-
-      {/* Distribution Charts */}
-      <div className={`p-8 border ${
-        isDarkMode ? 'border-gray-800' : 'border-gray-200'
-      }`}>
-        <h3 className={`text-lg font-light mb-6 ${
-          isDarkMode ? 'text-white' : 'text-black'
-        }`}>
-          Asset & Liability Distribution
-        </h3>
-        <div className="h-64 flex items-center justify-center gap-8">
-          <div className="text-center">
-            <div className="w-32 h-32 rounded-full border-4 border-green-500 flex items-center justify-center">
-              [Assets]
-            </div>
-            <p className="mt-2 text-sm">Assets</p>
-          </div>
-          <div className="text-center">
-            <div className="w-24 h-24 rounded-full border-4 border-red-500 flex items-center justify-center">
-              [Liabilities]
-            </div>
-            <p className="mt-2 text-sm">Liabilities</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// UpdateValuesModal component (missing)
-const UpdateValuesModal = ({ assets, liabilities, onSave, onClose, isDarkMode }) => {
-  const [updates, setUpdates] = useState({});
-  
-  const handleValueChange = (itemId, value) => {
-    setUpdates(prev => ({
-      ...prev,
-      [itemId]: value ? parseFloat(value) : null
-    }));
-  };
-  
-  const handleSave = () => {
-    onSave(updates);
-  };
-  
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-      <div className={`max-w-2xl w-full p-8 m-4 max-h-[80vh] overflow-y-auto ${
-        isDarkMode ? 'bg-black text-white' : 'bg-white text-black'
-      }`}>
-        <h2 className="text-3xl font-light mb-8">Update Net Worth Values</h2>
-        
-        <FormSection title="Assets">
-          {assets.map(asset => (
-            <div key={asset.id} className="mb-4">
-              <StandardInput
-                label={asset.name}
-                type="currency"
-                value={updates[asset.id] ?? asset.currentValue}
-                onChange={(value) => handleValueChange(asset.id, value)}
-                prefix="$"
-              />
-            </div>
-          ))}
-        </FormSection>
-        
-        <FormSection title="Liabilities">
-          {liabilities.map(liability => (
-            <div key={liability.id} className="mb-4">
-              <StandardInput
-                label={liability.name}
-                type="currency"
-                value={updates[liability.id] ?? liability.currentValue}
-                onChange={(value) => handleValueChange(liability.id, value)}
-                prefix="$"
-              />
-            </div>
-          ))}
-        </FormSection>
-        
-        <div className="flex justify-between mt-8">
-          <button onClick={onClose} className={`text-lg font-light ${
-            isDarkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-black'
-          }`}>
-            Cancel
-          </button>
-          <button onClick={handleSave} className={`text-xl font-light border-b-2 ${
-            isDarkMode ? 'text-white border-white' : 'text-black border-black'
-          }`}>
-            Save Updates
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};

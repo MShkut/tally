@@ -5,7 +5,6 @@ import { useTheme } from 'contexts/ThemeContext';
 import { ConfirmationModal } from 'components/shared/FormComponents';
 import { ImportDataModal } from 'components/shared/ImportDataModal';
 import { ChangePasswordModal } from 'components/shared/ChangePasswordModal';
-import { AlphaVantageSettingsModal } from 'components/shared/AlphaVantageSettingsModal';
 import { handleMenuAction, getMenuItems, isCurrentPage } from 'utils/navigationHandler';
 
 export const BurgerMenu = ({ isOpen, onClose, onAction, currentPage = 'dashboard', onLogout }) => {
@@ -13,7 +12,6 @@ export const BurgerMenu = ({ isOpen, onClose, onAction, currentPage = 'dashboard
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
-  const [showAlphaVantageSettings, setShowAlphaVantageSettings] = useState(false);
 
   // Close menu on escape key
   useEffect(() => {
@@ -56,13 +54,6 @@ export const BurgerMenu = ({ isOpen, onClose, onAction, currentPage = 'dashboard
     // Handle import-data specially (show modal)
     if (actionId === 'import-data') {
       setShowImportModal(true);
-      onClose();
-      return;
-    }
-
-    // Handle alphavantage-settings specially (show modal)
-    if (actionId === 'alphavantage-settings') {
-      setShowAlphaVantageSettings(true);
       onClose();
       return;
     }
@@ -135,22 +126,13 @@ export const BurgerMenu = ({ isOpen, onClose, onAction, currentPage = 'dashboard
                 currentPage={currentPage}
               />
             )}
-            <MenuSection 
-              title="Settings" 
-              items={menuItems.settings} 
+            <MenuSection
+              title="Other"
+              items={menuItems.settings}
               onAction={handleMenuItemClick}
               isDarkMode={isDarkMode}
               currentPage={currentPage}
             />
-          </div>
-
-          {/* Footer Note */}
-          <div className={`mt-16 pt-8 border-t border-current border-opacity-10 ${
-            isDarkMode ? 'text-gray-500' : 'text-gray-400'
-          }`}>
-            <p className="text-xs font-light">
-              All data stored locally
-            </p>
           </div>
         </div>
       </div>
@@ -191,13 +173,6 @@ export const BurgerMenu = ({ isOpen, onClose, onAction, currentPage = 'dashboard
         isOpen={showChangePasswordModal}
         onClose={() => setShowChangePasswordModal(false)}
         onSuccess={() => setShowChangePasswordModal(false)}
-      />
-
-      {/* AlphaVantage Settings Modal */}
-      <AlphaVantageSettingsModal
-        isOpen={showAlphaVantageSettings}
-        onClose={() => setShowAlphaVantageSettings(false)}
-        onSuccess={() => setShowAlphaVantageSettings(false)}
       />
     </>
   );

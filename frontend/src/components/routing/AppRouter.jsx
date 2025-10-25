@@ -9,6 +9,7 @@ import { AllTransactions } from 'components/actions/alltransactions/AllTransacti
 import { GiftManagement } from 'components/actions/gifts/GiftManagement';
 import { EditWrapper } from 'components/actions/edit/EditWrapper';
 import { PlanNextPeriod } from 'components/actions/plan/PlanNextPeriod';
+import { SettingsDashboard } from 'components/settings/SettingsDashboard';
 
 // Get household ID from userData
 const getHouseholdId = (userData) => {
@@ -118,6 +119,7 @@ const HouseholdRoutes = ({ onLogout }) => {
       <Route path="import" element={<TransactionImport onNavigate={handleNavigate} onLogout={onLogout} />} />
       <Route path="alltransactions" element={<AllTransactions onNavigate={handleNavigate} onLogout={onLogout} />} />
       <Route path="gifts" element={<GiftManagement onNavigate={handleNavigate} onLogout={onLogout} />} />
+      <Route path="settings" element={<SettingsDashboard onNavigate={handleNavigate} onLogout={onLogout} />} />
       <Route path="edit-income" element={
         <EditWrapper 
           editType="income"
