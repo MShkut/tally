@@ -42,7 +42,7 @@ export const SettingsDashboard = ({ onNavigate, onLogout }) => {
 
   const handleMenu = (actionId) => {
     setMenuOpen(false);
-    handleMenuAction(actionId, onNavigate, onLogout, household);
+    handleMenuAction(actionId, onNavigate, () => {}, null);
   };
 
   return (

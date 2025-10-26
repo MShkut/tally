@@ -3,6 +3,8 @@
 // Free tier: 60 API calls/minute, no daily limit
 // API key required (free tier available)
 
+import { dataManager } from './dataManager';
+
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache
 const STORAGE_KEY = 'tally_finnhub_cache';
 const BASE_URL = 'https://finnhub.io/api/v1';
@@ -19,19 +21,17 @@ export class FinnhubService {
   }
 
   /**
-   * Get API key from localStorage settings
+   * Get API key from settings
+   * Uses dataManager to work in both dev and Start9 container modes
    */
   getApiKey() {
     try {
-      const settings = localStorage.getItem('financeTracker_settings');
-      if (settings) {
-        const parsed = JSON.parse(settings);
-        return parsed.finnhubApiKey || null;
-      }
+      const settings = dataManager.loadSettings();
+      return settings?.finnhubApiKey || null;
     } catch (error) {
       console.error('[FINNHUB] Failed to get API key:', error);
+      return null;
     }
-    return null;
   }
 
   /**
@@ -235,6 +235,8 @@ export class FinnhubService {
       throw new Error('Finnhub API key not configured');
     }
 
+    console.log('[FINNHUB] DEBUG - API Key retrieved:', apiKey ? `${apiKey.substring(0, 10)}...` : 'NULL');
+
     const isCrypto = this.isCryptoSymbol(symbol);
     const formattedSymbol = this.formatSymbol(symbol);
 
@@ -248,6 +250,7 @@ export class FinnhubService {
     console.log(`[FINNHUB] Fetching price for ${symbol} (${formattedSymbol})...`);
 
     const url = `${BASE_URL}/quote?symbol=${encodeURIComponent(formattedSymbol)}&token=${apiKey}`;
+    console.log('[FINNHUB] DEBUG - Full URL:', url);
 
     try {
       const response = await fetch(url);

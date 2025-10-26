@@ -1,6 +1,6 @@
 # Tally
 
-> **Beta Software**: This is a privacy-first household budget tracker I'm building to actually use. It's beta 0.0.1 - it runs on Start9 OS and Docker, but the math is still wonky and there's a ton of polish work ahead. Don't trust it with your financial decisions yet.
+> **Beta Software**: This is a privacy-first household budget tracker I'm building to actually use. It's beta 0.0.11 - it runs on Start9 OS and Docker, but the math is still wonky and there's a ton of polish work ahead. Don't trust it with your financial decisions yet.
 
 A household budget app that runs entirely on your own hardware. No cloud, no tracking, no subscriptions.
 
@@ -8,7 +8,7 @@ A household budget app that runs entirely on your own hardware. No cloud, no tra
 
 Simple: track your household budget without sending your financial data to some random company's servers. Everything stays local - either in your browser or on your Start9 server.
 
-**What's actually working (beta 0.0.1):**
+**What's actually working (beta 0.0.11):**
 - Runs on Start9 OS (tested on real hardware!)
 - Docker container deployment (nginx + Node.js API)
 - Password authentication (shared household password)
@@ -17,7 +17,10 @@ Simple: track your household budget without sending your financial data to some 
 - Transaction review and editing
 - Onboarding flow for household setup
 - Dark/light themes
-- Net worth tracking
+- Net worth tracking with API integration
+  - Automatic price updates (Finnhub for US stocks/crypto, Alpha Vantage for international)
+  - Historical date entry (back to 1900)
+  - Year selector in calendars for fast navigation
 - Gift budget management
 - LAN and Tor access
 
@@ -32,43 +35,31 @@ Simple: track your household budget without sending your financial data to some 
 
 ## Running This Thing
 
-### Option 1: Start9 OS (Recommended)
+### Start9 OS (Recommended)
 
 If you have a Start9 server:
 
 ```bash
-# Build the package
-cd startos
-make install           # Builds Docker image
-start-sdk pack .       # Creates .s9pk package
+# Quick build (one command)
+./build-start9.sh
 
-# Then sideload tally-budget.s9pk through your Start9 web UI
+# Package will be at: startos/tally-budget.s9pk
+# Then sideload through your Start9 web UI
 ```
 
-See `startos/INSTALL-GUIDE.md` for detailed instructions.
+The build script automatically:
+1. Builds frontend production bundle
+2. Builds Docker image with clean cache
+3. Exports to tar file
+4. Creates Start9 package
 
-### Option 2: Docker (Quick Testing)
+See `startos/INSTALL-GUIDE.md` for detailed installation instructions.
 
-```bash
-# Build and run the container
-make build      # Build Docker image
-make run        # Start container on http://localhost:8080
-make logs       # View logs
-make stop       # Stop container
+### Development Notes
 
-# Data persists in Docker volume 'tally-data'
-```
+**IMPORTANT**: Do not use local dev mode (`npm run dev`). The Start9 container environment uses backend storage while dev mode uses browser localStorage. Bugs will appear in production that don't show up in dev.
 
-### Option 3: Local Development
-
-```bash
-# Frontend only (all logic is here)
-cd frontend
-npm install
-npm run dev     # Runs on http://localhost:3000
-```
-
-Note: In local dev mode, data is stored in browser localStorage only.
+**Always test on Start9**, not in development mode.
 
 ## Design Philosophy
 
@@ -120,7 +111,7 @@ Trying to make budget tracking feel less like a chore and more like reading some
 └── Makefile           # Root-level Docker commands
 ```
 
-## Current Status (Beta 0.0.1)
+## Current Status (Beta 0.0.11)
 
 **Deployment:** Working on Start9 OS and Docker
 
@@ -129,11 +120,18 @@ Trying to make budget tracking feel less like a chore and more like reading some
 - CSV transaction import
 - Transaction categorization (needs improvement)
 - Net worth tracking (assets + liabilities)
+  - API integration for automatic price updates
+  - Finnhub support (US stocks, cryptocurrency)
+  - Alpha Vantage support (international stocks)
+  - Proper currency conversion (native exchange currencies)
+  - Historical date entry (back to 1900)
+  - Calendar year selector for fast navigation
 - Gift budget management
 - Theme switching (dark/light)
 - Password authentication
 - Data persistence across restarts
 - Multi-user shared household budget
+- All navigation working correctly (no logout bugs)
 
 **What's Broken (High Priority):**
 1. **Budget calculations** - The math is wrong, needs complete review

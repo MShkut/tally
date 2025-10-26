@@ -341,15 +341,17 @@ export const refreshAllPrices = async (items, onProgress = null) => {
       const userCurrency = getUserCurrency();
 
       let price;
-      if (isCrypto || isInternational) {
-        // Crypto and international stock prices from Finnhub/AlphaVantage are in USD, convert if needed
+      if (isCrypto) {
+        // Crypto prices from Finnhub are in USD, convert if needed
         if (userCurrency.toUpperCase() !== 'USD') {
           price = await currencyConverter.convert(nativePrice, 'USD', userCurrency);
         } else {
           price = nativePrice;
         }
       } else {
-        // Stock prices may need conversion based on exchange
+        // Stock prices (US and international) may need conversion based on exchange
+        // International stocks from Alpha Vantage are in native currency (CAD for .TO, GBP for .L, etc.)
+        // US stocks from Finnhub are in USD
         price = await currencyConverter.convertStockPrice(nativePrice, ticker, userCurrency);
       }
 

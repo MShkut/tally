@@ -65,8 +65,12 @@ export const BurgerMenu = ({ isOpen, onClose, onAction, currentPage = 'dashboard
       return;
     }
 
-    // Use universal navigation handler
-    handleMenuAction(actionId, onAction, onClose, setShowResetConfirm);
+    // Call the parent's action handler
+    // Parent components pass different handlers (handleMenu, handleMenuActionWrapper, etc.)
+    // They are responsible for navigation logic
+    if (onAction) {
+      onAction(actionId);
+    }
   };
 
   return (
