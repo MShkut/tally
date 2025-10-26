@@ -1,9 +1,10 @@
 // frontend/src/utils/alphaVantageService.js
 // AlphaVantage API service for fetching stock and crypto prices
 
+import { dataManager } from './dataManager';
+
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache
 const STORAGE_KEY = 'tally_alphavantage_cache';
-const API_KEY_STORAGE = 'tally_alphavantage_apikey';
 
 /**
  * AlphaVantage API service
@@ -16,20 +17,16 @@ export class AlphaVantageService {
   }
 
   /**
-   * Get stored API key
+   * Get stored API key from settings
+   * Uses dataManager to work in both dev and Start9 container modes
    */
   getApiKey() {
-    return localStorage.getItem(API_KEY_STORAGE);
-  }
-
-  /**
-   * Set API key
-   */
-  setApiKey(apiKey) {
-    if (!apiKey || apiKey.trim() === '') {
-      localStorage.removeItem(API_KEY_STORAGE);
-    } else {
-      localStorage.setItem(API_KEY_STORAGE, apiKey.trim());
+    try {
+      const settings = dataManager.loadSettings();
+      return settings?.alphaVantageApiKey || null;
+    } catch (error) {
+      console.error('[ALPHAVANTAGE] Failed to get API key:', error);
+      return null;
     }
   }
 
@@ -106,6 +103,8 @@ export class AlphaVantageService {
       throw new Error('AlphaVantage API key not configured');
     }
 
+    console.log('[ALPHAVANTAGE] DEBUG - API Key retrieved:', apiKey ? `${apiKey.substring(0, 8)}...` : 'NULL');
+
     // Check cache first
     const cached = this.getCachedPrice(symbol, 'stock');
     if (cached) {
@@ -116,10 +115,13 @@ export class AlphaVantageService {
     console.log(`[ALPHAVANTAGE] Fetching stock price for ${symbol}...`);
 
     const url = `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${apiKey}`;
+    console.log('[ALPHAVANTAGE] DEBUG - Full URL:', url);
 
     try {
       const response = await fetch(url);
       const data = await response.json();
+
+      console.log('[ALPHAVANTAGE] DEBUG - API Response:', data);
 
       // Check for API errors
       if (data['Error Message']) {
@@ -130,9 +132,16 @@ export class AlphaVantageService {
         throw new Error('API rate limit exceeded. Please try again later.');
       }
 
+      // Check for Information message (rate limit warning)
+      if (data['Information']) {
+        console.warn('[ALPHAVANTAGE] Rate limit warning:', data['Information']);
+        throw new Error('Alpha Vantage API rate limit reached (25 requests/day on free tier). Please wait until tomorrow or upgrade your API key.');
+      }
+
       const quote = data['Global Quote'];
       if (!quote || !quote['05. price']) {
-        throw new Error(`No price data available for ${symbol}`);
+        console.log('[ALPHAVANTAGE] DEBUG - Quote data missing. Full response:', JSON.stringify(data, null, 2));
+        throw new Error(`No price data available for ${symbol}. Alpha Vantage may not support this ticker.`);
       }
 
       const price = parseFloat(quote['05. price']);

@@ -10,7 +10,8 @@ export const DatePicker = ({
   onChange,
   placeholder = 'Select date',
   className = '',
-  align = 'right' // 'left' or 'right'
+  align = 'right', // 'left' or 'right'
+  useBudgetConstraints = true // Set to false to allow all historical dates
 }) => {
   const { isDarkMode } = useTheme();
   const [showCalendar, setShowCalendar] = useState(false);
@@ -18,8 +19,16 @@ export const DatePicker = ({
   const [viewYear, setViewYear] = useState(new Date().getFullYear());
   const calendarRef = useRef(null);
 
-  // Get budget period constraints
+  // Get budget period constraints (or use unlimited for net worth)
   const getBudgetPeriodConstraints = () => {
+    if (!useBudgetConstraints) {
+      // For net worth and other non-budget uses: allow all historical dates
+      return {
+        startDate: new Date(1900, 0, 1), // Far past
+        endDate: new Date() // Today (future dates still restricted)
+      };
+    }
+
     try {
       const userData = dataManager.loadUserData();
       const period = userData?.period;
@@ -139,6 +148,24 @@ export const DatePicker = ({
     setViewYear(newYear);
   };
 
+  // Handle year change from dropdown
+  const handleYearChange = (newYear) => {
+    setViewYear(parseInt(newYear));
+  };
+
+  // Generate available years based on constraints
+  const getAvailableYears = () => {
+    const startYear = budgetPeriod.startDate.getFullYear();
+    const endYear = budgetPeriod.endDate.getFullYear();
+    const years = [];
+    for (let year = startYear; year <= endYear; year++) {
+      years.push(year);
+    }
+    return years;
+  };
+
+  const availableYears = getAvailableYears();
+
   // Generate calendar days
   const generateCalendarDays = () => {
     const daysInMonth = getDaysInMonth(viewYear, viewMonth);
@@ -221,7 +248,7 @@ export const DatePicker = ({
             ? 'bg-black border-gray-800 shadow-2xl shadow-black/50'
             : 'bg-white border-gray-200 shadow-xl shadow-gray-500/25'
         }`}>
-          {/* Month Navigation with Arrows Only */}
+          {/* Month/Year Navigation */}
           <div className="flex items-center justify-between mb-4">
             <button
               onClick={() => navigateMonth(-1)}
@@ -229,15 +256,30 @@ export const DatePicker = ({
               className={`p-2 rounded transition-colors ${
                 !canNavigateMonth(-1)
                   ? 'text-gray-400 cursor-not-allowed opacity-50'
-                  : isDarkMode 
-                    ? 'hover:bg-gray-700 text-white' 
+                  : isDarkMode
+                    ? 'hover:bg-gray-700 text-white'
                     : 'hover:bg-gray-100 text-black'
               }`}
             >
               ←
             </button>
-            <div className={`text-center font-medium ${isDarkMode ? 'text-white' : 'text-black'}`}>
-              {monthNames[viewMonth]} {viewYear}
+            <div className="flex items-center gap-2">
+              <div className={`font-medium ${isDarkMode ? 'text-white' : 'text-black'}`}>
+                {monthNames[viewMonth]}
+              </div>
+              <select
+                value={viewYear}
+                onChange={(e) => handleYearChange(e.target.value)}
+                className={`font-medium px-2 py-1 rounded border transition-colors ${
+                  isDarkMode
+                    ? 'bg-gray-900 border-gray-700 text-white hover:border-gray-600'
+                    : 'bg-white border-gray-300 text-black hover:border-gray-400'
+                } focus:outline-none cursor-pointer`}
+              >
+                {availableYears.map(year => (
+                  <option key={year} value={year}>{year}</option>
+                ))}
+              </select>
             </div>
             <button
               onClick={() => navigateMonth(1)}
@@ -245,8 +287,8 @@ export const DatePicker = ({
               className={`p-2 rounded transition-colors ${
                 !canNavigateMonth(1)
                   ? 'text-gray-400 cursor-not-allowed opacity-50'
-                  : isDarkMode 
-                    ? 'hover:bg-gray-700 text-white' 
+                  : isDarkMode
+                    ? 'hover:bg-gray-700 text-white'
                     : 'hover:bg-gray-100 text-black'
               }`}
             >

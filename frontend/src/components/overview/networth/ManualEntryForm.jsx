@@ -205,6 +205,7 @@ export const ManualEntryForm = ({ itemType, onSuccess }) => {
               placeholder="Select date"
               align="left"
               className="w-full [&>button]:py-3 [&>button]:pb-4 [&>button]:text-base [&>button]:font-light"
+              useBudgetConstraints={false}
             />
             {errors.purchaseDate && (
               <p className="text-red-500 text-sm mt-1">{errors.purchaseDate}</p>

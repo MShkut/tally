@@ -79,7 +79,7 @@ export const NetWorthDashboard = ({ onNavigate, onLogout }) => {
 
   const handleMenu = (actionId) => {
     setMenuOpen(false);
-    handleMenuAction(actionId, onNavigate, onLogout, household);
+    handleMenuAction(actionId, onNavigate, () => {}, null);
   };
 
   const totalNetWorth = calculateNetWorth(netWorthItems);
