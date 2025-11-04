@@ -29,11 +29,11 @@ COPY backend/package*.json ./
 # Use npm ci (remove --only=production to avoid issues)
 RUN npm ci --verbose
 
-# Stage 3: Final runtime image with nginx + node
-FROM nginx:alpine
+# Stage 3: Final runtime image with node + nginx
+FROM node:18-alpine
 
-# Install Node.js (no build tools needed since we already built in stage 2)
-RUN apk add --no-cache nodejs npm
+# Install nginx
+RUN apk add --no-cache nginx
 
 # Copy nginx configuration (rarely changes)
 COPY docker/nginx.conf /etc/nginx/nginx.conf
