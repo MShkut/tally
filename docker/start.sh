@@ -1,5 +1,11 @@
 #!/bin/sh
 
+# Ensure /data directory exists
+mkdir -p /data
+
+# Set database path environment variable
+export DB_PATH=/data/tally.db
+
 # Start the API server in the background
 echo "Starting Tally API server..."
 cd /app/api
@@ -11,7 +17,7 @@ echo "Waiting for API server to be ready..."
 MAX_ATTEMPTS=30
 ATTEMPT=0
 while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
-    if wget -q -O /dev/null http://localhost:3001/api/health 2>/dev/null; then
+    if wget -q -O /dev/null http://localhost:3001/health 2>/dev/null; then
         echo "API server is ready!"
         break
     fi

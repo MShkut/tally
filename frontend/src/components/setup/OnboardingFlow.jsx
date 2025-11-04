@@ -1,6 +1,6 @@
 // frontend/src/components/onboarding/OnboardingFlow.jsx
 import React, { useState, useEffect } from 'react';
-import { dataManager } from 'utils/dataManager';
+import { apiService } from 'utils/apiService';
 import { WelcomeStep } from './WelcomeStep';
 import { IncomeStep } from './IncomeStep';
 import { SavingsAllocationStep } from './SavingsAllocationStep';
@@ -32,29 +32,38 @@ export const OnboardingFlow = ({ onComplete }) => {
 
   // Load any existing onboarding data on mount
   useEffect(() => {
-    const userData = dataManager.loadUserData();
-    if (userData && !userData.onboardingComplete) {
-      setOnboardingData(userData);
-      
-      // Determine which step to start on based on completed data
-      if (userData.expenses) {
-        setCurrentStep(STEPS.EXPENSES);
-      } else if (userData.savingsAllocation) {
-        setCurrentStep(STEPS.SAVINGS);
-      } else if (userData.income) {
-        setCurrentStep(STEPS.INCOME);
-      } else if (userData.household && userData.period) {
-        setCurrentStep(STEPS.INCOME);
+    const loadExistingData = async () => {
+      try {
+        const userData = await apiService.loadUserData();
+        if (userData && !userData.onboardingComplete) {
+          setOnboardingData(userData);
+
+          // Determine which step to start on based on completed data
+          if (userData.expenses) {
+            setCurrentStep(STEPS.EXPENSES);
+          } else if (userData.savingsAllocation) {
+            setCurrentStep(STEPS.SAVINGS);
+          } else if (userData.income) {
+            setCurrentStep(STEPS.INCOME);
+          } else if (userData.household && userData.period) {
+            setCurrentStep(STEPS.INCOME);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load user data:', error);
+        // Start fresh if data load fails
       }
-    }
+    };
+
+    loadExistingData();
   }, []);
 
   const getCurrentStepIndex = () => {
     return STEP_ORDER.indexOf(currentStep);
   };
 
-  const handleStepNext = (stepData) => {
-    
+  const handleStepNext = async (stepData) => {
+
     // Determine which section this step data belongs to
     let sectionKey;
     switch (currentStep) {
@@ -66,22 +75,27 @@ export const OnboardingFlow = ({ onComplete }) => {
           period: stepData.period
         };
         setOnboardingData(updatedWelcomeData);
-        dataManager.saveUserData(updatedWelcomeData);
+        try {
+          await apiService.saveUserData(updatedWelcomeData);
+        } catch (error) {
+          console.error('Failed to save welcome data:', error);
+          // Continue anyway - will retry on next save
+        }
         break;
-        
+
       case STEPS.INCOME:
         sectionKey = 'income';
         break;
-        
+
       case STEPS.SAVINGS:
         sectionKey = 'savingsAllocation';
         break;
-        
+
       case STEPS.EXPENSES:
         sectionKey = 'expenses';
         break;
     }
-    
+
     // For non-welcome steps, update the specific section
     if (sectionKey) {
       const updatedData = {
@@ -89,9 +103,14 @@ export const OnboardingFlow = ({ onComplete }) => {
         [sectionKey]: stepData
       };
       setOnboardingData(updatedData);
-      dataManager.saveUserData(updatedData);
+      try {
+        await apiService.saveUserData(updatedData);
+      } catch (error) {
+        console.error(`Failed to save ${sectionKey} data:`, error);
+        // Continue anyway - will retry on next save
+      }
     }
-    
+
     // Move to next step or complete
     const currentIndex = getCurrentStepIndex();
     if (currentIndex < STEP_ORDER.length - 1) {
@@ -99,8 +118,8 @@ export const OnboardingFlow = ({ onComplete }) => {
       setCurrentStep(nextStep);
     } else {
       // Complete onboarding
-      handleOnboardingComplete(currentStep === STEPS.WELCOME ? 
-        { ...onboardingData, household: stepData.household, period: stepData.period } : 
+      await handleOnboardingComplete(currentStep === STEPS.WELCOME ?
+        { ...onboardingData, household: stepData.household, period: stepData.period } :
         { ...onboardingData, [sectionKey]: stepData }
       );
     }
@@ -114,17 +133,23 @@ export const OnboardingFlow = ({ onComplete }) => {
     }
   };
 
-  const handleOnboardingComplete = (finalData) => {
+  const handleOnboardingComplete = async (finalData) => {
     const completedData = {
       ...finalData,
       onboardingComplete: true,
       completedAt: new Date().toISOString(),
       onboardingStep: null // Clear step tracking
     };
-    dataManager.saveUserData(completedData);
-    
-    if (onComplete) {
-      onComplete(completedData);
+
+    try {
+      await apiService.saveUserData(completedData);
+
+      if (onComplete) {
+        onComplete(completedData);
+      }
+    } catch (error) {
+      console.error('Failed to complete onboarding:', error);
+      // TODO: Show error to user
     }
   };
 

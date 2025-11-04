@@ -1,100 +1,75 @@
 // frontend/src/App.jsx
-import React, { useState, useEffect } from 'react';
-
+import React, { useEffect } from 'react';
 import { ThemeProvider } from 'contexts/ThemeContext';
+import { AuthProvider, useAuth } from 'contexts/AuthContext';
 import { AppRouter } from 'components/routing/AppRouter';
 import { LoginScreen } from 'components/auth/LoginScreen';
-import { Auth } from 'utils/auth';
-import { dataManager } from 'utils/dataManager';
+import { RegisterScreen } from 'components/auth/RegisterScreen';
+import { cleanupOldLocalStorage } from 'utils/cleanupLocalStorage';
+import { loadUserCurrencyFromAPI } from 'utils/currency';
+import { apiService } from 'utils/apiService';
 
-export function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
-  const [containerMode, setContainerMode] = useState(false);
+// Error Boundary Component
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null, errorInfo: null };
+  }
 
-  useEffect(() => {
-    // Check if user is already authenticated
-    const checkAuth = async () => {
-      // Wait for container mode detection to complete
-      await dataManager.detectContainerMode();
+  static getDerivedStateFromError(error) {
+    return { hasError: true };
+  }
 
-      const inContainerMode = dataManager.containerMode;
-      setContainerMode(inContainerMode);
+  componentDidCatch(error, errorInfo) {
+    console.error('[ERROR BOUNDARY] Caught error:', error);
+    console.error('[ERROR BOUNDARY] Error info:', errorInfo);
+    console.error('[ERROR BOUNDARY] Component stack:', errorInfo.componentStack);
+    this.setState({ error, errorInfo });
+  }
 
-      console.log('[AUTH] Container mode:', inContainerMode ? 'YES' : 'NO');
-
-      // If not in container mode, skip auth and go straight to app
-      if (!inContainerMode) {
-        console.log('[AUTH] LocalStorage mode - skipping authentication');
-        setIsAuthenticated(true);
-        setIsCheckingAuth(false);
-        return;
-      }
-
-      // In container mode - check authentication
-      console.log('[AUTH] Container mode detected - checking authentication');
-      const authenticated = Auth.isAuthenticated();
-
-      if (authenticated) {
-        // Try to sync data - if it fails due to auth, user will need to re-login
-        try {
-          await dataManager.syncFromContainer();
-          setIsAuthenticated(true);
-        } catch (error) {
-          // Auth token is invalid/expired, need to re-login
-          Auth.logout();
-          setIsAuthenticated(false);
-        }
-      } else {
-        console.log('[AUTH] Not authenticated - showing login screen');
-        setIsAuthenticated(false);
-      }
-
-      setIsCheckingAuth(false);
-    };
-
-    checkAuth();
-  }, []);
-
-  const handleLoginSuccess = async () => {
-    // Check if there's any data in localStorage (from pre-login import)
-    const localUserData = dataManager.loadUserData();
-
-    // Sync data from container after successful login
-    await dataManager.syncFromContainer();
-
-    // If we had localStorage data (from import before login), save it to container
-    if (localUserData && localUserData.household) {
-      console.log('[AUTH] Found localStorage data - syncing to container after login');
-      // Update containerData with localStorage data
-      dataManager.containerData.userData = localUserData;
-      const localTransactions = dataManager.loadTransactions();
-      if (localTransactions && localTransactions.length > 0) {
-        dataManager.containerData.transactions = localTransactions;
-      }
-      const localNetWorth = dataManager.loadNetWorthItems();
-      if (localNetWorth && localNetWorth.length > 0) {
-        dataManager.containerData.netWorthItems = localNetWorth;
-      }
-      const localGiftData = dataManager.loadGiftData();
-      if (localGiftData) {
-        dataManager.containerData.giftData = localGiftData;
-      }
-      // Save to container
-      await dataManager.saveToContainer();
-      console.log('[AUTH] ✓ LocalStorage data synced to container');
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen bg-slate-900 flex items-center justify-center p-8">
+          <div className="max-w-2xl w-full bg-slate-800 rounded-lg p-8 text-white">
+            <h1 className="text-2xl font-bold text-red-400 mb-4">Application Error</h1>
+            <p className="mb-4">Something went wrong. Please check the console for details.</p>
+            <div className="bg-slate-900 p-4 rounded overflow-auto max-h-96">
+              <pre className="text-xs text-red-300">{this.state.error?.toString()}</pre>
+              <pre className="text-xs text-gray-400 mt-2">{this.state.errorInfo?.componentStack}</pre>
+            </div>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded"
+            >
+              Reload Page
+            </button>
+          </div>
+        </div>
+      );
     }
 
-    setIsAuthenticated(true);
-  };
+    return this.props.children;
+  }
+}
 
-  const handleLogout = () => {
-    Auth.logout();
-    setIsAuthenticated(false);
-  };
+function AppContent() {
+  const { user, loading, isRegistered, isAuthenticated, logout } = useAuth();
+
+  console.log('[APP] Render state:', { loading, isRegistered, isAuthenticated, hasUser: !!user });
+
+  // Load user currency when authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadUserCurrencyFromAPI(apiService).catch(error => {
+        console.error('[APP] Failed to load user currency:', error);
+      });
+    }
+  }, [isAuthenticated]);
 
   // Show loading state while checking authentication
-  if (isCheckingAuth) {
+  if (loading) {
+    console.log('[APP] Showing loading screen');
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center">
         <div className="text-white text-lg">Loading...</div>
@@ -102,20 +77,37 @@ export function App() {
     );
   }
 
-  // Show login screen only if in container mode and not authenticated
-  if (containerMode && !isAuthenticated) {
-    return (
-      <ThemeProvider>
-        <LoginScreen onLoginSuccess={handleLoginSuccess} />
-      </ThemeProvider>
-    );
+  // Show registration screen if no user registered yet
+  if (!isRegistered) {
+    console.log('[APP] Showing registration screen');
+    return <RegisterScreen />;
+  }
+
+  // Show login screen if registered but not authenticated
+  if (!isAuthenticated) {
+    console.log('[APP] Showing login screen');
+    return <LoginScreen />;
   }
 
   // Show main app if authenticated
+  console.log('[APP] Showing main app');
+  return <AppRouter onLogout={logout} />;
+}
+
+export function App() {
+  // Clean up old localStorage data on first load
+  useEffect(() => {
+    cleanupOldLocalStorage();
+  }, []);
+
   return (
-    <ThemeProvider>
-      <AppRouter onLogout={handleLogout} />
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider>
+        <AuthProvider>
+          <AppContent />
+        </AuthProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }
 

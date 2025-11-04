@@ -5,8 +5,8 @@ import React from 'react';
 import { useTheme } from 'contexts/ThemeContext';
 import { Currency } from 'utils/currency';
 
-// Enhanced Budget Performance Section with 2 rows
-export const BudgetPerformanceSection = ({ performanceData, netWorthData }) => {
+// Enhanced Budget Performance Section
+export const BudgetPerformanceSection = ({ performanceData }) => {
   const { isDarkMode } = useTheme();
 
   return (
@@ -17,8 +17,8 @@ export const BudgetPerformanceSection = ({ performanceData, netWorthData }) => {
         Budget Performance
       </h2>
 
-      {/* First Row - Main Performance */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 mb-12">
+      {/* Performance Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
         <PerformanceCategory
           title="Income"
           data={performanceData.income}
@@ -35,17 +35,6 @@ export const BudgetPerformanceSection = ({ performanceData, netWorthData }) => {
           type="expenses"
         />
       </div>
-
-      {/* Second Row - Additional Metrics */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-        <NetWorthCategory
-          title="Net Worth"
-          data={netWorthData}
-        />
-        {/* Two empty slots for future expansion */}
-        <div></div>
-        <div></div>
-      </div>
     </section>
   );
 };
@@ -54,19 +43,29 @@ export const BudgetPerformanceSection = ({ performanceData, netWorthData }) => {
 const PerformanceCategory = ({ title, data, type }) => {
   const { isDarkMode } = useTheme();
   
-  const getVarianceColor = (variance, type) => {
+  const getVarianceColor = (variance, actual, planned, type) => {
     if (Currency.compare(variance, 0) === 0) return isDarkMode ? 'text-gray-400' : 'text-gray-600';
-    
-    if (type === 'income') {
-      return Currency.compare(variance, 0) > 0 ? 'text-green-500' : 'text-yellow-500';
+
+    // Calculate percentage of actual vs planned
+    const percentage = Currency.compare(planned, 0) > 0 ?
+      Currency.multiply(Currency.divide(actual, planned), 100) : 0;
+
+    if (type === 'income' || type === 'savings') {
+      // Income & Savings: higher is better
+      // Red: < 80%, Yellow: 80-100%, Green: > 100%
+      if (percentage < 80) return 'text-red-500';
+      if (percentage < 100) return 'text-yellow-500';
+      return 'text-green-500';
     }
+
     if (type === 'expenses') {
-      return Currency.compare(variance, 0) > 0 ? 'text-red-500' : 'text-green-500';
+      // Expenses: lower is better (opposite)
+      // Green: < 80%, Yellow: 80-100%, Red: > 100%
+      if (percentage < 80) return 'text-green-500';
+      if (percentage < 100) return 'text-yellow-500';
+      return 'text-red-500';
     }
-    if (type === 'savings') {
-      return Currency.compare(variance, 0) > 0 ? 'text-green-500' : 'text-yellow-500';
-    }
-    
+
     return isDarkMode ? 'text-gray-400' : 'text-gray-600';
   };
 
@@ -142,69 +141,8 @@ const PerformanceCategory = ({ title, data, type }) => {
       </div>
 
       {/* Variance Display */}
-      <div className={`text-sm font-light ${getVarianceColor(variance, type)}`}>
+      <div className={`text-sm font-light ${getVarianceColor(variance, data.actual, data.planned, type)}`}>
         {getVarianceLabel(variance, type)}
-      </div>
-    </div>
-  );
-};
-
-// Net Worth Category Component
-const NetWorthCategory = ({ title, data }) => {
-  const { isDarkMode } = useTheme();
-  
-  const getTrendColor = (trend) => {
-    if (Currency.compare(trend, 0) > 0) return 'text-green-500';
-    if (Currency.compare(trend, 0) < 0) return 'text-red-500';
-    return isDarkMode ? 'text-gray-400' : 'text-gray-600';
-  };
-
-  const getTrendLabel = (trend) => {
-    if (Currency.compare(trend, 0) === 0) return 'No change this period';
-    const amount = Currency.abs(trend);
-    const formattedAmount = Currency.format(amount, { showCents: false });
-    return Currency.compare(trend, 0) > 0 
-      ? `+${formattedAmount} this period` 
-      : `-${formattedAmount} this period`;
-  };
-
-  const trendArrow = Currency.compare(data.trend, 0) > 0 ? '↗' : Currency.compare(data.trend, 0) < 0 ? '↘' : '→';
-
-  return (
-    <div>
-      {/* Category Title */}
-      <h3 className={`text-sm font-medium uppercase tracking-wider mb-6 ${
-        isDarkMode ? 'text-gray-500' : 'text-gray-400'
-      }`}>
-        {title}
-      </h3>
-
-      {/* Main Number */}
-      <div className="mb-6">
-        <div className={`text-3xl font-light leading-none mb-2 font-mono ${
-          Currency.compare(data.value, 0) >= 0 
-            ? isDarkMode ? 'text-white' : 'text-black'
-            : 'text-red-500'
-        }`}>
-          {Currency.format(data.value, { showCents: false })}
-        </div>
-        <div className={`text-base font-light ${
-          isDarkMode ? 'text-gray-400' : 'text-gray-600'
-        }`}>
-          {Currency.compare(data.value, 0) >= 0 ? 'Positive net worth' : 'Room to grow'}
-        </div>
-      </div>
-
-      {/* Trend Indicator */}
-      <div className="mb-4">
-        <div className={`text-lg font-light ${getTrendColor(data.trend)}`}>
-          {trendArrow}
-        </div>
-      </div>
-
-      {/* Trend Display */}
-      <div className={`text-sm font-light ${getTrendColor(data.trend)}`}>
-        {getTrendLabel(data.trend)}
       </div>
     </div>
   );

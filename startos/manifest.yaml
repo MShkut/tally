@@ -1,6 +1,6 @@
 id: tally-budget
 title: Tally Budget
-version: 0.0.11
+version: 0.1.5
 description:
   short: Privacy-first household budget tracker running on your Start9 server
   long: |
@@ -10,14 +10,142 @@ description:
     Features:
     - CSV transaction import from your bank
     - Budget tracking by category
-    - Net worth monitoring (assets and liabilities)
+    - Net worth monitoring (assets and liabilities) - removed for now
     - Gift budget management
     - All data stays on your server - complete privacy
+
 release-notes: |
-  Version 0.0.11 - Bug Fixes & Calendar Improvements
-  - Fixed: Settings navigation no longer logs you out
-  - Fixed: API keys now correctly link to Net Worth auto-update feature
-  - Fixed: Can now enter historical dates for assets/liabilities (not limited to budget period)
+  Version 0.1.5 - Performance Optimization for Large Datasets
+  - FIXED: Performance issues with large transaction datasets (1000+ transactions)
+  - Added: Pagination to All Transactions view (50 items per page by default)
+  - Added: Adjustable page size (25/50/100/250 items per page)
+  - Added: "Select All Filtered" button for bulk operations across pages
+  - Improved: Only renders visible transactions instead of all at once
+  - Improved: Page load time reduced from 5+ seconds to instant with large datasets
+
+  Version 0.1.4 - Onboarding Redirect Fix (Critical)
+  - FIXED: Onboarding import redirect - now properly generates household ID from name
+  - FIXED: Regular onboarding completion redirect - uses same fallback logic
+  - Added: Extensive logging to debug redirect issues
+  - Improved: Household ID generation now matches router expectations
+
+  Version 0.1.3 - Performance and UX Improvements
+  - FIXED: Bulk delete performance - now uses single backend call instead of hundreds
+  - FIXED: Onboarding import now properly redirects to dashboard
+  - Added: POST /api/transactions/bulk-delete endpoint for efficient batch deletions
+  - Improved: Bulk delete with thousands of transactions is now instant
+
+  Version 0.1.2 - Health Check Fix
+  - FIXED: Start9 health check export format
+
+  Version 0.1.1 - Critical Bug Fixes for Transaction Management
+  - FIXED: Duplicate transaction bug - edit/delete operations now work correctly without creating duplicates
+  - FIXED: Category display and filtering - categories now show correctly in transaction list
+  - Added: PUT /api/transactions/:id endpoint for updating single transactions
+  - Changed: Transaction updates now modify single records instead of bulk reimporting all data
+  - Improved: Category handling now supports backend string format
+
+  Version 0.1.0 - First stable transaction based released gift management still needs refinement
+  - Removed: all networth items (dashboard, import, charts, management, etc) not yet able to stably implement
+  - Changed: Navigation menu - now has dropdowns. Added 'your plan section'
+  - Changed: settings styling
+  - FIXED: household name display
+  - FIXED: Login styling and logout button not working
+  
+  Version 0.0.26 - Debug Bulk Update with Detailed Logging
+  - Added: Extensive logging in bulk update to see EXACTLY what's happening
+  - Logs: First item received, userId, each update operation, row changes
+  - Logs: Full error stack trace if anything fails
+  - This build will show us exactly what the backend is receiving and what SQL is doing
+
+  Version 0.0.25 - Fix Manual Price Update (Simplified Approach)
+  - FIXED: Manual price updates now work correctly
+  - Changed: Bulk update only sends minimal data (id, currentValue, lastUpdated)
+  - Changed: Backend uses single SQL transaction for all updates (fast like Excel)
+  - Removed: Complex object mapping that was causing NOT NULL errors
+  - Performance: Price updates now instant with database transaction
+
+  Version 0.0.24 - Debug Manual Price Update Issue
+  - Fixed: Added extensive logging to debug NOT NULL constraint error
+  - Fixed: Enhanced validation in bulk update endpoint
+  - Debug: Frontend logs source asset data before sending to backend
+  - Debug: Backend logs received items with full details on validation failure
+  - This is a diagnostic build to identify why manually entered prices aren't saving
+
+  Version 0.0.23 - Manual Price Updates (Removes Auto-Price Fetching)
+  - CRITICAL: Removed automatic price fetching to fix severe latency issues
+  - Added: Manual "Update Price" button for assets - update prices anytime you want
+  - Added: Option to update price for all entries with same name at once
+  - Fixed: Net worth page now loads instantly (no more 3-5 second delays)
+  - Fixed: Tab switching is now instant (no more auto-backfill lag)
+  - Removed: Yahoo Finance API integration (temporary - will return later optimized)
+  - Performance: Dramatically improved loading times across all net worth features
+
+  Version 0.0.21 - Simplified CAD-Only Currency
+  - MAJOR: Simplified to CAD only (removed currency selector for better performance)
+  - Fixed: All prices automatically converted to CAD during sync
+  - Fixed: Removed slow currency sync caching that was causing delays
+  - Fixed: Currency conversion uses Node.js HTTPS (more reliable)
+  - Fixed: Added "Clear Price History" button to fix old incorrect price data
+  - Improved: Foreign stocks (USD, etc.) converted to CAD automatically
+  - Improved: Faster page loading without currency selector complexity
+  - Improved: Parallel price history loading for charts (faster net worth page)
+  - Note: Currency selector removed from settings (CAD hardcoded)
+  - Note: Use "Clear Price History" in Settings if prices show incorrectly
+
+  Version 0.0.20 - Currency Conversion Fixed (Node.js HTTPS)
+  - Fixed: Currency conversion now uses Node.js built-in HTTPS module instead of fetch
+  - Fixed: 504 Gateway Timeout resolved (fetch was unavailable in backend environment)
+  - Fixed: Better error handling - falls back to native currency if conversion fails
+  - Fixed: Uses expired cache as fallback if currency API is unavailable
+  - Improved: Currency conversion is optional (won't block price sync if it fails)
+  - Improved: 10-second timeout protection for currency API calls
+
+  Version 0.0.19 - Backend-Driven Price Sync & Currency Conversion
+  - Fixed: Syntax error (duplicate 'today' declaration) that prevented server startup
+  - Fixed: All remaining datetime SQL errors across all models
+  - All v0.0.18 features now working correctly
+
+  Version 0.0.18 - Backend-Driven Price Sync & Currency Conversion (had syntax errors)
+  - MAJOR: Price sync now backend-driven with smart caching (faster page loads)
+  - MAJOR: Net worth page loads instantly with cached data, background refresh
+  - MAJOR: Intelligent sync - only checks Yahoo Finance once per day (avoids redundant API calls)
+  - MAJOR: Automatic currency conversion - all prices converted to your selected currency
+  - Fixed: Currency selector now works properly (CAD, EUR, GBP, JPY, USD)
+  - Fixed: VFV.TO and other foreign stocks now show correct prices in your currency
+  - Fixed: Asset prices update correctly in both Overview and Manage tabs
+  - Fixed: All SQLite datetime('now') errors resolved across all models
+  - Fixed: Slow page loading by parallelizing price history requests
+  - Improved: Backend detects stock currency from Yahoo Finance (CAD, USD, GBP, etc.)
+  - Improved: Uses frankfurter.app for accurate real-time exchange rates
+  - Improved: Exchange rates cached for 1 hour to minimize API calls
+  - Improved: Backend stores all price history, only fetches missing dates
+  - Improved: Single price sync endpoint replaces frontend API calls
+  - Improved: Last sync date tracked in settings (skips sync if already done today)
+  - Technical: Currency settings cached in localStorage for sync access
+  - Technical: Database-driven architecture eliminates frontend delays
+  - Technical: Force refresh option available for manual price updates
+  - Technical: Graceful fallback if currency conversion fails
+
+  Version 0.0.17 - Performance & Data Import Overhaul
+  - MAJOR: Data import speed improved from 2+ minutes to 5-15 seconds
+  - MAJOR: Fixed intermittent import failures and timeout issues
+  - Fixed: Yahoo Finance historical price API (BTC, stocks, ETFs now work)
+  - Fixed: SQLite binding errors with complex transaction data
+  - Fixed: Enhanced data type conversion for objects, arrays, and nested values
+  - Improved: Single bulk import API call instead of multiple sequential calls
+  - Improved: Database transactions for net worth imports (massive speed boost)
+  - Improved: Better error handling and logging for import debugging
+  - Improved: Navigation after import (direct to dashboard vs full reload)
+  - Improved: Automatic cleanup of old localStorage data from pre-backend version
+  - Technical: Transaction model handles all data formats robustly
+  - Technical: Per-transaction error handling prevents total import failures
+
+  Version 0.0.16 - Import Data Migration Fixed
+  - Fixed: Import now handles old localStorage export format
+  - Fixed: Transaction import handles object fields (category, merchant, etc.)
+  - Fixed: Net worth import handles string/object history fields
+  - Improved: Data migration from localStorage to backend version
   - Improved: Added year selector to all calendar popups for faster date navigation
   - Improved: Date range picker now uses calendar popups instead of native inputs
 
@@ -90,13 +218,7 @@ health-checks:
   web-ui:
     name: Web Interface
     success-message: Tally is accessible and responding
-    type: docker
-    image: main
-    system: false
-    entrypoint: /health-check.sh
-    args: []
-    io-format: json
-    inject: true
+    type: script
 
 config: ~
 

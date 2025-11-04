@@ -1,33 +1,44 @@
 // frontend/src/components/overviews/EditWrapper.jsx
 import React, { useState, useEffect } from 'react';
 
-import { dataManager } from 'utils/dataManager';
+import { apiService } from 'utils/apiService';
 import { IncomeStep } from 'components/setup/IncomeStep';
 import { SavingsAllocationStep } from 'components/setup/SavingsAllocationStep';
 import { ExpensesStep } from 'components/setup/ExpensesStep';
-import { NetWorthStep } from 'components/setup/NetWorthStep';
 
 export const EditWrapper = ({ editType, onComplete, onCancel, returnTo = 'dashboard' }) => {
   const [userData, setUserData] = useState(null);
 
   useEffect(() => {
-    const data = dataManager.loadUserData();
-    setUserData(data);
+    const loadData = async () => {
+      try {
+        const data = await apiService.loadUserData();
+        setUserData(data);
+      } catch (error) {
+        console.error('[EditWrapper] Error loading data:', error);
+      }
+    };
+
+    loadData();
   }, []);
 
-  const handleSave = (updatedData) => {
-    // Merge the updated data with existing user data
-    const currentData = dataManager.loadUserData();
-    const newData = {
-      ...currentData,
-      [editType]: updatedData
-    };
-    
-    // Save to localStorage
-    dataManager.saveUserData(newData);
-    
-    // Return to the screen they came from
-    onComplete(returnTo);
+  const handleSave = async (updatedData) => {
+    try {
+      // Merge the updated data with existing user data
+      const currentData = await apiService.loadUserData();
+      const newData = {
+        ...currentData,
+        [editType]: updatedData
+      };
+
+      // Save to localStorage
+      await apiService.saveUserData(newData);
+
+      // Return to the screen they came from
+      onComplete(returnTo);
+    } catch (error) {
+      console.error('[EditWrapper] Error saving data:', error);
+    }
   };
 
   const handleBack = () => {
@@ -75,17 +86,7 @@ export const EditWrapper = ({ editType, onComplete, onCancel, returnTo = 'dashbo
           savingsData={userData.savingsAllocation}
         />
       );
-      
-    case 'netWorth':
-      return (
-        <NetWorthStep
-          {...getEditProps(NetWorthStep)}
-          incomeData={userData.income}
-          savingsData={userData.savingsAllocation}
-          expensesData={userData.expenses}
-        />
-      );
-      
+
     default:
       return null;
   }

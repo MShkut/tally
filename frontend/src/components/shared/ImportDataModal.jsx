@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useTheme } from 'contexts/ThemeContext';
-import { dataManager } from 'utils/dataManager';
+import { apiService } from 'utils/apiService';
 
 export const ImportDataModal = ({ isOpen, onClose, onSuccess }) => {
   const { isDarkMode } = useTheme();
@@ -60,52 +60,24 @@ export const ImportDataModal = ({ isOpen, onClose, onSuccess }) => {
 
     try {
       console.log('[IMPORT] Starting data import...');
-      const success = await dataManager.importData(fileData);
 
-      if (success) {
-        console.log('[IMPORT] Data imported successfully');
+      // Use the bulk import endpoint for better performance
+      // This handles all data types in a single backend transaction
+      try {
+        await apiService.importData(fileData);
 
-        // In container mode, try to save to backend
-        if (dataManager.containerMode) {
-          try {
-            console.log('[IMPORT] Saving imported data to container...');
-            await dataManager.saveToContainer();
-            console.log('[IMPORT] ✓ Saved to container successfully');
-          } catch (saveError) {
-            // If save fails (likely due to no auth), save to localStorage as fallback
-            // This allows import before login - data will sync after login
-            console.log('[IMPORT] ⚠️ Container save failed (not authenticated), using localStorage fallback');
-            if (fileData.userData) dataManager.saveUserData(fileData.userData);
-            if (fileData.transactions) dataManager.saveTransactions(fileData.transactions);
-            if (fileData.netWorthData?.assets || fileData.netWorthData?.liabilities) {
-              const items = [
-                ...(fileData.netWorthData.assets || []),
-                ...(fileData.netWorthData.liabilities || [])
-              ];
-              dataManager.saveNetWorthItems(items);
-            }
-            if (fileData.giftData) dataManager.saveGiftData(fileData.giftData);
-            console.log('[IMPORT] ✓ Saved to localStorage - will sync after login');
-          }
-        }
-
+        console.log('[IMPORT] ✓ All data imported successfully');
         alert('✓ Data imported successfully!');
 
-        // Close modal
-        onSuccess?.();
+        // Close modal and trigger success callback
+        // Let the parent component (WelcomeStep, Settings, etc.) handle navigation
         onClose();
-
-        // Save the current URL path before reload so we can return to it
-        const currentPath = window.location.pathname;
-        sessionStorage.setItem('tally_returnPath', currentPath);
-
-        // Force a page reload to ensure all components refresh with new data
-        // This is necessary because imported data changes the entire app state
-        setTimeout(() => {
-          window.location.reload();
-        }, 100);
-      } else {
-        setError('Failed to import data. Please check the console for details.');
+        if (onSuccess) {
+          onSuccess();
+        }
+      } catch (saveError) {
+        console.error('[IMPORT] Failed to save imported data:', saveError);
+        setError(`Import failed: ${saveError.message}`);
       }
     } catch (err) {
       console.error('[IMPORT] Import error:', err);

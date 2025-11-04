@@ -6,13 +6,11 @@ import { ThemeToggle } from 'components/shared/ThemeToggle';
 import { BurgerMenu } from 'components/shared/BurgerMenu';
 import { handleMenuAction } from 'utils/navigationHandler';
 import { PreferencesTab } from './PreferencesTab';
-import { APITab } from './APITab';
 import { DataManagementTab } from './DataManagementTab';
 import { AccountTab } from './AccountTab';
 
 const TABS = {
   PREFERENCES: 'preferences',
-  API: 'api',
   DATA: 'data',
   ACCOUNT: 'account'
 };
@@ -56,7 +54,7 @@ export const SettingsDashboard = ({ onNavigate, onLogout }) => {
       />
 
       <div className={`min-h-screen transition-colors duration-300 ${
-        isDarkMode ? 'bg-black text-white' : 'bg-gray-50 text-gray-900'
+        isDarkMode ? 'bg-black text-white' : 'bg-white text-black'
       }`}>
 
         {/* Fixed Controls */}
@@ -118,26 +116,6 @@ export const SettingsDashboard = ({ onNavigate, onLogout }) => {
             </button>
 
             <button
-              onClick={() => setActiveTab(TABS.API)}
-              className={`pb-4 px-2 font-light transition-colors duration-200 relative ${
-                activeTab === TABS.API
-                  ? isDarkMode
-                    ? 'text-white'
-                    : 'text-black'
-                  : isDarkMode
-                    ? 'text-gray-500 hover:text-gray-300'
-                    : 'text-gray-400 hover:text-gray-600'
-              }`}
-            >
-              API Keys
-              {activeTab === TABS.API && (
-                <div className={`absolute bottom-0 left-0 right-0 h-0.5 ${
-                  isDarkMode ? 'bg-white' : 'bg-black'
-                }`} />
-              )}
-            </button>
-
-            <button
               onClick={() => setActiveTab(TABS.DATA)}
               className={`pb-4 px-2 font-light transition-colors duration-200 relative ${
                 activeTab === TABS.DATA
@@ -181,7 +159,6 @@ export const SettingsDashboard = ({ onNavigate, onLogout }) => {
           {/* Tab Content */}
           <div>
             {activeTab === TABS.PREFERENCES && <PreferencesTab />}
-            {activeTab === TABS.API && <APITab />}
             {activeTab === TABS.DATA && <DataManagementTab onNavigate={onNavigate} />}
             {activeTab === TABS.ACCOUNT && <AccountTab />}
           </div>

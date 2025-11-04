@@ -5,7 +5,7 @@ import { useTheme } from 'contexts/ThemeContext';
 import { ThemeToggle } from 'components/shared/ThemeToggle';
 import { DateRangePicker } from 'components/shared/DateRangePicker';
 import { ImportDataModal } from 'components/shared/ImportDataModal';
-import { dataManager } from 'utils/dataManager';
+import { apiService } from 'utils/apiService';
 import {
   FormGrid,
   FormField,
@@ -72,13 +72,39 @@ export const WelcomeStep = ({ onNext, savedData = null }) => {
                      periodData.durationMonths >= 1 &&
                      periodData.durationMonths <= 12;
 
-  const handleImportSuccess = () => {
-    // After successful import, redirect to dashboard
-    // Get the household ID from imported data
-    const userData = dataManager.loadUserData();
-    if (userData?.household?.id) {
-      window.location.href = `/${userData.household.id}/dashboard`;
-    } else {
+  const handleImportSuccess = async () => {
+    try {
+      console.log('[WelcomeStep] Import success, loading user data for redirect...');
+
+      // After successful import, redirect to dashboard
+      // Get the household ID from imported data
+      const userData = await apiService.loadUserData();
+      console.log('[WelcomeStep] User data loaded:', userData);
+
+      if (!userData || !userData.household) {
+        console.error('[WelcomeStep] No household data found after import');
+        window.location.reload();
+        return;
+      }
+
+      // Use same logic as AppRouter getHouseholdId()
+      let householdId = userData.household.id;
+
+      // Fallback: generate ID from household name
+      if (!householdId && userData.household.name) {
+        householdId = `household-${userData.household.name.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
+        console.log('[WelcomeStep] Generated householdId from name:', householdId);
+      }
+
+      if (householdId) {
+        console.log('[WelcomeStep] Redirecting to:', `/${householdId}/dashboard`);
+        window.location.href = `/${householdId}/dashboard`;
+      } else {
+        console.error('[WelcomeStep] Could not determine householdId, reloading');
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error('[WelcomeStep] Failed to load user data after import:', error);
       // Fallback: reload to re-detect data
       window.location.reload();
     }

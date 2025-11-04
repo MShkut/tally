@@ -2,7 +2,7 @@
 // Domain-specific hook for transaction management
 
 import { useState, useEffect, useCallback } from 'react';
-import { dataManager } from 'utils/dataManager';
+import { apiService } from 'utils/apiService';
 import { Currency } from 'utils/currency';
 
 /**
@@ -20,9 +20,9 @@ export const useTransactions = () => {
   // LOAD DATA
   // ============================================
 
-  const loadTransactions = useCallback(() => {
+  const loadTransactions = useCallback(async () => {
     try {
-      const data = dataManager.loadTransactions();
+      const data = await apiService.loadTransactions();
       setTransactions(data);
       return data;
     } catch (err) {
@@ -33,9 +33,15 @@ export const useTransactions = () => {
   }, []);
 
   useEffect(() => {
-    setIsLoading(true);
-    loadTransactions();
-    setIsLoading(false);
+    const loadData = async () => {
+      setIsLoading(true);
+      try {
+        await loadTransactions();
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadData();
   }, [loadTransactions]);
 
   // ============================================
@@ -47,7 +53,7 @@ export const useTransactions = () => {
    * @param {Object} transaction - Transaction to add
    * @returns {boolean} Success status
    */
-  const addTransaction = useCallback((transaction) => {
+  const addTransaction = useCallback(async (transaction) => {
     try {
       const newTransaction = {
         ...transaction,
@@ -56,7 +62,7 @@ export const useTransactions = () => {
       };
 
       const updatedTransactions = [...transactions, newTransaction];
-      dataManager.saveTransactions(updatedTransactions);
+      await apiService.saveTransactions(updatedTransactions);
       setTransactions(updatedTransactions);
       return true;
     } catch (err) {
@@ -71,7 +77,7 @@ export const useTransactions = () => {
    * @param {Array} newTransactions - Transactions to add
    * @returns {boolean} Success status
    */
-  const addTransactions = useCallback((newTransactions) => {
+  const addTransactions = useCallback(async (newTransactions) => {
     try {
       const timestampedTransactions = newTransactions.map((txn, index) => ({
         ...txn,
@@ -80,7 +86,7 @@ export const useTransactions = () => {
       }));
 
       const updatedTransactions = [...transactions, ...timestampedTransactions];
-      dataManager.saveTransactions(updatedTransactions);
+      await apiService.saveTransactions(updatedTransactions);
       setTransactions(updatedTransactions);
       return true;
     } catch (err) {
@@ -96,7 +102,7 @@ export const useTransactions = () => {
    * @param {Object} updates - Fields to update
    * @returns {boolean} Success status
    */
-  const updateTransaction = useCallback((id, updates) => {
+  const updateTransaction = useCallback(async (id, updates) => {
     // Optimistic update
     const previousTransactions = [...transactions];
     const updatedTransactions = transactions.map(txn =>
@@ -105,7 +111,7 @@ export const useTransactions = () => {
     setTransactions(updatedTransactions);
 
     try {
-      dataManager.updateTransaction(id, updates);
+      await apiService.saveTransactions(updatedTransactions);
       return true;
     } catch (err) {
       console.error('Error updating transaction:', err);
@@ -121,14 +127,14 @@ export const useTransactions = () => {
    * @param {string} id - Transaction ID
    * @returns {boolean} Success status
    */
-  const deleteTransaction = useCallback((id) => {
+  const deleteTransaction = useCallback(async (id) => {
     // Optimistic delete
     const previousTransactions = [...transactions];
     const updatedTransactions = transactions.filter(txn => txn.id !== id);
     setTransactions(updatedTransactions);
 
     try {
-      dataManager.deleteTransaction(id);
+      await apiService.deleteTransaction(id);
       return true;
     } catch (err) {
       console.error('Error deleting transaction:', err);
@@ -144,7 +150,7 @@ export const useTransactions = () => {
    * @param {Array<string>} ids - Transaction IDs to delete
    * @returns {boolean} Success status
    */
-  const deleteTransactions = useCallback((ids) => {
+  const deleteTransactions = useCallback(async (ids) => {
     // Optimistic delete
     const previousTransactions = [...transactions];
     const idsSet = new Set(ids);
@@ -152,7 +158,7 @@ export const useTransactions = () => {
     setTransactions(updatedTransactions);
 
     try {
-      dataManager.saveTransactions(updatedTransactions);
+      await apiService.saveTransactions(updatedTransactions);
       return true;
     } catch (err) {
       console.error('Error deleting transactions:', err);

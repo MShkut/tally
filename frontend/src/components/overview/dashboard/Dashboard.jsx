@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 
 import { ThemeToggle } from 'components/shared/ThemeToggle';
 import { useTheme } from 'contexts/ThemeContext';
-import { dataManager } from 'utils/dataManager';
+import { apiService } from 'utils/apiService';
 import { Currency } from 'utils/currency';
 import {
   FormSection,
@@ -17,7 +17,6 @@ import { BudgetPerformanceSection } from 'components/overview/dashboard/BudgetPe
 import { DashboardViewSelector, generateAvailableMonths } from 'components/overview/dashboard/DashboardViewSelector';
 import { handleMenuAction } from 'utils/navigationHandler';
 import { useBudgetMath } from 'hooks/useBudgetMath';
-import { calculateNetWorth } from 'utils/netWorthCalculations';
 
 export const Dashboard = ({ onNavigate, onLogout }) => {
   const { isDarkMode } = useTheme();
@@ -46,8 +45,7 @@ export const Dashboard = ({ onNavigate, onLogout }) => {
     categories
   );
 
-  // Calculate net worth
-  const netWorthData = calculateNetWorthData(onboardingData);
+  // availableMonths calculated from data
   const availableMonths = generateAvailableMonths(onboardingData, transactions);
 
   // Handle menu state changes to prevent layout shift
@@ -68,45 +66,53 @@ export const Dashboard = ({ onNavigate, onLogout }) => {
   }, [menuOpen]);
   
   useEffect(() => {
-    const userData = dataManager.loadUserData();
-    const userTransactions = dataManager.loadTransactions();
-    
-    setOnboardingData(userData);
-    setTransactions(userTransactions);
-    
-    // Build categories from user data
-    if (userData?.expenses?.expenseCategories) {
-      const expenseCategories = userData.expenses.expenseCategories.map(cat => {
-        // Convert amount from original frequency to monthly
-        const yearlyAmount = Currency.toYearly(cat.amount, cat.frequency);
-        const monthlyAmount = Currency.fromYearly(yearlyAmount, 'Monthly');
-        
-        return {
-          id: cat.name.toLowerCase().replace(/\s+/g, '-'),
-          name: cat.name,
-          type: 'expense',
-          amount: monthlyAmount
-        };
-      });
-      
-      const incomeCategories = userData.income?.incomeSources?.map(source => ({
-        id: source.name.toLowerCase().replace(/\s+/g, '-'),
-        name: source.name,
-        type: 'income'
-      })) || [];
-      
-      const allCategories = [
-        { id: 'uncategorized', name: 'Uncategorized', type: 'unknown' },
-        ...incomeCategories,
-        ...expenseCategories
-      ];
-      
-      setCategories(allCategories);
-    }
+    const loadData = async () => {
+      try {
+        const userData = await apiService.loadUserData();
+        const userTransactions = await apiService.loadTransactions();
 
-    if (!userData || !userData.onboardingComplete) {
-      onNavigate('onboarding');
-    }
+        setOnboardingData(userData);
+        setTransactions(userTransactions);
+
+        // Build categories from user data
+        if (userData?.expenses?.expenseCategories) {
+          const expenseCategories = userData.expenses.expenseCategories.map(cat => {
+            // Convert amount from original frequency to monthly
+            const yearlyAmount = Currency.toYearly(cat.amount, cat.frequency);
+            const monthlyAmount = Currency.fromYearly(yearlyAmount, 'Monthly');
+
+            return {
+              id: cat.name.toLowerCase().replace(/\s+/g, '-'),
+              name: cat.name,
+              type: 'expense',
+              amount: monthlyAmount
+            };
+          });
+
+          const incomeCategories = userData.income?.incomeSources?.map(source => ({
+            id: source.name.toLowerCase().replace(/\s+/g, '-'),
+            name: source.name,
+            type: 'income'
+          })) || [];
+
+          const allCategories = [
+            { id: 'uncategorized', name: 'Uncategorized', type: 'unknown' },
+            ...incomeCategories,
+            ...expenseCategories
+          ];
+
+          setCategories(allCategories);
+        }
+
+        if (!userData || !userData.onboardingComplete) {
+          onNavigate('onboarding');
+        }
+      } catch (error) {
+        console.error('Error loading dashboard data:', error);
+      }
+    };
+
+    loadData();
   }, [onNavigate]);
   
   // Save selected month to sessionStorage
@@ -202,9 +208,8 @@ export const Dashboard = ({ onNavigate, onLogout }) => {
 
 
           {/* Budget Performance Section - Enhanced with 2 rows */}
-          <BudgetPerformanceSection 
+          <BudgetPerformanceSection
             performanceData={performanceData}
-            netWorthData={netWorthData}
           />
 
           {/* Single divider border */}
@@ -426,7 +431,6 @@ function processDashboardData(onboardingData, transactions, viewMode, selectedMo
 
   const budgetCategories = processBudgetCategories(filteredTransactions, viewMode, categories, budgetMath, onboardingData);
   const savingsGoals = processSavingsGoals(onboardingData, filteredTransactions, viewMode);
-  const netWorth = processNetWorth(onboardingData);
   const incomeBreakdown = processIncomeBreakdown(onboardingData, filteredTransactions, viewMode, budgetMath);
 
   return {
@@ -434,7 +438,6 @@ function processDashboardData(onboardingData, transactions, viewMode, selectedMo
     period,
     budgetCategories,
     savingsGoals,
-    netWorth,
     incomeBreakdown
   };
 }
@@ -556,41 +559,9 @@ function formatPeriodInfo(onboardingData) {
   return `${formatDate(startDate)} to ${formatDate(endDate)} • Month ${currentMonth} of ${durationMonths}`;
 }
 
-function processNetWorth(onboardingData) {
-  const netWorthValue = onboardingData?.netWorth?.netWorth || 0;
-  return {
-    value: netWorthValue,
-    subtitle: netWorthValue >= 0 ? 'Positive net worth' : 'Room to grow'
-  };
-}
-
-// Calculate net worth data with trend
-function calculateNetWorthData(onboardingData) {
-  // Load current net worth items from the new system
-  const netWorthItems = dataManager.loadNetWorthItems();
-  const netWorthValue = calculateNetWorth(netWorthItems);
-
-  // For now, we don't have historical data to calculate actual trend
-  // In the future, this could track period-over-period changes
-  const trend = 0; // Placeholder for future implementation
-
-  return {
-    value: netWorthValue,
-    trend: trend
-  };
-}
-
-// Helper function to extract first name and format dashboard title
+// Helper function to format dashboard title with full household name
 function getPersonalizedDashboardTitle(householdName) {
   if (!householdName) return 'Your Dashboard';
-  
-  // Extract first name from household name
-  // Handle formats like: "John", "Jane & John", "Smith Family", "John, Jane & Bob"
-  const firstName = householdName
-    .split(/[\s,&]+/)[0]  // Split by space, comma, or ampersand
-    .trim();              // Remove any whitespace
-  
-  if (!firstName) return 'Your Dashboard';
-  
-  return `${firstName}'s Dashboard`;
+
+  return `${householdName}'s Dashboard`;
 }

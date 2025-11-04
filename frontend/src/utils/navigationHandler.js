@@ -1,7 +1,7 @@
 // frontend/src/utils/navigationHandler.js
 // Universal Navigation Handler - Single source of truth for all menu navigation
 
-import { dataManager } from './dataManager';
+import { apiService } from './apiService';
 
 /**
  * Universal navigation handler for burger menu actions
@@ -22,16 +22,16 @@ export const handleMenuAction = (actionId, onNavigate, onClose, setShowResetConf
     case 'dashboard':
       onNavigate('dashboard');
       return true;
-      
-    case 'networth':
-      onNavigate('networth');
-      return true;
 
     // Main Actions
     case 'import':
       onNavigate('import');
       return true;
-      
+
+    case 'alltransactions':
+      onNavigate('alltransactions');
+      return true;
+
     case 'gifts':
       onNavigate('gifts');
       return true;
@@ -47,10 +47,6 @@ export const handleMenuAction = (actionId, onNavigate, onClose, setShowResetConf
       
     case 'edit-expenses':
       onNavigate('edit-expenses');
-      return true;
-      
-    case 'edit-networth':
-      onNavigate('edit-networth');
       return true;
 
     // Period Management
@@ -114,73 +110,97 @@ export const handleMenuAction = (actionId, onNavigate, onClose, setShowResetConf
 
 /**
  * Handle manual data save
+ * In backend mode, all saves happen automatically via API calls
+ * This function is now a no-op since data is always persisted to backend
  */
 const handleDataSave = async () => {
   try {
-    const result = await dataManager.saveAllData();
-    if (result.success) {
-      alert(`✓ ${result.message}`);
-      if (import.meta.env.DEV) {
-        console.log('✅ Manual save successful');
-      }
-    } else {
-      alert(`Failed to save data: ${result.error}`);
+    // With backend API, all data is saved automatically on every change
+    // No manual save needed, but we can still show a confirmation
+    alert('✓ All data is automatically saved to the backend');
+    if (import.meta.env.DEV) {
+      console.log('✅ Data auto-saved via backend API');
     }
   } catch (error) {
-    console.error('❌ Failed to save data:', error);
-    alert('Failed to save data. Please try again.');
+    console.error('❌ Save confirmation failed:', error);
+    alert('Data is automatically saved. No manual action needed.');
   }
 };
 
 /**
  * Handle data export
  */
-const handleDataExport = () => {
+const handleDataExport = async () => {
   try {
-    const exportData = dataManager.exportData();
-    
+    console.log('[EXPORT] Loading all data from backend...');
+
+    // Load all data from backend
+    const [userData, transactions, giftData, settings] = await Promise.all([
+      apiService.loadUserData().catch(() => null),
+      apiService.loadTransactions().catch(() => []),
+      apiService.loadGiftData().catch(() => null),
+      apiService.loadSettings().catch(() => null)
+    ]);
+
+    // Build export object
+    const exportData = {
+      version: '1.0',
+      exportedAt: new Date().toISOString(),
+      userData,
+      transactions,
+      giftData,
+      settings
+    };
+
     // Create downloadable file
     const dataStr = JSON.stringify(exportData, null, 2);
     const dataBlob = new Blob([dataStr], { type: 'application/json' });
-    
+
     // Create download link
     const url = URL.createObjectURL(dataBlob);
     const link = document.createElement('a');
     link.href = url;
     link.download = `tally-export-${new Date().toISOString().split('T')[0]}.json`;
-    
+
     // Trigger download
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    
+
     // Clean up
     URL.revokeObjectURL(url);
 
-    if (import.meta.env.DEV) {
-      console.log('✅ Data exported successfully');
-    }
+    console.log('[EXPORT] ✅ Data exported successfully');
   } catch (error) {
-    console.error('❌ Failed to export data:', error);
+    console.error('[EXPORT] ❌ Failed to export data:', error);
     alert('Failed to export data. Please try again.');
   }
 };
 
 /**
  * Handle data reset
+ * Note: Backend reset requires backend API endpoint support
+ * For now, we'll logout and show message to re-register
  */
-const handleDataReset = (onNavigate) => {
+const handleDataReset = async (onNavigate) => {
   try {
-    dataManager.resetAllData();
+    console.log('[RESET] Logging out and clearing session...');
+
+    // Logout from backend (clears session)
+    await apiService.logout();
+
     if (import.meta.env.DEV) {
-      console.log('✅ All data reset successfully');
+      console.log('✅ Logged out successfully');
     }
 
-    // Force reload to ensure clean state
-    window.location.reload();
+    // Show message that user needs to re-register to reset data
+    alert('✓ Logged out. Register again to start fresh with new data.');
+
+    // Force reload to login/register screen
+    window.location.href = '/';
   } catch (error) {
     console.error('❌ Failed to reset data:', error);
-    alert('Failed to reset data. Please try again.');
+    alert('Failed to reset. Please try logging out manually.');
   }
 };
 
@@ -188,36 +208,29 @@ const handleDataReset = (onNavigate) => {
  * Get available menu items based on user data
  * This centralizes the logic for determining which menu items to show
  */
-export const getMenuItems = () => {
+export const getMenuItems = async () => {
   // Check if user has gifts category
-  const userData = dataManager.loadUserData();
-  const hasGiftsCategory = userData?.expenses?.expenseCategories?.some(
-    cat => cat.name.toLowerCase() === 'gifts'
-  ) || false;
+  try {
+    const userData = await apiService.loadUserData();
+    const hasGiftsCategory = userData?.expenses?.expenseCategories?.some(
+      cat => cat.name.toLowerCase() === 'gifts'
+    ) || false;
 
-  const overviewItems = [
-    { id: 'dashboard', label: 'Dashboard' },
-    { id: 'networth', label: 'Net Worth' }
+  const dashboardItems = [
+    { id: 'dashboard', label: 'Overview' }
+  ];
+
+  const yourPlanItems = [
+    { id: 'plan-next-period', label: 'Plan Next Period' },
+    { id: 'edit-income', label: 'Edit Income Sources' },
+    { id: 'edit-savings', label: 'Edit Savings Plan' },
+    { id: 'edit-expenses', label: 'Edit Expenses' }
   ];
 
   const actionsItems = [
-    { id: 'import', label: 'Transaction Import' },
-    { id: 'edit-income', label: 'Edit Income Sources' },
-    { id: 'edit-savings', label: 'Edit Savings Plan' },
-    { id: 'edit-expenses', label: 'Edit Expenses' },
-    { id: 'plan-next-period', label: 'Plan Next Period' }
-  ];
-
-  // Add gift management if category exists
-  if (hasGiftsCategory) {
-    actionsItems.splice(1, 0, {
-      id: 'gifts',
-      label: 'Gift Management'
-    });
-  }
-
-  const toolsItems = [
-    // Empty for now - future expansion
+    { id: 'import', label: 'Import Transactions' },
+    { id: 'alltransactions', label: 'View and Edit Transactions' },
+    { id: 'gifts', label: 'Gift Management' }
   ];
 
   const settingsItems = [
@@ -226,11 +239,35 @@ export const getMenuItems = () => {
   ];
 
   return {
-    overview: overviewItems,
+    dashboard: dashboardItems,
+    yourPlan: yourPlanItems,
     actions: actionsItems,
-    tools: toolsItems,
     settings: settingsItems
   };
+  } catch (error) {
+    console.error('[MENU] Failed to load menu items:', error);
+    // Return default menu if loading fails
+    return {
+      dashboard: [
+        { id: 'dashboard', label: 'Overview' }
+      ],
+      yourPlan: [
+        { id: 'plan-next-period', label: 'Plan Next Period' },
+        { id: 'edit-income', label: 'Edit Income Sources' },
+        { id: 'edit-savings', label: 'Edit Savings Plan' },
+        { id: 'edit-expenses', label: 'Edit Expenses' }
+      ],
+      actions: [
+        { id: 'import', label: 'Import Transactions' },
+        { id: 'alltransactions', label: 'View and Edit Transactions' },
+        { id: 'gifts', label: 'Gift Management' }
+      ],
+      settings: [
+        { id: 'settings', label: 'Settings' },
+        { id: 'logout', label: 'Logout' }
+      ]
+    };
+  }
 };
 
 /**

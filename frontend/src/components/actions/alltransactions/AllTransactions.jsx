@@ -5,7 +5,7 @@ import { useTheme } from 'contexts/ThemeContext';
 import { ThemeToggle } from 'components/shared/ThemeToggle';
 import { Currency } from 'utils/currency';
 import { BurgerMenu } from 'components/shared/BurgerMenu';
-import { dataManager } from 'utils/dataManager';
+import { apiService } from 'utils/apiService';
 import { 
   FormSection, 
   FormGrid, 
@@ -28,6 +28,7 @@ export const AllTransactions = ({ onNavigate }) => {
   
   // Filter and search state
   const [searchTerm, setSearchTerm] = useState('');
+  const [typeFilter, setTypeFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [dateFilter, setDateFilter] = useState('');
   const [sortBy, setSortBy] = useState('date');
@@ -37,64 +38,93 @@ export const AllTransactions = ({ onNavigate }) => {
   const [selectedTransactions, setSelectedTransactions] = useState(new Set());
   const [showBulkDelete, setShowBulkDelete] = useState(false);
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(50);
+
   // Handle menu actions using the standard navigation handler
   const handleMenuActionWrapper = (action) => {
     handleMenuAction(action, onNavigate, () => setMenuOpen(false), null);
   };
 
   useEffect(() => {
-    // Load transactions and categories
-    const loadedTransactions = dataManager.loadTransactions();
-    setTransactions(loadedTransactions);
-    
-    const userData = dataManager.loadUserData();
-    
-    // Build categories from user data - same logic as import page
-    const allCategories = [];
-    
-    // Add income sources as categories
-    if (userData?.income?.incomeSources) {
-      const incomeCategories = userData.income.incomeSources.map(source => ({
-        ...source,
-        type: 'Income'
-      }));
-      allCategories.push(...incomeCategories);
-    }
-    
-    // Add savings goals as categories
-    if (userData?.savingsAllocation?.savingsGoals) {
-      const savingsCategories = userData.savingsAllocation.savingsGoals.map(goal => ({
-        ...goal,
-        type: 'Savings'
-      }));
-      allCategories.push(...savingsCategories);
-    }
-    
-    // Add expense categories
-    if (userData?.expenses?.expenseCategories) {
-      const expenseCategories = userData.expenses.expenseCategories.map(category => ({
-        ...category,
-        type: 'Expense'
-      }));
-      allCategories.push(...expenseCategories);
-    }
-    
-    setCategories(allCategories);
+    const loadData = async () => {
+      try {
+        // Load transactions and categories
+        const loadedTransactions = await apiService.loadTransactions();
+        setTransactions(loadedTransactions);
+
+        const userData = await apiService.loadUserData();
+
+        // Build categories from user data - same logic as import page
+        const allCategories = [];
+
+        // Add income sources as categories
+        if (userData?.income?.incomeSources) {
+          const incomeCategories = userData.income.incomeSources.map(source => ({
+            ...source,
+            type: 'Income'
+          }));
+          allCategories.push(...incomeCategories);
+        }
+
+        // Add savings goals as categories
+        if (userData?.savingsAllocation?.savingsGoals) {
+          const savingsCategories = userData.savingsAllocation.savingsGoals.map(goal => ({
+            ...goal,
+            type: 'Savings'
+          }));
+          allCategories.push(...savingsCategories);
+        }
+
+        // Add expense categories
+        if (userData?.expenses?.expenseCategories) {
+          const expenseCategories = userData.expenses.expenseCategories.map(category => ({
+            ...category,
+            type: 'Expense'
+          }));
+          allCategories.push(...expenseCategories);
+        }
+
+        setCategories(allCategories);
+      } catch (error) {
+        console.error('[AllTransactions] Error loading data:', error);
+      }
+    };
+
+    loadData();
   }, []);
 
-  // Filtered and sorted transactions
-  const processedTransactions = useMemo(() => {
+  // Filtered and sorted transactions (with pagination)
+  const { paginatedTransactions, totalPages, totalFiltered } = useMemo(() => {
     let filtered = transactions.filter(transaction => {
       // Search filter
       if (searchTerm && !transaction.description?.toLowerCase().includes(searchTerm.toLowerCase())) {
         return false;
       }
-      
-      // Category filter
-      if (categoryFilter && transaction.category?.name !== categoryFilter) {
-        return false;
+
+      // Type filter
+      if (typeFilter) {
+        // Category can be string or object - find matching category from our list
+        const categoryName = typeof transaction.category === 'string'
+          ? transaction.category
+          : transaction.category?.name;
+        const matchedCategory = categories.find(c => c.name === categoryName);
+        if (!matchedCategory || matchedCategory.type !== typeFilter) {
+          return false;
+        }
       }
-      
+
+      // Category filter
+      if (categoryFilter) {
+        const categoryName = typeof transaction.category === 'string'
+          ? transaction.category
+          : transaction.category?.name;
+        if (categoryName !== categoryFilter) {
+          return false;
+        }
+      }
+
       // Date filter (current month if selected)
       if (dateFilter === 'current-month') {
         const now = new Date();
@@ -103,7 +133,7 @@ export const AllTransactions = ({ onNavigate }) => {
           return false;
         }
       }
-      
+
       return true;
     });
     
@@ -125,8 +155,8 @@ export const AllTransactions = ({ onNavigate }) => {
           bVal = b.description?.toLowerCase() || '';
           break;
         case 'category':
-          aVal = a.category?.name?.toLowerCase() || '';
-          bVal = b.category?.name?.toLowerCase() || '';
+          aVal = (typeof a.category === 'string' ? a.category : a.category?.name || '').toLowerCase();
+          bVal = (typeof b.category === 'string' ? b.category : b.category?.name || '').toLowerCase();
           break;
         default:
           return 0;
@@ -136,21 +166,35 @@ export const AllTransactions = ({ onNavigate }) => {
       if (aVal > bVal) return sortOrder === 'asc' ? 1 : -1;
       return 0;
     });
-    
-    return filtered;
-  }, [transactions, searchTerm, categoryFilter, dateFilter, sortBy, sortOrder]);
+
+    // Calculate pagination
+    const totalFiltered = filtered.length;
+    const totalPages = Math.ceil(totalFiltered / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const paginatedTransactions = filtered.slice(startIndex, endIndex);
+
+    return { paginatedTransactions, totalPages, totalFiltered };
+  }, [transactions, searchTerm, typeFilter, categoryFilter, dateFilter, sortBy, sortOrder, currentPage, itemsPerPage]);
 
   const handleEdit = (transactionId) => {
     setEditingId(transactionId);
   };
 
-  const handleSave = (transactionId, updatedTransaction) => {
-    const updatedTransactions = transactions.map(t => 
-      t.id === transactionId ? { ...t, ...updatedTransaction } : t
-    );
-    setTransactions(updatedTransactions);
-    dataManager.saveTransactions(updatedTransactions);
-    setEditingId(null);
+  const handleSave = async (transactionId, updatedTransaction) => {
+    try {
+      // Update in local state
+      const updatedTransactions = transactions.map(t =>
+        t.id === transactionId ? { ...t, ...updatedTransaction } : t
+      );
+      setTransactions(updatedTransactions);
+
+      // Update single transaction in backend
+      await apiService.updateTransaction(transactionId, updatedTransaction);
+      setEditingId(null);
+    } catch (error) {
+      console.error('[AllTransactions] Error saving transaction:', error);
+    }
   };
 
   const handleDelete = (transaction) => {
@@ -158,22 +202,37 @@ export const AllTransactions = ({ onNavigate }) => {
     setShowDeleteConfirm(true);
   };
 
-  const confirmDelete = () => {
-    if (transactionToDelete) {
-      const updatedTransactions = transactions.filter(t => t.id !== transactionToDelete.id);
-      setTransactions(updatedTransactions);
-      dataManager.saveTransactions(updatedTransactions);
+  const confirmDelete = async () => {
+    try {
+      if (transactionToDelete) {
+        // Delete from backend
+        await apiService.deleteTransaction(transactionToDelete.id);
+
+        // Remove from local state
+        const updatedTransactions = transactions.filter(t => t.id !== transactionToDelete.id);
+        setTransactions(updatedTransactions);
+      }
+      setShowDeleteConfirm(false);
+      setTransactionToDelete(null);
+    } catch (error) {
+      console.error('[AllTransactions] Error deleting transaction:', error);
     }
-    setShowDeleteConfirm(false);
-    setTransactionToDelete(null);
   };
 
-  const handleBulkDelete = () => {
-    const updatedTransactions = transactions.filter(t => !selectedTransactions.has(t.id));
-    setTransactions(updatedTransactions);
-    dataManager.saveTransactions(updatedTransactions);
-    setSelectedTransactions(new Set());
-    setShowBulkDelete(false);
+  const handleBulkDelete = async () => {
+    try {
+      // Use bulk delete endpoint for performance
+      const transactionIds = Array.from(selectedTransactions);
+      await apiService.bulkDeleteTransactions(transactionIds);
+
+      // Update local state
+      const updatedTransactions = transactions.filter(t => !selectedTransactions.has(t.id));
+      setTransactions(updatedTransactions);
+      setSelectedTransactions(new Set());
+      setShowBulkDelete(false);
+    } catch (error) {
+      console.error('[AllTransactions] Error bulk deleting transactions:', error);
+    }
   };
 
   const toggleSelection = (transactionId) => {
@@ -187,16 +246,63 @@ export const AllTransactions = ({ onNavigate }) => {
   };
 
   const selectAll = () => {
-    setSelectedTransactions(new Set(processedTransactions.map(t => t.id)));
+    setSelectedTransactions(new Set(paginatedTransactions.map(t => t.id)));
+  };
+
+  const selectAllFiltered = () => {
+    // Select all transactions in the current filter (across all pages)
+    const allFiltered = transactions.filter(transaction => {
+      if (searchTerm && !transaction.description?.toLowerCase().includes(searchTerm.toLowerCase())) {
+        return false;
+      }
+      if (typeFilter) {
+        const categoryName = typeof transaction.category === 'string'
+          ? transaction.category
+          : transaction.category?.name;
+        const matchedCategory = categories.find(c => c.name === categoryName);
+        if (!matchedCategory || matchedCategory.type !== typeFilter) {
+          return false;
+        }
+      }
+      if (categoryFilter) {
+        const categoryName = typeof transaction.category === 'string'
+          ? transaction.category
+          : transaction.category?.name;
+        if (categoryName !== categoryFilter) {
+          return false;
+        }
+      }
+      if (dateFilter === 'current-month') {
+        const now = new Date();
+        const transDate = new Date(transaction.date);
+        if (transDate.getMonth() !== now.getMonth() || transDate.getFullYear() !== now.getFullYear()) {
+          return false;
+        }
+      }
+      return true;
+    });
+    setSelectedTransactions(new Set(allFiltered.map(t => t.id)));
   };
 
   const clearSelection = () => {
     setSelectedTransactions(new Set());
   };
 
+  // Filter categories based on selected type
+  const filteredCategories = typeFilter
+    ? categories.filter(cat => cat.type === typeFilter)
+    : categories;
+
+  const typeOptions = [
+    { value: '', label: 'All Types' },
+    { value: 'Income', label: 'Income' },
+    { value: 'Expense', label: 'Expense' },
+    { value: 'Savings', label: 'Savings' }
+  ];
+
   const categoryOptions = [
     { value: '', label: 'All Categories' },
-    ...categories.map(cat => ({
+    ...filteredCategories.map(cat => ({
       value: cat.name,
       label: `${cat.name} (${cat.type})`
     }))
@@ -242,7 +348,7 @@ export const AllTransactions = ({ onNavigate }) => {
         {/* Filters and Controls */}
         <FormSection title="Filters & Search">
           <FormGrid>
-            <FormField span={3} mobileSpan={6}>
+            <FormField span={4} mobileSpan={6}>
               <StandardInput
                 label="Search Descriptions"
                 value={searchTerm}
@@ -251,16 +357,30 @@ export const AllTransactions = ({ onNavigate }) => {
                 className="[&_label]:text-base [&_label]:font-light [&_input]:text-base [&_input]:font-light"
               />
             </FormField>
+            <FormField span={2} mobileSpan={3}>
+              <StandardSelect
+                label="Type"
+                value={typeFilter}
+                onChange={(value) => {
+                  setTypeFilter(value);
+                  setCategoryFilter(''); // Reset category when type changes
+                }}
+                options={typeOptions}
+                className="[&_label]:text-base [&_label]:font-light [&_button]:text-base [&_button]:font-light"
+              />
+            </FormField>
             <FormField span={3} mobileSpan={6}>
               <StandardSelect
                 label="Category"
                 value={categoryFilter}
                 onChange={setCategoryFilter}
                 options={categoryOptions}
+                disabled={!typeFilter}
+                placeholder={typeFilter ? "Select category" : "Select type first"}
                 className="[&_label]:text-base [&_label]:font-light [&_button]:text-base [&_button]:font-light"
               />
             </FormField>
-            <FormField span={2} mobileSpan={4}>
+            <FormField span={3} mobileSpan={3}>
               <StandardSelect
                 label="Date Filter"
                 value={dateFilter}
@@ -272,7 +392,7 @@ export const AllTransactions = ({ onNavigate }) => {
                 className="[&_label]:text-base [&_label]:font-light [&_button]:text-base [&_button]:font-light"
               />
             </FormField>
-            <FormField span={2} mobileSpan={4}>
+            <FormField span={2} mobileSpan={3}>
               <StandardSelect
                 label="Sort By"
                 value={sortBy}
@@ -286,7 +406,7 @@ export const AllTransactions = ({ onNavigate }) => {
                 className="[&_label]:text-base [&_label]:font-light [&_button]:text-base [&_button]:font-light"
               />
             </FormField>
-            <FormField span={2} mobileSpan={4}>
+            <FormField span={2} mobileSpan={3}>
               <StandardSelect
                 label="Order"
                 value={sortOrder}
@@ -311,8 +431,19 @@ export const AllTransactions = ({ onNavigate }) => {
                 isDarkMode ? 'text-gray-400' : 'text-gray-600'
               }`}>
                 {selectedTransactions.size} transaction{selectedTransactions.size !== 1 ? 's' : ''} selected
+                {totalFiltered > paginatedTransactions.length && ` (of ${totalFiltered} filtered)`}
               </span>
               <div className="flex gap-4">
+                {totalFiltered > paginatedTransactions.length && (
+                  <button
+                    onClick={selectAllFiltered}
+                    className={`text-base font-light transition-colors ${
+                      isDarkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-black'
+                    }`}
+                  >
+                    Select All {totalFiltered} Filtered
+                  </button>
+                )}
                 <button
                   onClick={clearSelection}
                   className={`text-base font-light transition-colors ${
@@ -333,26 +464,35 @@ export const AllTransactions = ({ onNavigate }) => {
         )}
 
         {/* Transactions List */}
-        {processedTransactions.length === 0 ? (
+        {totalFiltered === 0 ? (
           <EmptyState
             title="No transactions found"
             description="Try adjusting your filters or import some transactions to get started"
             className="mt-12"
           />
         ) : (
-          <div className="space-y-4">
+          <>
+            {/* Results Summary */}
+            <div className={`mb-4 text-base ${
+              isDarkMode ? 'text-gray-400' : 'text-gray-600'
+            }`}>
+              Showing {((currentPage - 1) * itemsPerPage) + 1}-{Math.min(currentPage * itemsPerPage, totalFiltered)} of {totalFiltered} transactions
+            </div>
+
+            <div className="space-y-4">
             {/* Header Row */}
             <div className={`grid grid-cols-12 gap-4 p-4 border-b-2 ${
               isDarkMode ? 'border-gray-800' : 'border-gray-200'
             }`}>
               <div className="col-span-1 flex items-center">
                 <button
-                  onClick={selectedTransactions.size === processedTransactions.length ? clearSelection : selectAll}
+                  onClick={selectedTransactions.size === paginatedTransactions.length ? clearSelection : selectAll}
                   className={`text-base font-light transition-colors ${
                     isDarkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-black'
                   }`}
+                  title="Select all on this page"
                 >
-                  {selectedTransactions.size === processedTransactions.length ? '☑' : '☐'}
+                  {selectedTransactions.size === paginatedTransactions.length ? '☑' : '☐'}
                 </button>
               </div>
               <div className="col-span-2 text-base font-light">Date</div>
@@ -363,7 +503,7 @@ export const AllTransactions = ({ onNavigate }) => {
             </div>
 
             {/* Transaction Rows */}
-            {processedTransactions.map((transaction) => (
+            {paginatedTransactions.map((transaction) => (
               <TransactionRow
                 key={transaction.id}
                 transaction={transaction}
@@ -378,26 +518,73 @@ export const AllTransactions = ({ onNavigate }) => {
               />
             ))}
           </div>
-        )}
 
-        {/* Summary */}
-        {processedTransactions.length > 0 && (
-          <div className={`mt-8 p-4 border-t-2 ${
-            isDarkMode ? 'border-gray-800' : 'border-gray-200'
-          }`}>
-            <div className="flex justify-between items-center">
-              <span className={`text-base ${
-                isDarkMode ? 'text-gray-400' : 'text-gray-600'
-              }`}>
-                Showing {processedTransactions.length} of {transactions.length} transactions
-              </span>
-              <span className={`text-base font-mono ${
-                isDarkMode ? 'text-gray-400' : 'text-gray-600'
-              }`}>
-                Total: {Currency.format(processedTransactions.reduce((sum, t) => sum + (t.amount || 0), 0))}
-              </span>
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className={`mt-8 flex items-center justify-between border-t-2 pt-6 ${
+              isDarkMode ? 'border-gray-800' : 'border-gray-200'
+            }`}>
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                  disabled={currentPage === 1}
+                  className={`px-4 py-2 border-2 transition-colors ${
+                    currentPage === 1
+                      ? 'opacity-50 cursor-not-allowed'
+                      : isDarkMode
+                        ? 'border-white text-white hover:bg-white hover:text-black'
+                        : 'border-black text-black hover:bg-black hover:text-white'
+                  }`}
+                >
+                  Previous
+                </button>
+                <span className={`text-base ${
+                  isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                }`}>
+                  Page {currentPage} of {totalPages}
+                </span>
+                <button
+                  onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                  disabled={currentPage === totalPages}
+                  className={`px-4 py-2 border-2 transition-colors ${
+                    currentPage === totalPages
+                      ? 'opacity-50 cursor-not-allowed'
+                      : isDarkMode
+                        ? 'border-white text-white hover:bg-white hover:text-black'
+                        : 'border-black text-black hover:bg-black hover:text-white'
+                  }`}
+                >
+                  Next
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <label className={`text-base ${
+                  isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                }`}>
+                  Items per page:
+                </label>
+                <select
+                  value={itemsPerPage}
+                  onChange={(e) => {
+                    setItemsPerPage(Number(e.target.value));
+                    setCurrentPage(1); // Reset to first page when changing items per page
+                  }}
+                  className={`px-3 py-1 border-2 bg-transparent ${
+                    isDarkMode
+                      ? 'border-gray-600 text-white'
+                      : 'border-gray-300 text-black'
+                  }`}
+                >
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                  <option value={250}>250</option>
+                </select>
+              </div>
             </div>
-          </div>
+          )}
+          </>
         )}
       </div>
 
@@ -448,11 +635,17 @@ const TransactionRow = ({
   onDelete 
 }) => {
   const { isDarkMode } = useTheme();
+  // Get category name from transaction (handle both string and object formats)
+  const getCategoryName = (cat) => {
+    if (typeof cat === 'string') return cat;
+    return cat?.name || '';
+  };
+
   const [editData, setEditData] = useState({
     date: transaction.date,
     description: transaction.description,
     amount: transaction.amount,
-    categoryId: transaction.category?.id || ''
+    categoryName: getCategoryName(transaction.category)
   });
 
   useEffect(() => {
@@ -461,18 +654,21 @@ const TransactionRow = ({
         date: transaction.date,
         description: transaction.description,
         amount: transaction.amount,
-        categoryId: transaction.category?.id || ''
+        categoryName: getCategoryName(transaction.category)
       });
     }
   }, [isEditing, transaction]);
 
   const handleSave = () => {
-    const selectedCategory = categories.find(c => c.id === editData.categoryId);
+    // Backend expects category as a string, not an object
     onSave({
       date: editData.date,
       description: editData.description,
       amount: parseFloat(editData.amount),
-      category: selectedCategory
+      category: editData.categoryName, // Send category name as string
+      // Optional: include merchant and type if backend needs them
+      merchant: transaction.merchant || 'Unknown',
+      type: categories.find(c => c.name === editData.categoryName)?.type || 'Expense'
     });
   };
 
@@ -531,17 +727,17 @@ const TransactionRow = ({
         </div>
         <div className="col-span-2">
           <select
-            value={editData.categoryId}
-            onChange={(e) => setEditData({ ...editData, categoryId: e.target.value })}
+            value={editData.categoryName}
+            onChange={(e) => setEditData({ ...editData, categoryName: e.target.value })}
             className={`w-full p-2 border rounded text-sm ${
-              isDarkMode 
-                ? 'bg-gray-800 border-gray-600 text-white' 
+              isDarkMode
+                ? 'bg-gray-800 border-gray-600 text-white'
                 : 'bg-white border-gray-300 text-black'
             }`}
           >
             <option value="">Select category</option>
             {categories.map(cat => (
-              <option key={cat.id} value={cat.id}>
+              <option key={cat.id} value={cat.name}>
                 {cat.name} ({cat.type})
               </option>
             ))}
@@ -586,7 +782,7 @@ const TransactionRow = ({
         {Currency.format(transaction.amount)}
       </div>
       <div className="col-span-2 text-sm">
-        {transaction.category?.name || 'Uncategorized'}
+        {typeof transaction.category === 'string' ? transaction.category : (transaction.category?.name || 'Uncategorized')}
       </div>
       <div className="col-span-1 flex gap-2">
         <button

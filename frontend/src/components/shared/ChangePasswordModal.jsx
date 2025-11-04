@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useTheme } from 'contexts/ThemeContext';
-import { Auth } from 'utils/auth';
+// import { apiService } from 'utils/apiService'; // TODO: Add changePassword to apiService
 
 export const ChangePasswordModal = ({ isOpen, onClose, onSuccess }) => {
   const { isDarkMode } = useTheme();
@@ -45,18 +45,19 @@ export const ChangePasswordModal = ({ isOpen, onClose, onSuccess }) => {
     setChanging(true);
 
     try {
-      const result = await Auth.changePassword(currentPassword, newPassword);
+      // TODO: Implement backend API endpoint for password change
+      setError('Password change feature not yet implemented in backend API');
 
-      if (result.success) {
-        alert('✓ Password changed successfully! You will need to login again.');
-        onSuccess?.();
-        onClose();
-        // Logout after password change
-        Auth.logout();
-        window.location.reload();
-      } else {
-        setError(result.error || 'Failed to change password');
-      }
+      // const result = await apiService.changePassword(currentPassword, newPassword);
+      // if (result.success) {
+      //   alert('✓ Password changed successfully! You will need to login again.');
+      //   onSuccess?.();
+      //   onClose();
+      //   // Logout after password change
+      //   window.location.reload();
+      // } else {
+      //   setError(result.error || 'Failed to change password');
+      // }
     } catch (err) {
       console.error('[PASSWORD] Change password error:', err);
       setError(err.message || 'Failed to change password. Please try again.');

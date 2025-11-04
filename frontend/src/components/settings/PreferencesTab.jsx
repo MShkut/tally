@@ -1,50 +1,28 @@
 // frontend/src/components/settings/PreferencesTab.jsx
 import React, { useState, useEffect } from 'react';
 import { useTheme } from 'contexts/ThemeContext';
-import { dataManager } from 'utils/dataManager';
-
-const CURRENCIES = [
-  { code: 'USD', name: 'US Dollar', symbol: '$' },
-  { code: 'EUR', name: 'Euro', symbol: '€' },
-  { code: 'GBP', name: 'British Pound', symbol: '£' },
-  { code: 'JPY', name: 'Japanese Yen', symbol: '¥' },
-  { code: 'CAD', name: 'Canadian Dollar', symbol: 'C$' }
-];
+import { apiService } from 'utils/apiService';
 
 export const PreferencesTab = () => {
   const { isDarkMode } = useTheme();
-  const [selectedCurrency, setSelectedCurrency] = useState('USD');
   const [householdName, setHouseholdName] = useState('');
   const [saveStatus, setSaveStatus] = useState('');
 
   useEffect(() => {
-    // Load settings
-    const settings = dataManager.loadSettings();
-    if (settings) {
-      setSelectedCurrency(settings.currency || 'USD');
-    }
+    const loadData = async () => {
+      try {
+        // Load household name from nested structure (household.name)
+        const userData = await apiService.loadUserData();
+        if (userData?.household?.name) {
+          setHouseholdName(userData.household.name);
+        }
+      } catch (error) {
+        console.error('Failed to load preferences:', error);
+      }
+    };
 
-    // Load household name
-    const userData = dataManager.loadUserData();
-    if (userData?.householdName) {
-      setHouseholdName(userData.householdName);
-    }
+    loadData();
   }, []);
-
-  const handleCurrencyChange = async (e) => {
-    const newCurrency = e.target.value;
-    setSelectedCurrency(newCurrency);
-
-    // Save to dataManager
-    const settings = dataManager.loadSettings();
-    await dataManager.saveSettings({
-      ...settings,
-      currency: newCurrency
-    });
-
-    setSaveStatus('Currency saved!');
-    setTimeout(() => setSaveStatus(''), 3000);
-  };
 
   const handleHouseholdNameSave = async () => {
     if (!householdName.trim()) {
@@ -54,10 +32,14 @@ export const PreferencesTab = () => {
     }
 
     try {
-      const userData = dataManager.loadUserData();
-      await dataManager.saveUserData({
+      const userData = await apiService.loadUserData();
+      // Update household name in nested structure to match onboarding format
+      await apiService.saveUserData({
         ...userData,
-        householdName: householdName.trim()
+        household: {
+          ...(userData.household || {}),
+          name: householdName.trim()
+        }
       });
 
       setSaveStatus('✓ Household name updated');
@@ -102,47 +84,14 @@ export const PreferencesTab = () => {
 
           <button
             onClick={handleHouseholdNameSave}
-            className={`px-6 py-2 rounded-lg font-light transition-all ${
+            className={`px-6 py-3 border-2 font-light transition-all ${
               isDarkMode
-                ? 'bg-blue-600 hover:bg-blue-500 text-white'
-                : 'bg-blue-500 hover:bg-blue-600 text-white'
+                ? 'border-white text-white hover:bg-white hover:text-black'
+                : 'border-black text-black hover:bg-black hover:text-white'
             }`}
           >
             Save Household Name
           </button>
-        </div>
-      </div>
-
-      {/* Currency Selection */}
-      <div className="space-y-4">
-        <div>
-          <h3 className={`text-lg font-light mb-2 ${isDarkMode ? 'text-white' : 'text-black'}`}>
-            Currency
-          </h3>
-          <p className={`text-sm font-light ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-            Select your preferred currency for displaying values
-          </p>
-        </div>
-
-        <div className="space-y-2">
-          <label className={`block text-sm font-light ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-            Preferred Currency
-          </label>
-          <select
-            value={selectedCurrency}
-            onChange={handleCurrencyChange}
-            className={`w-full px-4 py-2 rounded-lg font-light transition-colors ${
-              isDarkMode
-                ? 'bg-gray-900 border border-gray-800 text-white focus:border-gray-700'
-                : 'bg-white border border-gray-300 text-black focus:border-gray-400'
-            } focus:outline-none`}
-          >
-            {CURRENCIES.map(currency => (
-              <option key={currency.code} value={currency.code}>
-                {currency.code} - {currency.name} ({currency.symbol})
-              </option>
-            ))}
-          </select>
         </div>
       </div>
 

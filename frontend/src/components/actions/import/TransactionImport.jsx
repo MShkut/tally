@@ -10,7 +10,7 @@ import { EnhancedCSVUpload } from './EnhancedCSVUpload';
 import { ReviewTransactions } from './ReviewTransactions';
 import { normalizeMerchantName, suggestCategory } from 'utils/transactionHelpers';
 import { enhanceCategories, shouldAutoIgnore, learnMerchantMapping } from 'utils/categoryEnhancer';
-import { dataManager } from 'utils/dataManager';
+import { apiService } from 'utils/apiService';
 import { 
   EmptyState, 
   SummaryCard, 
@@ -174,6 +174,7 @@ export const TransactionImport = ({ onNavigate }) => {
   const [transactions, setTransactions] = useState([]);
   const [categories, setCategories] = useState([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [onboardingData, setOnboardingData] = useState(null);
 
   // Burger menu state
   const [menuOpen, setMenuOpen] = useState(false);
@@ -212,48 +213,51 @@ export const TransactionImport = ({ onNavigate }) => {
   };
 
   useEffect(() => {
-    // Don't load any existing transactions - import page should start clean
-    // const userData = dataManager.loadUserData();
-    // if (userData?.transactions) {
-    //   setTransactions(userData.transactions);
-    // }
-    
-    // Load categories only
-    const userData = dataManager.loadUserData();
-    
-    // Load all categories from onboarding data in order: Income, Savings, Expenses
-    const allCategories = [];
-    
-    // 1. Add income sources as categories (first)
-    if (userData?.income?.incomeSources) {
-      const incomeCategories = userData.income.incomeSources.map(source => ({
-        ...source,
-        type: 'Income'
-      }));
-      allCategories.push(...incomeCategories);
-    }
-    
-    // 2. Add savings goals as categories (second)
-    if (userData?.savingsAllocation?.savingsGoals) {
-      const savingsCategories = userData.savingsAllocation.savingsGoals.map(goal => ({
-        ...goal,
-        type: 'Savings'
-      }));
-      allCategories.push(...savingsCategories);
-    }
-    
-    // 3. Add expense categories (third)
-    if (userData?.expenses?.expenseCategories) {
-      const expenseCategories = userData.expenses.expenseCategories.map(category => ({
-        ...category,
-        type: 'Expense'
-      }));
-      allCategories.push(...expenseCategories);
-    }
-    
-    // Enhance categories with keywords and merchant mappings, add Ignore category
-    const enhancedCategories = enhanceCategories(allCategories);
-    setCategories(enhancedCategories);
+    const loadData = async () => {
+      try {
+        // Load categories
+        const userData = await apiService.loadUserData();
+        setOnboardingData(userData);
+
+        // Load all categories from onboarding data in order: Income, Savings, Expenses
+        const allCategories = [];
+
+        // 1. Add income sources as categories (first)
+        if (userData?.income?.incomeSources) {
+          const incomeCategories = userData.income.incomeSources.map(source => ({
+            ...source,
+            type: 'Income'
+          }));
+          allCategories.push(...incomeCategories);
+        }
+
+        // 2. Add savings goals as categories (second)
+        if (userData?.savingsAllocation?.savingsGoals) {
+          const savingsCategories = userData.savingsAllocation.savingsGoals.map(goal => ({
+            ...goal,
+            type: 'Savings'
+          }));
+          allCategories.push(...savingsCategories);
+        }
+
+        // 3. Add expense categories (third)
+        if (userData?.expenses?.expenseCategories) {
+          const expenseCategories = userData.expenses.expenseCategories.map(category => ({
+            ...category,
+            type: 'Expense'
+          }));
+          allCategories.push(...expenseCategories);
+        }
+
+        // Enhance categories with keywords and merchant mappings, add Ignore category
+        const enhancedCategories = enhanceCategories(allCategories);
+        setCategories(enhancedCategories);
+      } catch (error) {
+        console.error('[TransactionImport] Error loading data:', error);
+      }
+    };
+
+    loadData();
   }, []);
 
   const handleCSVUpload = async (csvTransactions) => {
@@ -416,10 +420,10 @@ export const TransactionImport = ({ onNavigate }) => {
         {/* Header */}
         <div className="mb-12">
           <h1 className="text-5xl font-light leading-tight mb-4">
-            {activeView === 'review' 
+            {activeView === 'review'
               ? 'Review & Categorize'
-              : activeView === 'upload' && uploadStep === 'mapping' 
-                ? 'Map CSV Columns' 
+              : activeView === 'upload' && uploadStep === 'mapping'
+                ? 'Map CSV Columns'
                 : 'Import Transactions'
             }
           </h1>
@@ -453,20 +457,22 @@ export const TransactionImport = ({ onNavigate }) => {
               CSV Upload
             </button>
             {!(activeView === 'upload' && uploadStep === 'mapping') && (
-              <button
-                onClick={() => setActiveView('manual')}
-                className={`text-xl font-light border-b-2 pb-2 transition-all ${
-                  activeView === 'manual'
-                    ? isDarkMode
-                      ? 'text-white border-white'
-                      : 'text-black border-black'
-                    : isDarkMode
-                      ? 'text-gray-400 border-transparent hover:border-gray-400'
-                      : 'text-gray-600 border-transparent hover:border-gray-600'
-                }`}
-              >
-                Manual Entry
-              </button>
+              <>
+                <button
+                  onClick={() => setActiveView('manual')}
+                  className={`text-xl font-light border-b-2 pb-2 transition-all ${
+                    activeView === 'manual'
+                      ? isDarkMode
+                        ? 'text-white border-white'
+                        : 'text-black border-black'
+                      : isDarkMode
+                        ? 'text-gray-400 border-transparent hover:border-gray-400'
+                        : 'text-gray-600 border-transparent hover:border-gray-600'
+                  }`}
+                >
+                  Manual Entry
+                </button>
+              </>
             )}
             {transactions.length > 0 && (
               <button
@@ -593,44 +599,50 @@ export const TransactionImport = ({ onNavigate }) => {
                   return t;
                 }));
               }}
-              onSplitTransaction={(transactionId, splits) => {
+              onSplitTransaction={async (transactionId, splits) => {
                 setTransactions(prev => {
                   let updatedTransactions;
-                  
+
                   if (splits.length === 0) {
                     // Delete the transaction when empty array is passed
                     updatedTransactions = prev.filter(t => t.id !== transactionId);
                   } else {
                     // Replace with split transactions (for future splitting functionality)
-                    updatedTransactions = prev.map(t => 
-                      t.id === transactionId 
+                    updatedTransactions = prev.map(t =>
+                      t.id === transactionId
                         ? splits  // Replace with split transactions
                         : t
                     ).flat();
                   }
-                  
+
                   // Auto-save deletions to localStorage immediately
                   if (splits.length === 0) {
-                    const userData = dataManager.loadUserData();
-                    const existingTransactions = userData.transactions || [];
-                    
-                    // Filter out ignored transactions and save to localStorage
-                    const transactionsToSave = updatedTransactions.filter(t => 
-                      !t.category || t.category.id !== 'system-ignore'
-                    );
-                    
-                    dataManager.saveUserData({
-                      ...userData,
-                      transactions: transactionsToSave
-                    });
+                    (async () => {
+                      try {
+                        const userData = await apiService.loadUserData();
+                        const existingTransactions = userData.transactions || [];
+
+                        // Filter out ignored transactions and save to localStorage
+                        const transactionsToSave = updatedTransactions.filter(t =>
+                          !t.category || t.category.id !== 'system-ignore'
+                        );
+
+                        await apiService.saveUserData({
+                          ...userData,
+                          transactions: transactionsToSave
+                        });
+                      } catch (error) {
+                        console.error('[TransactionImport] Error auto-saving deletions:', error);
+                      }
+                    })();
                   }
-                  
+
                   return updatedTransactions;
                 });
               }}
               onSave={handleTransactionsSave}
               onBack={() => setActiveView('upload')}
-              onboardingData={dataManager.loadUserData()}
+              onboardingData={onboardingData}
             />
           </>
         )}

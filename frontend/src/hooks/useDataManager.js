@@ -1,8 +1,8 @@
 // frontend/src/hooks/useDataManager.js
-// React hook wrapper for dataManager with automatic state management
+// React hook wrapper for apiService with automatic state management
 
 import { useState, useEffect, useCallback } from 'react';
-import { dataManager } from 'utils/dataManager';
+import { apiService } from 'utils/apiService';
 
 /**
  * Custom hook for managing application data with React state
@@ -28,9 +28,9 @@ export const useDataManager = () => {
   /**
    * Load user data (onboarding/budget data)
    */
-  const loadUserData = useCallback(() => {
+  const loadUserData = useCallback(async () => {
     try {
-      const data = dataManager.loadUserData();
+      const data = await apiService.loadUserData();
       setUserData(data);
       return data;
     } catch (err) {
@@ -43,9 +43,9 @@ export const useDataManager = () => {
   /**
    * Load transactions
    */
-  const loadTransactions = useCallback(() => {
+  const loadTransactions = useCallback(async () => {
     try {
-      const data = dataManager.loadTransactions();
+      const data = await apiService.loadTransactions();
       setTransactions(data);
       return data;
     } catch (err) {
@@ -58,9 +58,9 @@ export const useDataManager = () => {
   /**
    * Load gift data
    */
-  const loadGiftData = useCallback(() => {
+  const loadGiftData = useCallback(async () => {
     try {
-      const data = dataManager.loadGiftData();
+      const data = await apiService.loadGiftData();
       setGiftData(data);
       return data;
     } catch (err) {
@@ -73,9 +73,9 @@ export const useDataManager = () => {
   /**
    * Load net worth items
    */
-  const loadNetWorthItems = useCallback(() => {
+  const loadNetWorthItems = useCallback(async () => {
     try {
-      const data = dataManager.loadNetWorthItems();
+      const data = await apiService.loadNetWorthItems();
       setNetWorthItems(data);
       return data;
     } catch (err) {
@@ -94,9 +94,9 @@ export const useDataManager = () => {
    * @param {Object} data - User data to save
    * @returns {boolean} Success status
    */
-  const saveUserDataFn = useCallback((data) => {
+  const saveUserDataFn = useCallback(async (data) => {
     try {
-      dataManager.saveUserData(data);
+      await apiService.saveUserData(data);
       setUserData(data);
       return true;
     } catch (err) {
@@ -111,9 +111,9 @@ export const useDataManager = () => {
    * @param {Array} txns - Transactions to save
    * @returns {boolean} Success status
    */
-  const saveTransactionsFn = useCallback((txns) => {
+  const saveTransactionsFn = useCallback(async (txns) => {
     try {
-      dataManager.saveTransactions(txns);
+      await apiService.saveTransactions(txns);
       setTransactions(txns);
       return true;
     } catch (err) {
@@ -128,9 +128,9 @@ export const useDataManager = () => {
    * @param {Object} data - Gift data to save
    * @returns {boolean} Success status
    */
-  const saveGiftDataFn = useCallback((data) => {
+  const saveGiftDataFn = useCallback(async (data) => {
     try {
-      dataManager.saveGiftData(data);
+      await apiService.saveGiftData(data);
       setGiftData(data);
       return true;
     } catch (err) {
@@ -145,9 +145,17 @@ export const useDataManager = () => {
    * @param {Array} items - Net worth items to save
    * @returns {boolean} Success status
    */
-  const saveNetWorthItemsFn = useCallback((items) => {
+  const saveNetWorthItemsFn = useCallback(async (items) => {
     try {
-      dataManager.saveNetWorthItems(items);
+      // Note: apiService doesn't have saveNetWorthItems (uses individual save/update)
+      // For bulk save, iterate through items
+      for (const item of items) {
+        if (item.id) {
+          await apiService.updateNetWorthItem(item.id, item);
+        } else {
+          await apiService.saveNetWorthItem(item);
+        }
+      }
       setNetWorthItems(items);
       return true;
     } catch (err) {
@@ -167,7 +175,7 @@ export const useDataManager = () => {
    * @param {Object} updates - Fields to update
    * @returns {boolean} Success status
    */
-  const updateTransactionFn = useCallback((id, updates) => {
+  const updateTransactionFn = useCallback(async (id, updates) => {
     // Optimistic update
     const previousTransactions = [...transactions];
     const updatedTransactions = transactions.map(t =>
@@ -176,7 +184,8 @@ export const useDataManager = () => {
     setTransactions(updatedTransactions);
 
     try {
-      dataManager.updateTransaction(id, updates);
+      // Note: apiService doesn't have updateTransaction, need to use saveTransactions
+      await apiService.saveTransactions(updatedTransactions);
       return true;
     } catch (err) {
       console.error('Error updating transaction:', err);
@@ -194,7 +203,7 @@ export const useDataManager = () => {
    * @param {string} note - Optional note
    * @returns {boolean} Success status
    */
-  const updateNetWorthItemValueFn = useCallback((itemId, newValue, note = '') => {
+  const updateNetWorthItemValueFn = useCallback(async (itemId, newValue, note = '') => {
     // Optimistic update
     const previousItems = [...netWorthItems];
     const updatedItems = netWorthItems.map(item =>
@@ -203,7 +212,7 @@ export const useDataManager = () => {
     setNetWorthItems(updatedItems);
 
     try {
-      dataManager.updateNetWorthItemValue(itemId, newValue, note);
+      await apiService.updateNetWorthItem(itemId, { amount: newValue, note });
       return true;
     } catch (err) {
       console.error('Error updating net worth item:', err);
@@ -223,14 +232,14 @@ export const useDataManager = () => {
    * @param {string} id - Transaction ID
    * @returns {boolean} Success status
    */
-  const deleteTransactionFn = useCallback((id) => {
+  const deleteTransactionFn = useCallback(async (id) => {
     // Optimistic delete
     const previousTransactions = [...transactions];
     const updatedTransactions = transactions.filter(t => t.id !== id);
     setTransactions(updatedTransactions);
 
     try {
-      dataManager.deleteTransaction(id);
+      await apiService.deleteTransaction(id);
       return true;
     } catch (err) {
       console.error('Error deleting transaction:', err);
@@ -246,14 +255,14 @@ export const useDataManager = () => {
    * @param {string} itemId - Item ID
    * @returns {boolean} Success status
    */
-  const deleteNetWorthItemFn = useCallback((itemId) => {
+  const deleteNetWorthItemFn = useCallback(async (itemId) => {
     // Optimistic delete
     const previousItems = [...netWorthItems];
     const updatedItems = netWorthItems.filter(item => item.id !== itemId);
     setNetWorthItems(updatedItems);
 
     try {
-      dataManager.deleteNetWorthItem(itemId);
+      await apiService.deleteNetWorthItem(itemId);
       return true;
     } catch (err) {
       console.error('Error deleting net worth item:', err);
@@ -280,15 +289,26 @@ export const useDataManager = () => {
   // ============================================
 
   useEffect(() => {
-    setIsLoading(true);
+    const loadAllData = async () => {
+      setIsLoading(true);
 
-    // Load all data on mount
-    loadUserData();
-    loadTransactions();
-    loadGiftData();
-    loadNetWorthItems();
+      try {
+        // Load all data on mount
+        await Promise.all([
+          loadUserData(),
+          loadTransactions(),
+          loadGiftData(),
+          loadNetWorthItems()
+        ]);
+      } catch (err) {
+        console.error('Error loading initial data:', err);
+        setError('Failed to load initial data');
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-    setIsLoading(false);
+    loadAllData();
   }, [loadUserData, loadTransactions, loadGiftData, loadNetWorthItems]);
 
   // ============================================

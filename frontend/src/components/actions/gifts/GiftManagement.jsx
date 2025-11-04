@@ -12,7 +12,7 @@ import {
   EmptyState,
   useItemManager
 } from 'components/shared/FormComponents';
-import { dataManager } from 'utils/dataManager';
+import { apiService } from 'utils/apiService';
 import { BurgerMenu } from 'components/shared/BurgerMenu';
 import { ContactImport } from './ContactImport';
 import { PersonCard } from './PersonCard';
@@ -41,16 +41,24 @@ export const GiftManagement = ({ onNavigate }) => {
   } = useGifts();
 
   useEffect(() => {
-    // Load saved data
-    const userData = dataManager.loadUserData();
+    const loadData = async () => {
+      try {
+        // Load saved data
+        const userData = await apiService.loadUserData();
 
-    setOnboardingData(userData);
+        setOnboardingData(userData);
 
-    // Check if gifts category exists and has budget
-    const giftCategory = userData?.expenses?.expenseCategories?.find(
-      cat => cat.name.toLowerCase() === 'gifts'
-    );
-    setGiftBudget(parseFloat(giftCategory?.amount) || 0);
+        // Check if gifts category exists and has budget
+        const giftCategory = userData?.expenses?.expenseCategories?.find(
+          cat => cat.name.toLowerCase() === 'gifts'
+        );
+        setGiftBudget(parseFloat(giftCategory?.amount) || 0);
+      } catch (error) {
+        console.error('[GiftManagement] Error loading data:', error);
+      }
+    };
+
+    loadData();
   }, []);
 
   const handleMenuActionWrapper = (actionId) => {

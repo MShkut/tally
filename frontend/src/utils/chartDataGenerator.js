@@ -1,7 +1,7 @@
 // frontend/src/utils/chartDataGenerator.js
 // Generate chart data for Net Worth visualizations
 
-import { dataManager } from './dataManager';
+import { apiService } from './apiService';
 
 /**
  * Get all dates between start and end (inclusive)
@@ -167,14 +167,19 @@ const calculateBTCHoldingsOnDate = (items, date) => {
  * @param {Array} items - Net worth items
  * @param {Date} startDate - Start date
  * @param {Date} endDate - End date
+ * @param {Object} priceHistory - Pre-loaded price history for all tickers
  * @returns {Array} Chart data points [{date, value}]
  */
-export const generateFiatTotalChartData = (items, startDate, endDate) => {
+export const generateFiatTotalChartData = (items, startDate, endDate, priceHistory) => {
   if (!items || items.length === 0) {
     return [];
   }
 
-  const priceHistory = dataManager.loadPriceHistory();
+  if (!priceHistory) {
+    console.warn('[CHART] Price history not provided, chart data may be incomplete');
+    priceHistory = {};
+  }
+
   const dates = getDateRange(startDate, endDate);
   const chartData = [];
 
@@ -200,14 +205,19 @@ export const generateFiatTotalChartData = (items, startDate, endDate) => {
  * @param {Array} items - Net worth items
  * @param {Date} startDate - Start date
  * @param {Date} endDate - End date
+ * @param {Object} priceHistory - Pre-loaded price history for all tickers
  * @returns {Array} Chart data points [{date, btcEquivalent}]
  */
-export const generateBTCEquivalentChartData = (items, startDate, endDate) => {
+export const generateBTCEquivalentChartData = (items, startDate, endDate, priceHistory) => {
   if (!items || items.length === 0) {
     return [];
   }
 
-  const priceHistory = dataManager.loadPriceHistory();
+  if (!priceHistory) {
+    console.warn('[CHART] Price history not provided, chart data may be incomplete');
+    priceHistory = {};
+  }
+
   const dates = getDateRange(startDate, endDate);
   const chartData = [];
 

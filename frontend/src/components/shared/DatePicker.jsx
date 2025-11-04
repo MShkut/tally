@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useTheme } from 'contexts/ThemeContext';
-import { dataManager } from 'utils/dataManager';
+import { apiService } from 'utils/apiService';
 
 export const DatePicker = ({
   value,
@@ -17,44 +17,49 @@ export const DatePicker = ({
   const [showCalendar, setShowCalendar] = useState(false);
   const [viewMonth, setViewMonth] = useState(new Date().getMonth());
   const [viewYear, setViewYear] = useState(new Date().getFullYear());
+  const [budgetPeriod, setBudgetPeriod] = useState(null);
   const calendarRef = useRef(null);
 
-  // Get budget period constraints (or use unlimited for net worth)
-  const getBudgetPeriodConstraints = () => {
-    if (!useBudgetConstraints) {
-      // For net worth and other non-budget uses: allow all historical dates
-      return {
-        startDate: new Date(1900, 0, 1), // Far past
-        endDate: new Date() // Today (future dates still restricted)
-      };
-    }
-
-    try {
-      const userData = dataManager.loadUserData();
-      const period = userData?.period;
-
-      if (period?.start_date && period?.end_date) {
-        const startDate = new Date(period.start_date);
-        const endDate = new Date(period.end_date);
-
-        return {
-          startDate: startDate,
-          endDate: endDate
-        };
+  // Load budget period constraints on mount
+  useEffect(() => {
+    const loadBudgetPeriod = async () => {
+      if (!useBudgetConstraints) {
+        // For net worth and other non-budget uses: allow all historical dates
+        setBudgetPeriod({
+          startDate: new Date(1900, 0, 1), // Far past
+          endDate: new Date() // Today (future dates still restricted)
+        });
+        return;
       }
-    } catch (error) {
-      console.warn('Could not load budget period constraints:', error);
-    }
 
-    // Fallback to current year if no period defined
-    const now = new Date();
-    return {
-      startDate: new Date(now.getFullYear(), 0, 1), // Jan 1 of current year
-      endDate: new Date(now.getFullYear(), 11, 31)  // Dec 31 of current year
+      try {
+        const userData = await apiService.loadUserData();
+        const period = userData?.period;
+
+        if (period?.start_date && period?.end_date) {
+          const startDate = new Date(period.start_date);
+          const endDate = new Date(period.end_date);
+
+          setBudgetPeriod({
+            startDate: startDate,
+            endDate: endDate
+          });
+          return;
+        }
+      } catch (error) {
+        console.warn('Could not load budget period constraints:', error);
+      }
+
+      // Fallback to current year if no period defined
+      const now = new Date();
+      setBudgetPeriod({
+        startDate: new Date(now.getFullYear(), 0, 1), // Jan 1 of current year
+        endDate: new Date(now.getFullYear(), 11, 31)  // Dec 31 of current year
+      });
     };
-  };
 
-  const budgetPeriod = getBudgetPeriodConstraints();
+    loadBudgetPeriod();
+  }, [useBudgetConstraints]);
 
   // Initialize view month/year from value or default to current month
   useEffect(() => {
@@ -96,8 +101,10 @@ export const DatePicker = ({
 
   // Handle date selection
   const handleDateClick = (day) => {
+    if (!budgetPeriod) return; // Wait for period to load
+
     const selectedDate = new Date(viewYear, viewMonth, day);
-    
+
     // Check if date is within budget period
     if (selectedDate >= budgetPeriod.startDate && selectedDate <= budgetPeriod.endDate) {
       const isoDate = selectedDate.toISOString().split('T')[0];
@@ -108,6 +115,8 @@ export const DatePicker = ({
 
   // Check if navigation is allowed in given direction
   const canNavigateMonth = (direction) => {
+    if (!budgetPeriod) return false; // Wait for period to load
+
     const newMonth = viewMonth + direction;
     let newYear = viewYear;
     let finalMonth = newMonth;
@@ -155,6 +164,8 @@ export const DatePicker = ({
 
   // Generate available years based on constraints
   const getAvailableYears = () => {
+    if (!budgetPeriod) return [new Date().getFullYear()]; // Default while loading
+
     const startYear = budgetPeriod.startDate.getFullYear();
     const endYear = budgetPeriod.endDate.getFullYear();
     const years = [];
@@ -168,28 +179,30 @@ export const DatePicker = ({
 
   // Generate calendar days
   const generateCalendarDays = () => {
+    if (!budgetPeriod) return []; // Wait for period to load
+
     const daysInMonth = getDaysInMonth(viewYear, viewMonth);
     const firstDay = getFirstDayOfMonth(viewYear, viewMonth);
     const today = new Date();
     const selectedDate = value ? new Date(value + 'T00:00:00') : null; // Fix timezone issues
-    
+
     const days = [];
-    
+
     // Empty cells for days before month starts
     for (let i = 0; i < firstDay; i++) {
       days.push(<div key={`empty-${i}`} className="w-12 h-10" />);
     }
-    
+
     // Days of the month
     for (let day = 1; day <= daysInMonth; day++) {
       const date = new Date(viewYear, viewMonth, day);
       // Better date comparison - compare year, month, day separately
-      const isToday = date.getFullYear() === today.getFullYear() && 
-                     date.getMonth() === today.getMonth() && 
+      const isToday = date.getFullYear() === today.getFullYear() &&
+                     date.getMonth() === today.getMonth() &&
                      date.getDate() === today.getDate();
-      const isSelected = selectedDate && 
-                        date.getFullYear() === selectedDate.getFullYear() && 
-                        date.getMonth() === selectedDate.getMonth() && 
+      const isSelected = selectedDate &&
+                        date.getFullYear() === selectedDate.getFullYear() &&
+                        date.getMonth() === selectedDate.getMonth() &&
                         date.getDate() === selectedDate.getDate();
       const isOutsidePeriod = date < budgetPeriod.startDate || date > budgetPeriod.endDate;
       

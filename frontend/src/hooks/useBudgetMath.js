@@ -7,8 +7,7 @@ import {
   calculateTotalMonthlyExpenses,
   calculateTotalMonthlySavings,
   checkBudgetBalance,
-  calculateAvailableForExpenses,
-  calculateNetWorth as calcNetWorth
+  calculateAvailableForExpenses
 } from 'utils/budgetCalculations';
 
 export const useBudgetMath = () => {
@@ -379,25 +378,6 @@ export const useBudgetMath = () => {
   // NET WORTH
   // ============================================
 
-  /**
-   * Calculate net worth from assets and liabilities
-   * Re-exports from budgetCalculations.js
-   * @param {Object} netWorthData - {assets: [], liabilities: []}
-   * @returns {Object} {totalAssets, totalLiabilities, netWorth, isPositive}
-   */
-  const calculateNetWorthValue = calcNetWorth;
-
-  /**
-   * Calculate net worth trend (placeholder for future)
-   * @param {number} currentNetWorth - Current net worth value
-   * @param {number} previousNetWorth - Previous period net worth (optional)
-   * @returns {number} Trend (currently returns 0)
-   */
-  const calculateNetWorthTrend = (currentNetWorth, previousNetWorth = null) => {
-    // TODO: Implement historical tracking
-    return 0;
-  };
-
   // ============================================
   // RETURN HOOK API
   // ============================================
@@ -431,10 +411,6 @@ export const useBudgetMath = () => {
 
     // Performance
     calculatePerformanceData,
-    calculateMonthsElapsed,
-
-    // Net Worth
-    calculateNetWorthValue,
-    calculateNetWorthTrend
+    calculateMonthsElapsed
   };
 };

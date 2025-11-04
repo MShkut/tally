@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams } from 'react-router-dom';
-import { dataManager } from 'utils/dataManager';
+import { apiService } from 'utils/apiService';
 import { OnboardingFlow } from 'components/setup/OnboardingFlow';
 import { Dashboard } from 'components/overview/dashboard/Dashboard';
-import { NetWorthDashboard } from 'components/overview/networth/NetWorthDashboard';
 import { TransactionImport } from 'components/actions/import/TransactionImport';
 import { AllTransactions } from 'components/actions/alltransactions/AllTransactions';
 import { GiftManagement } from 'components/actions/gifts/GiftManagement';
@@ -38,23 +37,33 @@ const ProtectedRoute = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const userData = dataManager.loadUserData();
-    if (!userData || !userData.onboardingComplete) {
-      navigate('/onboarding');
-    } else {
-      // Check if the URL household matches the stored household ID
-      const householdId = getHouseholdId(userData);
-      if (!householdId) {
-        console.error('[ROUTER] No householdId found, redirecting to onboarding');
+    const checkAuth = async () => {
+      try {
+        const userData = await apiService.loadUserData();
+        if (!userData || !userData.onboardingComplete) {
+          navigate('/onboarding');
+        } else {
+          // Check if the URL household matches the stored household ID
+          const householdId = getHouseholdId(userData);
+          if (!householdId) {
+            console.error('[ROUTER] No householdId found, redirecting to onboarding');
+            navigate('/onboarding');
+          } else if (household !== householdId) {
+            console.log('[ROUTER] Household mismatch, redirecting to:', householdId);
+            navigate(`/${householdId}/dashboard`);
+          } else {
+            setIsAuthenticated(true);
+          }
+        }
+      } catch (error) {
+        console.error('[ROUTER] Error loading user data:', error);
         navigate('/onboarding');
-      } else if (household !== householdId) {
-        console.log('[ROUTER] Household mismatch, redirecting to:', householdId);
-        navigate(`/${householdId}/dashboard`);
-      } else {
-        setIsAuthenticated(true);
+      } finally {
+        setLoading(false);
       }
-    }
-    setLoading(false);
+    };
+
+    checkAuth();
   }, [household, navigate]);
 
   if (loading) {
@@ -91,8 +100,19 @@ const OnboardingRoute = () => {
   const navigate = useNavigate();
 
   const handleOnboardingComplete = (data) => {
-    const householdId = data.household?.id;
+    console.log('[ONBOARDING] Completion data:', data);
+
+    // Use same logic as getHouseholdId()
+    let householdId = data.household?.id;
+
+    // Fallback: generate ID from household name
+    if (!householdId && data.household?.name) {
+      householdId = `household-${data.household.name.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
+      console.log('[ONBOARDING] Generated householdId from name:', householdId);
+    }
+
     if (householdId) {
+      console.log('[ONBOARDING] Navigating to:', `/${householdId}/dashboard`);
       navigate(`/${householdId}/dashboard`);
     } else {
       console.error('[ONBOARDING] No householdId in onboarding data');
@@ -115,41 +135,33 @@ const HouseholdRoutes = ({ onLogout }) => {
   return (
     <Routes>
       <Route path="dashboard" element={<Dashboard onNavigate={handleNavigate} onLogout={onLogout} />} />
-      <Route path="networth" element={<NetWorthDashboard onNavigate={handleNavigate} onLogout={onLogout} />} />
       <Route path="import" element={<TransactionImport onNavigate={handleNavigate} onLogout={onLogout} />} />
       <Route path="alltransactions" element={<AllTransactions onNavigate={handleNavigate} onLogout={onLogout} />} />
       <Route path="gifts" element={<GiftManagement onNavigate={handleNavigate} onLogout={onLogout} />} />
       <Route path="settings" element={<SettingsDashboard onNavigate={handleNavigate} onLogout={onLogout} />} />
       <Route path="edit-income" element={
-        <EditWrapper 
+        <EditWrapper
           editType="income"
           onComplete={() => handleNavigate('dashboard')}
           onCancel={() => handleNavigate('dashboard')}
         />
       } />
       <Route path="edit-savings" element={
-        <EditWrapper 
+        <EditWrapper
           editType="savingsAllocation"
           onComplete={() => handleNavigate('dashboard')}
           onCancel={() => handleNavigate('dashboard')}
         />
       } />
       <Route path="edit-expenses" element={
-        <EditWrapper 
+        <EditWrapper
           editType="expenses"
           onComplete={() => handleNavigate('dashboard')}
           onCancel={() => handleNavigate('dashboard')}
         />
       } />
-      <Route path="edit-networth" element={
-        <EditWrapper 
-          editType="netWorth"
-          onComplete={() => handleNavigate('dashboard')}
-          onCancel={() => handleNavigate('dashboard')}
-        />
-      } />
       <Route path="plan-next-period" element={
-        <PlanNextPeriod 
+        <PlanNextPeriod
           onComplete={() => handleNavigate('dashboard')}
           onCancel={() => handleNavigate('dashboard')}
         />
@@ -166,28 +178,38 @@ const DefaultRedirect = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if there's a return path from data import
-    const returnPath = sessionStorage.getItem('tally_returnPath');
-    if (returnPath) {
-      console.log('[ROUTER] Returning to saved path after import:', returnPath);
-      sessionStorage.removeItem('tally_returnPath');
-      navigate(returnPath);
-      setLoading(false);
-      return;
-    }
+    const redirect = async () => {
+      try {
+        // Check if there's a return path from data import
+        const returnPath = sessionStorage.getItem('tally_returnPath');
+        if (returnPath) {
+          console.log('[ROUTER] Returning to saved path after import:', returnPath);
+          sessionStorage.removeItem('tally_returnPath');
+          navigate(returnPath);
+          setLoading(false);
+          return;
+        }
 
-    const userData = dataManager.loadUserData();
-    if (userData && userData.onboardingComplete) {
-      const householdId = getHouseholdId(userData);
-      if (householdId) {
-        navigate(`/${householdId}/dashboard`);
-      } else {
+        const userData = await apiService.loadUserData();
+        if (userData && userData.onboardingComplete) {
+          const householdId = getHouseholdId(userData);
+          if (householdId) {
+            navigate(`/${householdId}/dashboard`);
+          } else {
+            navigate('/onboarding');
+          }
+        } else {
+          navigate('/onboarding');
+        }
+      } catch (error) {
+        console.error('[ROUTER] Error loading user data:', error);
         navigate('/onboarding');
+      } finally {
+        setLoading(false);
       }
-    } else {
-      navigate('/onboarding');
-    }
-    setLoading(false);
+    };
+
+    redirect();
   }, [navigate]);
 
   return loading ? <div>Loading...</div> : null;

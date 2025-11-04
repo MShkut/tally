@@ -342,26 +342,42 @@ export const convertFromYearly = (yearlyAmount, targetFrequency) => {
 
 /**
  * Get user's preferred currency from settings
- * @returns {string} - Currency code (USD, EUR, GBP, JPY, CAD)
+ * Hardcoded to CAD for now
+ * @returns {string} - Currency code (always CAD)
  */
 export const getUserCurrency = () => {
-  try {
-    // Try to get from dataManager if available
-    if (typeof window !== 'undefined' && window.dataManager) {
-      const settings = window.dataManager.loadSettings();
-      return settings?.currency || 'USD';
-    }
+  return 'CAD';
+};
 
-    // Fallback to localStorage
-    const settingsStr = localStorage.getItem('financeTracker_settings');
-    if (settingsStr) {
-      const settings = JSON.parse(settingsStr);
-      return settings?.currency || 'USD';
-    }
+/**
+ * Set user's preferred currency (async)
+ * Caches to localStorage for sync getUserCurrency() access
+ * @param {string} currency - Currency code
+ */
+export const setUserCurrency = (currency) => {
+  try {
+    localStorage.setItem('tally_user_currency', currency);
   } catch (error) {
-    // Silent fallback to USD
+    console.error('[CURRENCY] Failed to cache currency:', error);
   }
-  return 'USD';
+};
+
+/**
+ * Load user currency from API and cache it
+ * Call this on app initialization and when currency changes
+ * @param {object} apiService - API service instance
+ * @returns {Promise<string>} - Currency code
+ */
+export const loadUserCurrencyFromAPI = async (apiService) => {
+  try {
+    const settings = await apiService.loadSettings();
+    const currency = settings?.currency || 'USD';
+    setUserCurrency(currency);
+    return currency;
+  } catch (error) {
+    console.error('[CURRENCY] Failed to load currency from API:', error);
+    return 'USD';
+  }
 };
 
 /**
@@ -401,6 +417,8 @@ export const Currency = {
   format: formatCurrency,
   formatWithUserCurrency,
   getUserCurrency,
+  setUserCurrency,
+  loadUserCurrencyFromAPI,
   formatInput: formatCurrencyInput,
   parseInput: parseCurrencyInput,
   formatPercentage,

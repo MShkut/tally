@@ -11,7 +11,7 @@ import {
   StandardFormLayout,
   useItemManager
 } from 'components/shared/FormComponents';
-import { dataManager } from 'utils/dataManager';
+import { apiService } from 'utils/apiService';
 import { Currency } from 'utils/currency';
 
 export const PersonEdit = ({ person, people, onSave, onBack }) => {
@@ -69,20 +69,24 @@ export const PersonEdit = ({ person, people, onSave, onBack }) => {
     }));
   };
 
-  const handleSave = () => {
-    // Update person in the people array
-    const updatedPeople = people.map(p => 
-      p.id === person.id ? editedPerson : p
-    );
-    
-    // Save to localStorage
-    dataManager.saveGiftData({
-      people: updatedPeople,
-      occasions: [], // TODO: Handle occasions
-      lastUpdated: new Date().toISOString()
-    });
-    
-    onSave(editedPerson);
+  const handleSave = async () => {
+    try {
+      // Update person in the people array
+      const updatedPeople = people.map(p =>
+        p.id === person.id ? editedPerson : p
+      );
+
+      // Save to localStorage
+      await apiService.saveGiftData({
+        people: updatedPeople,
+        occasions: [], // TODO: Handle occasions
+        lastUpdated: new Date().toISOString()
+      });
+
+      onSave(editedPerson);
+    } catch (error) {
+      console.error('[PersonEdit] Error saving person:', error);
+    }
   };
 
   const getTotalBudget = () => {

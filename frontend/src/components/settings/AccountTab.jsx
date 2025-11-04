@@ -59,10 +59,10 @@ export const AccountTab = () => {
 
         <button
           onClick={handleChangePassword}
-          className={`px-6 py-2 rounded-lg font-light transition-all ${
+          className={`px-6 py-3 border-2 font-light transition-all ${
             isDarkMode
-              ? 'bg-blue-600 hover:bg-blue-500 text-white'
-              : 'bg-blue-500 hover:bg-blue-600 text-white'
+              ? 'border-white text-white hover:bg-white hover:text-black'
+              : 'border-black text-black hover:bg-black hover:text-white'
           }`}
         >
           Change Password
@@ -147,10 +147,10 @@ export const AccountTab = () => {
             <div className="flex gap-4">
               <button
                 onClick={handlePasswordSubmit}
-                className={`flex-1 px-6 py-2 rounded-lg font-light transition-all ${
+                className={`flex-1 px-6 py-3 border-2 font-light transition-all ${
                   isDarkMode
-                    ? 'bg-blue-600 hover:bg-blue-500 text-white'
-                    : 'bg-blue-500 hover:bg-blue-600 text-white'
+                    ? 'border-white text-white hover:bg-white hover:text-black'
+                    : 'border-black text-black hover:bg-black hover:text-white'
                 }`}
               >
                 Change Password
@@ -162,10 +162,10 @@ export const AccountTab = () => {
                   setNewPassword('');
                   setConfirmPassword('');
                 }}
-                className={`px-6 py-2 rounded-lg font-light transition-all ${
+                className={`px-6 py-3 border-2 font-light transition-all ${
                   isDarkMode
-                    ? 'bg-gray-800 hover:bg-gray-700 text-white'
-                    : 'bg-gray-200 hover:bg-gray-300 text-black'
+                    ? 'border-gray-600 text-gray-400 hover:border-gray-500 hover:text-gray-300'
+                    : 'border-gray-400 text-gray-600 hover:border-gray-500 hover:text-gray-700'
                 }`}
               >
                 Cancel

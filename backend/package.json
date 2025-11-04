@@ -1,0 +1,22 @@
+{
+  "name": "tally-backend",
+  "version": "1.0.0",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "Yahoo Finance proxy backend for Tally Budget",
+  "dependencies": {
+    "@node-rs/argon2": "^1.8.0",
+    "better-sqlite3": "^11.0.0",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "yahoo-finance2": "^3.10.0"
+  }
+}

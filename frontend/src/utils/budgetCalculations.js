@@ -140,32 +140,6 @@ export const validateSavingsAllocation = (savingsAllocation = {}, availableForSa
 };
 
 /**
- * Calculate net worth with proper currency handling
- * @param {Object} netWorthData - Net worth data
- * @returns {Object} - Calculated net worth
- */
-export const calculateNetWorth = (netWorthData = {}) => {
-  const { assets = [], liabilities = [] } = netWorthData;
-  
-  const totalAssets = assets.reduce((sum, asset) => {
-    return Currency.add(sum, asset.amount || 0);
-  }, 0);
-  
-  const totalLiabilities = liabilities.reduce((sum, liability) => {
-    return Currency.add(sum, liability.amount || 0);
-  }, 0);
-  
-  const netWorth = Currency.subtract(totalAssets, totalLiabilities);
-  
-  return {
-    totalAssets,
-    totalLiabilities,
-    netWorth,
-    isPositive: Currency.compare(netWorth, 0) >= 0
-  };
-};
-
-/**
  * Calculate budget performance metrics
  * @param {Object} budgetData - Budget data
  * @param {Array} transactions - Transaction data

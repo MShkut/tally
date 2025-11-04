@@ -2,7 +2,7 @@
 // Domain-specific hook for gift budget management
 
 import { useState, useEffect, useCallback } from 'react';
-import { dataManager } from 'utils/dataManager';
+import { apiService } from 'utils/apiService';
 import { Currency } from 'utils/currency';
 
 /**
@@ -20,9 +20,9 @@ export const useGifts = () => {
   // LOAD DATA
   // ============================================
 
-  const loadGiftData = useCallback(() => {
+  const loadGiftData = useCallback(async () => {
     try {
-      const data = dataManager.loadGiftData();
+      const data = await apiService.loadGiftData();
       setGiftData(data);
       return data;
     } catch (err) {
@@ -33,9 +33,15 @@ export const useGifts = () => {
   }, []);
 
   useEffect(() => {
-    setIsLoading(true);
-    loadGiftData();
-    setIsLoading(false);
+    const loadData = async () => {
+      setIsLoading(true);
+      try {
+        await loadGiftData();
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadData();
   }, [loadGiftData]);
 
   // ============================================
@@ -105,7 +111,7 @@ export const useGifts = () => {
    * @param {Object} person - Person data
    * @returns {boolean} Success status
    */
-  const addPerson = useCallback((person) => {
+  const addPerson = useCallback(async (person) => {
     try {
       const newPerson = {
         ...person,
@@ -122,7 +128,7 @@ export const useGifts = () => {
         people: updatedPeople
       };
 
-      dataManager.saveGiftData(updatedData);
+      await apiService.saveGiftData(updatedData);
       setGiftData(updatedData);
       return true;
     } catch (err) {
@@ -138,7 +144,7 @@ export const useGifts = () => {
    * @param {Object} updates - Fields to update
    * @returns {boolean} Success status
    */
-  const updatePerson = useCallback((personId, updates) => {
+  const updatePerson = useCallback(async (personId, updates) => {
     // Optimistic update
     const previousData = { ...giftData };
     const updatedPeople = giftData.people.map(person =>
@@ -152,7 +158,7 @@ export const useGifts = () => {
     setGiftData(updatedData);
 
     try {
-      dataManager.saveGiftData(updatedData);
+      await apiService.saveGiftData(updatedData);
       return true;
     } catch (err) {
       console.error('Error updating person:', err);
@@ -168,7 +174,7 @@ export const useGifts = () => {
    * @param {string} personId - Person ID
    * @returns {boolean} Success status
    */
-  const deletePerson = useCallback((personId) => {
+  const deletePerson = useCallback(async (personId) => {
     // Optimistic delete
     const previousData = { ...giftData };
     const updatedPeople = giftData.people.filter(person => person.id !== personId);
@@ -180,7 +186,7 @@ export const useGifts = () => {
     setGiftData(updatedData);
 
     try {
-      dataManager.saveGiftData(updatedData);
+      await apiService.saveGiftData(updatedData);
       return true;
     } catch (err) {
       console.error('Error deleting person:', err);
@@ -201,7 +207,7 @@ export const useGifts = () => {
    * @param {Object} gift - Gift data
    * @returns {boolean} Success status
    */
-  const addGift = useCallback((personId, gift) => {
+  const addGift = useCallback(async (personId, gift) => {
     try {
       const newGift = {
         ...gift,
@@ -229,7 +235,7 @@ export const useGifts = () => {
         people: updatedPeople
       };
 
-      dataManager.saveGiftData(updatedData);
+      await apiService.saveGiftData(updatedData);
       setGiftData(updatedData);
       return true;
     } catch (err) {
@@ -245,7 +251,7 @@ export const useGifts = () => {
    * @param {string} giftId - Gift ID
    * @returns {boolean} Success status
    */
-  const deleteGift = useCallback((personId, giftId) => {
+  const deleteGift = useCallback(async (personId, giftId) => {
     try {
       const updatedPeople = giftData.people.map(person => {
         if (person.id === personId) {
@@ -266,7 +272,7 @@ export const useGifts = () => {
         people: updatedPeople
       };
 
-      dataManager.saveGiftData(updatedData);
+      await apiService.saveGiftData(updatedData);
       setGiftData(updatedData);
       return true;
     } catch (err) {

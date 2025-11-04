@@ -14,6 +14,15 @@ export default defineConfig({
       contexts: path.resolve(__dirname, 'src/contexts'),
       // add more as needed
     }
+  },
+  server: {
+    proxy: {
+      // Proxy API requests to backend in development
+      '/api': {
+        target: 'http://localhost:3001',
+        changeOrigin: true
+      }
+    }
   }
 });
 

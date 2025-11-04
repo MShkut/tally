@@ -9,7 +9,7 @@ import {
   StandardFormLayout,
   SummaryCard
 } from 'components/shared/FormComponents';
-import { dataManager } from 'utils/dataManager';
+import { apiService } from 'utils/apiService';
 import { convertToYearly } from 'utils/incomeHelpers';
 
 export const PlanNextPeriod = ({ onComplete, onCancel }) => {
@@ -19,46 +19,58 @@ export const PlanNextPeriod = ({ onComplete, onCancel }) => {
   const [step, setStep] = useState('period'); // 'period', 'review'
 
   useEffect(() => {
-    const userData = dataManager.loadUserData();
-    setCurrentData(userData);
+    const loadData = async () => {
+      try {
+        const userData = await apiService.loadUserData();
+        setCurrentData(userData);
+      } catch (error) {
+        console.error('[PlanNextPeriod] Error loading data:', error);
+      }
+    };
+
+    loadData();
   }, []);
 
   const handlePeriodChange = (period) => {
     setPeriodData(period);
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (step === 'period' && periodData) {
       setStep('review');
     } else if (step === 'review') {
-      // Create new period with existing data
-      const newPeriodData = {
-        ...currentData,
-        period: {
-          ...periodData,
-          period_number: (currentData?.period?.period_number || 0) + 1,
-          previous_period: currentData?.period
-        },
-        // Reset transaction-related data for new period
-        onboardingComplete: true,
-        completedAt: new Date().toISOString()
-      };
-      
-      // Save the new period data
-      dataManager.saveUserData(newPeriodData);
-      
-      // Archive current period transactions
-      const currentTransactions = dataManager.loadTransactions();
-      if (currentTransactions.length > 0) {
-        localStorage.setItem(
-          `financeTracker_transactions_period_${currentData?.period?.period_number || 1}`,
-          JSON.stringify(currentTransactions)
-        );
-        // Clear current transactions for new period
-        dataManager.saveTransactions([]);
+      try {
+        // Create new period with existing data
+        const newPeriodData = {
+          ...currentData,
+          period: {
+            ...periodData,
+            period_number: (currentData?.period?.period_number || 0) + 1,
+            previous_period: currentData?.period
+          },
+          // Reset transaction-related data for new period
+          onboardingComplete: true,
+          completedAt: new Date().toISOString()
+        };
+
+        // Save the new period data
+        await apiService.saveUserData(newPeriodData);
+
+        // Archive current period transactions
+        const currentTransactions = await apiService.loadTransactions();
+        if (currentTransactions.length > 0) {
+          localStorage.setItem(
+            `financeTracker_transactions_period_${currentData?.period?.period_number || 1}`,
+            JSON.stringify(currentTransactions)
+          );
+          // Clear current transactions for new period
+          await apiService.saveTransactions([]);
+        }
+
+        onComplete();
+      } catch (error) {
+        console.error('[PlanNextPeriod] Error saving new period:', error);
       }
-      
-      onComplete();
     }
   };
 

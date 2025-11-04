@@ -1,7 +1,7 @@
 // frontend/src/components/settings/DataManagementTab.jsx
 import React, { useState } from 'react';
 import { useTheme } from 'contexts/ThemeContext';
-import { dataManager } from 'utils/dataManager';
+import { apiService } from 'utils/apiService';
 import { ConfirmationModal } from 'components/shared/FormComponents';
 
 export const DataManagementTab = ({ onNavigate }) => {
@@ -11,9 +11,9 @@ export const DataManagementTab = ({ onNavigate }) => {
   const [importFile, setImportFile] = useState(null);
   const [statusMessage, setStatusMessage] = useState('');
 
-  const handleExport = () => {
+  const handleExport = async () => {
     try {
-      const exportData = dataManager.exportData();
+      const exportData = await apiService.exportData();
 
       // Create downloadable file
       const dataStr = JSON.stringify(exportData, null, 2);
@@ -54,10 +54,10 @@ export const DataManagementTab = ({ onNavigate }) => {
     if (!importFile) return;
 
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       try {
         const importedData = JSON.parse(e.target.result);
-        dataManager.importData(importedData);
+        await apiService.importData(importedData);
         setStatusMessage('✓ Data imported successfully');
         setTimeout(() => setStatusMessage(''), 3000);
         setShowImportModal(false);
@@ -75,9 +75,9 @@ export const DataManagementTab = ({ onNavigate }) => {
     reader.readAsText(importFile);
   };
 
-  const handleReset = () => {
+  const handleReset = async () => {
     try {
-      dataManager.resetAllData();
+      await apiService.resetAllData();
       setStatusMessage('✓ All data reset successfully');
       setTimeout(() => {
         window.location.reload();
@@ -104,10 +104,10 @@ export const DataManagementTab = ({ onNavigate }) => {
 
         <button
           onClick={handleExport}
-          className={`px-6 py-2 rounded-lg font-light transition-all ${
+          className={`px-6 py-3 border-2 font-light transition-all ${
             isDarkMode
-              ? 'bg-blue-600 hover:bg-blue-500 text-white'
-              : 'bg-blue-500 hover:bg-blue-600 text-white'
+              ? 'border-white text-white hover:bg-white hover:text-black'
+              : 'border-black text-black hover:bg-black hover:text-white'
           }`}
         >
           Export Data
@@ -130,10 +130,10 @@ export const DataManagementTab = ({ onNavigate }) => {
             type="file"
             accept=".json"
             onChange={handleImportFile}
-            className={`block w-full text-sm font-light file:mr-4 file:py-2 file:px-6 file:rounded-lg file:border-0 file:font-light file:cursor-pointer ${
+            className={`block w-full text-sm font-light file:mr-4 file:py-3 file:px-6 file:border-2 file:font-light file:cursor-pointer file:transition-all ${
               isDarkMode
-                ? 'text-gray-400 file:bg-blue-600 file:text-white file:hover:bg-blue-500'
-                : 'text-gray-600 file:bg-blue-500 file:text-white file:hover:bg-blue-600'
+                ? 'text-gray-400 file:border-white file:text-white file:bg-black file:hover:bg-white file:hover:text-black'
+                : 'text-gray-600 file:border-black file:text-black file:bg-white file:hover:bg-black file:hover:text-white'
             }`}
           />
         </div>
@@ -152,10 +152,10 @@ export const DataManagementTab = ({ onNavigate }) => {
 
         <button
           onClick={() => setShowResetConfirm(true)}
-          className={`px-6 py-2 rounded-lg font-light transition-all ${
+          className={`px-6 py-3 border-2 font-light transition-all ${
             isDarkMode
-              ? 'bg-red-600 hover:bg-red-500 text-white'
-              : 'bg-red-500 hover:bg-red-600 text-white'
+              ? 'border-red-600 text-red-400 hover:bg-red-600 hover:text-white'
+              : 'border-red-600 text-red-600 hover:bg-red-600 hover:text-white'
           }`}
         >
           Reset All Data

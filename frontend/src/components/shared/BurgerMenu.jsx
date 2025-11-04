@@ -12,6 +12,42 @@ export const BurgerMenu = ({ isOpen, onClose, onAction, currentPage = 'dashboard
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+  const [menuItems, setMenuItems] = useState(null);
+
+  // Load menu items async
+  useEffect(() => {
+    const loadMenuItems = async () => {
+      try {
+        const items = await getMenuItems();
+        setMenuItems(items);
+      } catch (error) {
+        console.error('[MENU] Failed to load menu items:', error);
+        // Set default menu items on error
+        setMenuItems({
+          dashboard: [
+            { id: 'dashboard', label: 'Overview' }
+          ],
+          yourPlan: [
+            { id: 'plan-next-period', label: 'Plan Next Period' },
+            { id: 'edit-income', label: 'Edit Income Sources' },
+            { id: 'edit-savings', label: 'Edit Savings Plan' },
+            { id: 'edit-expenses', label: 'Edit Expenses' }
+          ],
+          actions: [
+            { id: 'import', label: 'Import Transactions' },
+            { id: 'alltransactions', label: 'View and Edit Transactions' },
+            { id: 'gifts', label: 'Gift Management' }
+          ],
+          settings: [
+            { id: 'settings', label: 'Settings' },
+            { id: 'logout', label: 'Logout' }
+          ]
+        });
+      }
+    };
+
+    loadMenuItems();
+  }, []);
 
   // Close menu on escape key
   useEffect(() => {
@@ -32,10 +68,6 @@ export const BurgerMenu = ({ isOpen, onClose, onAction, currentPage = 'dashboard
       document.body.style.overflow = 'auto';
     };
   }, [isOpen, onClose]);
-
-
-  // Get menu items from universal handler
-  const menuItems = getMenuItems();
 
   const handleResetConfirm = () => {
     // Handle the actual reset
@@ -106,38 +138,42 @@ export const BurgerMenu = ({ isOpen, onClose, onAction, currentPage = 'dashboard
           </div>
           
           {/* Menu Sections */}
-          <div className="space-y-10">
-            <MenuSection 
-              title="Overview" 
-              items={menuItems.overview} 
-              onAction={handleMenuItemClick}
-              isDarkMode={isDarkMode}
-              currentPage={currentPage}
-            />
-            <MenuSection 
-              title="Actions" 
-              items={menuItems.actions} 
-              onAction={handleMenuItemClick}
-              isDarkMode={isDarkMode}
-              currentPage={currentPage}
-            />
-            {menuItems.tools.length > 0 && (
-              <MenuSection 
-                title="Tools" 
-                items={menuItems.tools} 
+          {!menuItems ? (
+            <div className={`text-center py-8 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+              Loading menu...
+            </div>
+          ) : (
+            <div className="space-y-10">
+              <MenuSection
+                title="Dashboards"
+                items={menuItems.dashboard}
                 onAction={handleMenuItemClick}
                 isDarkMode={isDarkMode}
                 currentPage={currentPage}
               />
-            )}
-            <MenuSection
-              title="Other"
-              items={menuItems.settings}
-              onAction={handleMenuItemClick}
-              isDarkMode={isDarkMode}
-              currentPage={currentPage}
-            />
-          </div>
+              <MenuSection
+                title="Actions"
+                items={menuItems.actions}
+                onAction={handleMenuItemClick}
+                isDarkMode={isDarkMode}
+                currentPage={currentPage}
+              />
+              <MenuSection
+                title="Your Plan"
+                items={menuItems.yourPlan}
+                onAction={handleMenuItemClick}
+                isDarkMode={isDarkMode}
+                currentPage={currentPage}
+              />
+              <MenuSection
+                title="Other"
+                items={menuItems.settings}
+                onAction={handleMenuItemClick}
+                isDarkMode={isDarkMode}
+                currentPage={currentPage}
+              />
+            </div>
+          )}
         </div>
       </div>
 
@@ -150,7 +186,7 @@ export const BurgerMenu = ({ isOpen, onClose, onAction, currentPage = 'dashboard
           details={[
             'Onboarding setup and budget configuration',
             'All imported and manual transactions',
-            'Savings goals and net worth data',
+            'Savings goals',
             'Gift management data',
             'Theme preferences'
           ]}
@@ -182,48 +218,76 @@ export const BurgerMenu = ({ isOpen, onClose, onAction, currentPage = 'dashboard
   );
 };
 
-const MenuSection = ({ title, items, onAction, isDarkMode, currentPage }) => (
-  <div>
-    <h3 className={`
-      text-xs font-medium uppercase tracking-wider mb-4
-      ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}
-    `}>
-      {title}
-    </h3>
-    <div className="space-y-1">
-      {items.map(item => {
-        const isActive = isCurrentPage(item.id, currentPage);
-        
-        return (
-          <button
-            key={item.id}
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              onAction(item.id);
-            }}
-            className={`
-              block w-full text-left py-3 text-base transition-all duration-200
-              border-b border-transparent hover:border-current
-              ${item.danger 
-                ? 'text-red-500 hover:text-red-400' 
-                : isActive
-                  ? isDarkMode ? 'text-white font-medium border-gray-600' : 'text-black font-medium border-gray-400'
-                  : isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-black'
-              }
-            `}
-          >
-            {item.label}
-            {isActive && (
-              <span className={`ml-2 text-xl ${
-                isDarkMode ? 'text-gray-500' : 'text-gray-400'
-              }`}>
-                •
-              </span>
-            )}
-          </button>
-        );
-      })}
+const MenuSection = ({ title, items, onAction, isDarkMode, currentPage }) => {
+  // Load initial state from localStorage, default to collapsed (true)
+  const storageKey = `menu-section-${title.toLowerCase().replace(/\s+/g, '-')}`;
+  const [isCollapsed, setIsCollapsed] = React.useState(() => {
+    const saved = localStorage.getItem(storageKey);
+    return saved !== null ? saved === 'true' : true; // Default to collapsed
+  });
+
+  // Save state to localStorage whenever it changes
+  const handleToggle = () => {
+    const newState = !isCollapsed;
+    setIsCollapsed(newState);
+    localStorage.setItem(storageKey, String(newState));
+  };
+
+  return (
+    <div>
+      <button
+        onClick={handleToggle}
+        className={`
+          w-full flex items-center justify-between mb-4
+          text-xs font-medium uppercase tracking-wider
+          ${isDarkMode ? 'text-gray-500 hover:text-gray-400' : 'text-gray-400 hover:text-gray-500'}
+          transition-colors duration-200
+        `}
+      >
+        <span>{title}</span>
+        <span className={`text-lg transform transition-transform duration-200 ${isCollapsed ? 'rotate-0' : 'rotate-90'}`}>
+          ›
+        </span>
+      </button>
+      <div
+        className={`space-y-1 overflow-hidden transition-all duration-300 ${
+          isCollapsed ? 'max-h-0 opacity-0' : 'max-h-[500px] opacity-100'
+        }`}
+      >
+        {items.map(item => {
+          const isActive = isCurrentPage(item.id, currentPage);
+
+          return (
+            <button
+              key={item.id}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onAction(item.id);
+              }}
+              className={`
+                block w-full text-left py-3 text-base transition-all duration-200
+                border-b border-transparent hover:border-current
+                ${item.danger
+                  ? 'text-red-500 hover:text-red-400'
+                  : isActive
+                    ? isDarkMode ? 'text-white font-medium border-gray-600' : 'text-black font-medium border-gray-400'
+                    : isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-black'
+                }
+              `}
+            >
+              {item.label}
+              {isActive && (
+                <span className={`ml-2 text-xl ${
+                  isDarkMode ? 'text-gray-500' : 'text-gray-400'
+                }`}>
+                  •
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
     </div>
-  </div>
-);
+  );
+};

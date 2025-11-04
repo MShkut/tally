@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { dataManager } from 'utils/dataManager';
+import { apiService } from 'utils/apiService';
 
 export const useOnboarding = () => {
   const [currentStep, setCurrentStep] = useState(0);
@@ -18,7 +18,7 @@ export const useOnboarding = () => {
     // Financial data
     income: [],
     savingsAllocation: {
-      savingsRate: 20, 
+      savingsRate: 20,
       monthlySavings: 0,
       emergencyFund: { hasExisting: false, monthlyAmount: '' },
       savingsGoals: []
@@ -31,18 +31,25 @@ export const useOnboarding = () => {
 
   // Load saved data on hook initialization
   useEffect(() => {
-    const savedData = dataManager.loadUserData();
-    if (savedData && !savedData.onboardingComplete) {
-      // Restore form data
-      setFormData(prevData => ({
-        ...prevData,
-        ...savedData
-      }));
-      
-      // Restore current step
-      const savedStep = savedData.onboardingStep || 0;
-      setCurrentStep(savedStep);
-    }
+    const loadSavedData = async () => {
+      try {
+        const savedData = await apiService.loadUserData();
+        if (savedData && !savedData.onboardingComplete) {
+          // Restore form data
+          setFormData(prevData => ({
+            ...prevData,
+            ...savedData
+          }));
+
+          // Restore current step
+          const savedStep = savedData.onboardingStep || 0;
+          setCurrentStep(savedStep);
+        }
+      } catch (error) {
+        console.error('Error loading saved onboarding data:', error);
+      }
+    };
+    loadSavedData();
   }, []);
 
   const nextStep = () => {
