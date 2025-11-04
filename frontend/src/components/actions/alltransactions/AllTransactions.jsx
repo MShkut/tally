@@ -1,5 +1,5 @@
 // frontend/src/components/actions/alltransactions/AllTransactions.jsx
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 
 import { useTheme } from 'contexts/ThemeContext';
 import { ThemeToggle } from 'components/shared/ThemeToggle';
@@ -132,11 +132,11 @@ export const AllTransactions = ({ onNavigate }) => {
   const totalPages = Math.ceil(totalTransactions / itemsPerPage);
   const paginatedTransactions = transactions; // Already paginated by backend
 
-  const handleEdit = (transactionId) => {
+  const handleEdit = useCallback((transactionId) => {
     setEditingId(transactionId);
-  };
+  }, []);
 
-  const handleSave = async (transactionId, updatedTransaction) => {
+  const handleSave = useCallback(async (transactionId, updatedTransaction) => {
     try {
       // Update in local state
       const updatedTransactions = transactions.map(t =>
@@ -150,12 +150,12 @@ export const AllTransactions = ({ onNavigate }) => {
     } catch (error) {
       console.error('[AllTransactions] Error saving transaction:', error);
     }
-  };
+  }, [transactions]);
 
-  const handleDelete = (transaction) => {
+  const handleDelete = useCallback((transaction) => {
     setTransactionToDelete(transaction);
     setShowDeleteConfirm(true);
-  };
+  }, []);
 
   const confirmDelete = async () => {
     try {
@@ -190,7 +190,7 @@ export const AllTransactions = ({ onNavigate }) => {
     }
   };
 
-  const toggleSelection = (transactionId) => {
+  const toggleSelection = useCallback((transactionId) => {
     const newSelection = new Set(selectedTransactions);
     if (newSelection.has(transactionId)) {
       newSelection.delete(transactionId);
@@ -198,13 +198,13 @@ export const AllTransactions = ({ onNavigate }) => {
       newSelection.add(transactionId);
     }
     setSelectedTransactions(newSelection);
-  };
+  }, [selectedTransactions]);
 
-  const selectAll = () => {
+  const selectAll = useCallback(() => {
     setSelectedTransactions(new Set(paginatedTransactions.map(t => t.id)));
-  };
+  }, [paginatedTransactions]);
 
-  const selectAllFiltered = async () => {
+  const selectAllFiltered = useCallback(async () => {
     // Fetch all filtered transactions from backend (without pagination limit)
     try {
       const response = await apiService.loadTransactions({
@@ -221,11 +221,11 @@ export const AllTransactions = ({ onNavigate }) => {
     } catch (error) {
       console.error('[AllTransactions] Error loading all filtered transactions:', error);
     }
-  };
+  }, [debouncedSearchTerm, typeFilter, categoryFilter, dateFilter, sortBy, sortOrder]);
 
-  const clearSelection = () => {
+  const clearSelection = useCallback(() => {
     setSelectedTransactions(new Set());
-  };
+  }, []);
 
   // Filter categories based on selected type
   const filteredCategories = typeFilter

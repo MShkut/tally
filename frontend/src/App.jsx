@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from 'contexts/AuthContext';
 import { AppRouter } from 'components/routing/AppRouter';
 import { LoginScreen } from 'components/auth/LoginScreen';
 import { RegisterScreen } from 'components/auth/RegisterScreen';
+import { ConnectionStatus } from 'components/shared/ConnectionStatus';
 import { cleanupOldLocalStorage } from 'utils/cleanupLocalStorage';
 import { loadUserCurrencyFromAPI } from 'utils/currency';
 import { apiService } from 'utils/apiService';
@@ -105,6 +106,7 @@ export function App() {
       <ThemeProvider>
         <AuthProvider>
           <AppContent />
+          <ConnectionStatus />
         </AuthProvider>
       </ThemeProvider>
     </ErrorBoundary>
