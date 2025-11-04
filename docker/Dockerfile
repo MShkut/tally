@@ -1,5 +1,4 @@
 # Multi-stage build for Tally Budget App
-# Use BuildKit for better caching: DOCKER_BUILDKIT=1 docker build
 
 # Stage 1: Build React frontend
 FROM node:18-alpine AS frontend-builder
@@ -9,9 +8,8 @@ WORKDIR /app/frontend
 # Copy package files first for better layer caching
 COPY frontend/package*.json ./
 
-# Use npm ci with cache mounting for faster builds
-RUN --mount=type=cache,target=/root/.npm \
-    npm ci --only=production --prefer-offline
+# Use npm ci for faster builds
+RUN npm ci --only=production
 
 # Copy source files and build
 COPY frontend/ ./
@@ -25,9 +23,8 @@ WORKDIR /app/api
 # Copy package files first for better layer caching
 COPY backend/package*.json ./
 
-# Use npm ci with cache mounting
-RUN --mount=type=cache,target=/root/.npm \
-    npm ci --only=production --prefer-offline
+# Use npm ci
+RUN npm ci --only=production
 
 # Stage 3: Final runtime image with nginx + node
 FROM nginx:alpine
