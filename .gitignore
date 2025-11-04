@@ -47,3 +47,4 @@ examples/
 # Test data (contains passwords and test files)
 test-data/
 backend/node_modules/
+*.db
