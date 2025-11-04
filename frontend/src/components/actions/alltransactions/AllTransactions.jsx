@@ -6,6 +6,7 @@ import { ThemeToggle } from 'components/shared/ThemeToggle';
 import { Currency } from 'utils/currency';
 import { BurgerMenu } from 'components/shared/BurgerMenu';
 import { apiService } from 'utils/apiService';
+import { useDebounce } from 'utils/debounce';
 import { 
   FormSection, 
   FormGrid, 
@@ -28,6 +29,7 @@ export const AllTransactions = ({ onNavigate }) => {
   
   // Filter and search state
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearchTerm = useDebounce(searchTerm, 300); // Debounce search for better performance
   const [typeFilter, setTypeFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [dateFilter, setDateFilter] = useState('');
@@ -47,13 +49,14 @@ export const AllTransactions = ({ onNavigate }) => {
     handleMenuAction(action, onNavigate, () => setMenuOpen(false), null);
   };
 
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        // Load transactions and categories
-        const loadedTransactions = await apiService.loadTransactions();
-        setTransactions(loadedTransactions);
+  // State for total count from backend
+  const [totalTransactions, setTotalTransactions] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
 
+  // Load categories once on mount
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
         const userData = await apiService.loadUserData();
 
         // Build categories from user data - same logic as import page
@@ -88,94 +91,46 @@ export const AllTransactions = ({ onNavigate }) => {
 
         setCategories(allCategories);
       } catch (error) {
-        console.error('[AllTransactions] Error loading data:', error);
+        console.error('[AllTransactions] Error loading categories:', error);
       }
     };
 
-    loadData();
+    loadCategories();
   }, []);
 
-  // Filtered and sorted transactions (with pagination)
-  const { paginatedTransactions, totalPages, totalFiltered } = useMemo(() => {
-    let filtered = transactions.filter(transaction => {
-      // Search filter
-      if (searchTerm && !transaction.description?.toLowerCase().includes(searchTerm.toLowerCase())) {
-        return false;
+  // Load transactions with filters (backend does the filtering now)
+  useEffect(() => {
+    const loadTransactions = async () => {
+      setIsLoading(true);
+      try {
+        const offset = (currentPage - 1) * itemsPerPage;
+        const response = await apiService.loadTransactions({
+          limit: itemsPerPage,
+          offset,
+          search: debouncedSearchTerm,
+          type: typeFilter,
+          category: categoryFilter,
+          dateFilter,
+          sortBy,
+          sortOrder
+        });
+
+        setTransactions(response);
+        setTotalTransactions(response.total || response.length);
+      } catch (error) {
+        console.error('[AllTransactions] Error loading transactions:', error);
+      } finally {
+        setIsLoading(false);
       }
+    };
 
-      // Type filter
-      if (typeFilter) {
-        // Category can be string or object - find matching category from our list
-        const categoryName = typeof transaction.category === 'string'
-          ? transaction.category
-          : transaction.category?.name;
-        const matchedCategory = categories.find(c => c.name === categoryName);
-        if (!matchedCategory || matchedCategory.type !== typeFilter) {
-          return false;
-        }
-      }
+    loadTransactions();
+  }, [debouncedSearchTerm, typeFilter, categoryFilter, dateFilter, sortBy, sortOrder, currentPage, itemsPerPage]);
 
-      // Category filter
-      if (categoryFilter) {
-        const categoryName = typeof transaction.category === 'string'
-          ? transaction.category
-          : transaction.category?.name;
-        if (categoryName !== categoryFilter) {
-          return false;
-        }
-      }
-
-      // Date filter (current month if selected)
-      if (dateFilter === 'current-month') {
-        const now = new Date();
-        const transDate = new Date(transaction.date);
-        if (transDate.getMonth() !== now.getMonth() || transDate.getFullYear() !== now.getFullYear()) {
-          return false;
-        }
-      }
-
-      return true;
-    });
-    
-    // Sort transactions
-    filtered.sort((a, b) => {
-      let aVal, bVal;
-      
-      switch (sortBy) {
-        case 'date':
-          aVal = new Date(a.date);
-          bVal = new Date(b.date);
-          break;
-        case 'amount':
-          aVal = Math.abs(a.amount || 0);
-          bVal = Math.abs(b.amount || 0);
-          break;
-        case 'description':
-          aVal = a.description?.toLowerCase() || '';
-          bVal = b.description?.toLowerCase() || '';
-          break;
-        case 'category':
-          aVal = (typeof a.category === 'string' ? a.category : a.category?.name || '').toLowerCase();
-          bVal = (typeof b.category === 'string' ? b.category : b.category?.name || '').toLowerCase();
-          break;
-        default:
-          return 0;
-      }
-      
-      if (aVal < bVal) return sortOrder === 'asc' ? -1 : 1;
-      if (aVal > bVal) return sortOrder === 'asc' ? 1 : -1;
-      return 0;
-    });
-
-    // Calculate pagination
-    const totalFiltered = filtered.length;
-    const totalPages = Math.ceil(totalFiltered / itemsPerPage);
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    const paginatedTransactions = filtered.slice(startIndex, endIndex);
-
-    return { paginatedTransactions, totalPages, totalFiltered };
-  }, [transactions, searchTerm, typeFilter, categoryFilter, dateFilter, sortBy, sortOrder, currentPage, itemsPerPage]);
+  // Backend now does all filtering, sorting, and pagination
+  // We just need to calculate totalPages from the backend total
+  const totalPages = Math.ceil(totalTransactions / itemsPerPage);
+  const paginatedTransactions = transactions; // Already paginated by backend
 
   const handleEdit = (transactionId) => {
     setEditingId(transactionId);
@@ -249,39 +204,23 @@ export const AllTransactions = ({ onNavigate }) => {
     setSelectedTransactions(new Set(paginatedTransactions.map(t => t.id)));
   };
 
-  const selectAllFiltered = () => {
-    // Select all transactions in the current filter (across all pages)
-    const allFiltered = transactions.filter(transaction => {
-      if (searchTerm && !transaction.description?.toLowerCase().includes(searchTerm.toLowerCase())) {
-        return false;
-      }
-      if (typeFilter) {
-        const categoryName = typeof transaction.category === 'string'
-          ? transaction.category
-          : transaction.category?.name;
-        const matchedCategory = categories.find(c => c.name === categoryName);
-        if (!matchedCategory || matchedCategory.type !== typeFilter) {
-          return false;
-        }
-      }
-      if (categoryFilter) {
-        const categoryName = typeof transaction.category === 'string'
-          ? transaction.category
-          : transaction.category?.name;
-        if (categoryName !== categoryFilter) {
-          return false;
-        }
-      }
-      if (dateFilter === 'current-month') {
-        const now = new Date();
-        const transDate = new Date(transaction.date);
-        if (transDate.getMonth() !== now.getMonth() || transDate.getFullYear() !== now.getFullYear()) {
-          return false;
-        }
-      }
-      return true;
-    });
-    setSelectedTransactions(new Set(allFiltered.map(t => t.id)));
+  const selectAllFiltered = async () => {
+    // Fetch all filtered transactions from backend (without pagination limit)
+    try {
+      const response = await apiService.loadTransactions({
+        limit: 10000, // Get all filtered results
+        offset: 0,
+        search: debouncedSearchTerm,
+        type: typeFilter,
+        category: categoryFilter,
+        dateFilter,
+        sortBy,
+        sortOrder
+      });
+      setSelectedTransactions(new Set(response.map(t => t.id)));
+    } catch (error) {
+      console.error('[AllTransactions] Error loading all filtered transactions:', error);
+    }
   };
 
   const clearSelection = () => {
@@ -431,17 +370,17 @@ export const AllTransactions = ({ onNavigate }) => {
                 isDarkMode ? 'text-gray-400' : 'text-gray-600'
               }`}>
                 {selectedTransactions.size} transaction{selectedTransactions.size !== 1 ? 's' : ''} selected
-                {totalFiltered > paginatedTransactions.length && ` (of ${totalFiltered} filtered)`}
+                {totalTransactions > paginatedTransactions.length && ` (of ${totalTransactions} filtered)`}
               </span>
               <div className="flex gap-4">
-                {totalFiltered > paginatedTransactions.length && (
+                {totalTransactions > paginatedTransactions.length && (
                   <button
                     onClick={selectAllFiltered}
                     className={`text-base font-light transition-colors ${
                       isDarkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-black'
                     }`}
                   >
-                    Select All {totalFiltered} Filtered
+                    Select All {totalTransactions} Filtered
                   </button>
                 )}
                 <button
@@ -464,7 +403,7 @@ export const AllTransactions = ({ onNavigate }) => {
         )}
 
         {/* Transactions List */}
-        {totalFiltered === 0 ? (
+        {totalTransactions === 0 ? (
           <EmptyState
             title="No transactions found"
             description="Try adjusting your filters or import some transactions to get started"
@@ -476,7 +415,7 @@ export const AllTransactions = ({ onNavigate }) => {
             <div className={`mb-4 text-base ${
               isDarkMode ? 'text-gray-400' : 'text-gray-600'
             }`}>
-              Showing {((currentPage - 1) * itemsPerPage) + 1}-{Math.min(currentPage * itemsPerPage, totalFiltered)} of {totalFiltered} transactions
+              Showing {((currentPage - 1) * itemsPerPage) + 1}-{Math.min(currentPage * itemsPerPage, totalTransactions)} of {totalTransactions} transactions
             </div>
 
             <div className="space-y-4">

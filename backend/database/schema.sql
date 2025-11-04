@@ -54,6 +54,13 @@ CREATE INDEX IF NOT EXISTS idx_transactions_user_type_date ON transactions(user_
 CREATE INDEX IF NOT EXISTS idx_transactions_merchant ON transactions(merchant);
 CREATE INDEX IF NOT EXISTS idx_transactions_description ON transactions(description);
 
+-- Covering index for the most common query (all filters + sort by date)
+-- This allows SQLite to satisfy queries entirely from the index without reading table rows
+CREATE INDEX IF NOT EXISTS idx_transactions_covering ON transactions(
+  user_id, type, category, date DESC,
+  id, merchant, amount, description
+);
+
 -- Gift data table (gift budget tracking)
 CREATE TABLE IF NOT EXISTS gift_data (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

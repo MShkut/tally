@@ -183,10 +183,43 @@ class APIService {
   // ==================== TRANSACTIONS ====================
 
   /**
-   * Load all transactions
+   * Load all transactions with optional filters
+   * @param {Object} options - Filter options
+   * @param {number} options.limit - Maximum results to return
+   * @param {number} options.offset - Number of results to skip
+   * @param {string} options.search - Search term for description/merchant
+   * @param {string} options.type - Filter by type (Income/Expense/Savings)
+   * @param {string} options.category - Filter by category name
+   * @param {string} options.dateFilter - Date filter (current-month)
+   * @param {string} options.sortBy - Sort field (date/amount/description/category)
+   * @param {string} options.sortOrder - Sort order (asc/desc)
    */
-  async loadTransactions(limit = 1000, offset = 0) {
-    return await this.request(`/transactions?limit=${limit}&offset=${offset}`);
+  async loadTransactions(options = {}) {
+    const {
+      limit = 1000,
+      offset = 0,
+      search = '',
+      type = '',
+      category = '',
+      dateFilter = '',
+      sortBy = 'date',
+      sortOrder = 'desc'
+    } = options;
+
+    // Build query string
+    const params = new URLSearchParams({
+      limit: limit.toString(),
+      offset: offset.toString()
+    });
+
+    if (search) params.append('search', search);
+    if (type) params.append('type', type);
+    if (category) params.append('category', category);
+    if (dateFilter) params.append('dateFilter', dateFilter);
+    if (sortBy) params.append('sortBy', sortBy);
+    if (sortOrder) params.append('sortOrder', sortOrder);
+
+    return await this.request(`/transactions?${params.toString()}`);
   }
 
   /**
