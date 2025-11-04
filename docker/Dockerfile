@@ -1,20 +1,33 @@
 # Multi-stage build for Tally Budget App
+# Use BuildKit for better caching: DOCKER_BUILDKIT=1 docker build
+
 # Stage 1: Build React frontend
 FROM node:18-alpine AS frontend-builder
 
 WORKDIR /app/frontend
-COPY frontend/package*.json ./
-RUN npm ci --only=production
 
+# Copy package files first for better layer caching
+COPY frontend/package*.json ./
+
+# Use npm ci with cache mounting for faster builds
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --only=production --prefer-offline
+
+# Copy source files and build
 COPY frontend/ ./
 RUN npm run build
 
-# Stage 2: Setup Node.js API server (Yahoo Finance proxy)
+# Stage 2: Setup Node.js API server
 FROM node:18-alpine AS api-builder
 
 WORKDIR /app/api
+
+# Copy package files first for better layer caching
 COPY backend/package*.json ./
-RUN npm ci --only=production
+
+# Use npm ci with cache mounting
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --only=production --prefer-offline
 
 # Stage 3: Final runtime image with nginx + node
 FROM nginx:alpine
@@ -22,26 +35,26 @@ FROM nginx:alpine
 # Install Node.js and build tools for native module rebuild
 RUN apk add --no-cache nodejs npm python3 make g++
 
-# Copy nginx configuration
+# Copy nginx configuration (rarely changes)
 COPY docker/nginx.conf /etc/nginx/nginx.conf
 
-# Copy built frontend
+# Copy built frontend (changes with each build)
 COPY --from=frontend-builder /app/frontend/dist /usr/share/nginx/html
 
-# Copy backend API server and dependencies
+# Copy backend dependencies first (caches when package.json unchanged)
 COPY --from=api-builder /app/api/node_modules /app/api/node_modules
-COPY backend/server.js /app/api/
 COPY backend/package.json /app/api/
+
+# Copy backend source code (changes frequently, so do this last)
+COPY backend/server.js /app/api/
 COPY backend/database/ /app/api/database/
 COPY backend/models/ /app/api/models/
 COPY backend/middleware/ /app/api/middleware/
 COPY backend/utils/ /app/api/utils/
 
-# Rebuild native modules for current Node.js version
-RUN cd /app/api && npm rebuild better-sqlite3
-
-# Clean up build dependencies to reduce image size
-RUN apk del python3 make g++
+# Rebuild native modules and clean up in one layer
+RUN cd /app/api && npm rebuild better-sqlite3 && \
+    apk del python3 make g++
 
 # Copy startup script
 COPY docker/start.sh /start.sh

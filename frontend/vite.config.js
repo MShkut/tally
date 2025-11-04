@@ -15,6 +15,31 @@ export default defineConfig({
       // add more as needed
     }
   },
+  build: {
+    // Code splitting and optimization
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Separate vendor chunks for better caching
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'charts': ['recharts'],
+          'icons': ['lucide-react']
+        }
+      }
+    },
+    // Increase chunk size warning limit
+    chunkSizeWarningLimit: 1000,
+    // Disable sourcemaps in production for smaller bundle
+    sourcemap: false,
+    // Enable minification
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true, // Remove console.logs in production
+        drop_debugger: true
+      }
+    }
+  },
   server: {
     proxy: {
       // Proxy API requests to backend in development

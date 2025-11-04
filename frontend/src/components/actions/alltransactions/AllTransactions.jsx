@@ -622,17 +622,17 @@ export const AllTransactions = ({ onNavigate }) => {
   );
 };
 
-// Individual Transaction Row Component
-const TransactionRow = ({ 
-  transaction, 
-  categories, 
-  isSelected, 
-  isEditing, 
-  onToggleSelect, 
-  onEdit, 
-  onSave, 
-  onCancel, 
-  onDelete 
+// Individual Transaction Row Component - Memoized for performance
+const TransactionRow = React.memo(({
+  transaction,
+  categories,
+  isSelected,
+  isEditing,
+  onToggleSelect,
+  onEdit,
+  onSave,
+  onCancel,
+  onDelete
 }) => {
   const { isDarkMode } = useTheme();
   // Get category name from transaction (handle both string and object formats)
@@ -802,7 +802,19 @@ const TransactionRow = ({
       </div>
     </div>
   );
-};
+}, (prevProps, nextProps) => {
+  // Custom comparison for better performance
+  // Only re-render if these specific props change
+  return (
+    prevProps.transaction.id === nextProps.transaction.id &&
+    prevProps.isSelected === nextProps.isSelected &&
+    prevProps.isEditing === nextProps.isEditing &&
+    prevProps.transaction.date === nextProps.transaction.date &&
+    prevProps.transaction.description === nextProps.transaction.description &&
+    prevProps.transaction.amount === nextProps.transaction.amount &&
+    prevProps.transaction.category === nextProps.transaction.category
+  );
+});
 
 // Helper component - matches Dashboard.jsx pattern
 const BurgerIcon = () => (

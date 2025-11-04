@@ -4,6 +4,7 @@
 const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
+const compression = require('compression');
 
 // Initialize database
 const { getDatabase } = require('./database/db');
@@ -22,6 +23,9 @@ const { generateToken, authenticateToken, optionalAuth } = require('./middleware
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+// Enable compression for all responses
+app.use(compression());
 
 // Enable CORS for frontend
 app.use(cors({ credentials: true, origin: true }));

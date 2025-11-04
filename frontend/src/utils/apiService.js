@@ -6,13 +6,43 @@ const API_BASE = window.location.origin; // Backend runs on same origin in produ
 class APIService {
   constructor() {
     this.token = null;
+    this.cache = new Map();
+    this.cacheTimeout = 5 * 60 * 1000; // 5 minutes cache
   }
 
   /**
-   * Make authenticated API request
+   * Clear cache for a specific endpoint or all cache
+   */
+  clearCache(endpoint = null) {
+    if (endpoint) {
+      // Clear specific endpoint cache
+      for (const key of this.cache.keys()) {
+        if (key.includes(endpoint)) {
+          this.cache.delete(key);
+        }
+      }
+    } else {
+      // Clear all cache
+      this.cache.clear();
+    }
+  }
+
+  /**
+   * Make authenticated API request with caching
    */
   async request(endpoint, options = {}) {
     const url = `${API_BASE}/api${endpoint}`;
+    const method = options.method || 'GET';
+    const cacheKey = `${method}:${endpoint}`;
+
+    // Check cache for GET requests
+    if (method === 'GET' && !options.skipCache) {
+      const cached = this.cache.get(cacheKey);
+      if (cached && Date.now() - cached.timestamp < this.cacheTimeout) {
+        console.log(`[API Cache] Hit for ${endpoint}`);
+        return cached.data;
+      }
+    }
 
     const config = {
       credentials: 'include', // Include cookies
@@ -40,6 +70,19 @@ class APIService {
           throw new Error('Session expired');
         }
         throw new Error(data.error || 'Request failed');
+      }
+
+      // Cache successful GET responses
+      if (method === 'GET') {
+        this.cache.set(cacheKey, {
+          data: data.data,
+          timestamp: Date.now()
+        });
+      } else {
+        // Invalidate cache for mutations (POST, PUT, DELETE)
+        // Clear related endpoint caches
+        const baseEndpoint = endpoint.split('?')[0].split('/')[1]; // Get base resource
+        this.clearCache(baseEndpoint);
       }
 
       return data.data;
