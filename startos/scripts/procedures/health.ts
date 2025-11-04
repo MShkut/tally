@@ -1,5 +1,5 @@
-import { types as T, healthUtil } from "../deps.ts";
+import { checkWebUrl } from "../deps.ts";
 
-export const health: T.ExpectedExports.health = {
-  "web-ui": healthUtil.checkWebUrl("http://tally-budget.embassy:8080")
+export const health = {
+  "web-ui": checkWebUrl("http://tally-budget.embassy:8080")
 };
