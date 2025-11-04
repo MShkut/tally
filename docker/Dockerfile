@@ -20,17 +20,20 @@ FROM node:18-alpine AS api-builder
 
 WORKDIR /app/api
 
+# Install build dependencies first
+RUN apk add --no-cache python3 make g++
+
 # Copy package files first for better layer caching
 COPY backend/package*.json ./
 
-# Use npm ci
-RUN npm ci --only=production
+# Use npm ci (remove --only=production to avoid issues)
+RUN npm ci --verbose
 
 # Stage 3: Final runtime image with nginx + node
 FROM nginx:alpine
 
-# Install Node.js and build tools for native module rebuild
-RUN apk add --no-cache nodejs npm python3 make g++
+# Install Node.js (no build tools needed since we already built in stage 2)
+RUN apk add --no-cache nodejs npm
 
 # Copy nginx configuration (rarely changes)
 COPY docker/nginx.conf /etc/nginx/nginx.conf
@@ -38,7 +41,7 @@ COPY docker/nginx.conf /etc/nginx/nginx.conf
 # Copy built frontend (changes with each build)
 COPY --from=frontend-builder /app/frontend/dist /usr/share/nginx/html
 
-# Copy backend dependencies first (caches when package.json unchanged)
+# Copy backend dependencies (already built with native modules)
 COPY --from=api-builder /app/api/node_modules /app/api/node_modules
 COPY backend/package.json /app/api/
 
@@ -48,10 +51,6 @@ COPY backend/database/ /app/api/database/
 COPY backend/models/ /app/api/models/
 COPY backend/middleware/ /app/api/middleware/
 COPY backend/utils/ /app/api/utils/
-
-# Rebuild native modules and clean up in one layer
-RUN cd /app/api && npm rebuild better-sqlite3 && \
-    apk del python3 make g++
 
 # Copy startup script
 COPY docker/start.sh /start.sh
