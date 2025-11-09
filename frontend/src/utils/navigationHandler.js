@@ -23,6 +23,10 @@ export const handleMenuAction = (actionId, onNavigate, onClose, setShowResetConf
       onNavigate('dashboard');
       return true;
 
+    case 'networth':
+      onNavigate('networth');
+      return true;
+
     // Main Actions
     case 'import':
       onNavigate('import');
@@ -195,7 +199,8 @@ const handleDataReset = async (onNavigate) => {
 export const getMenuItems = async () => {
   try {
     const dashboardItems = [
-      { id: 'dashboard', label: 'Overview' }
+      { id: 'dashboard', label: 'Overview' },
+      { id: 'networth', label: 'Net Worth' }
     ];
 
     const yourPlanItems = [
@@ -226,7 +231,8 @@ export const getMenuItems = async () => {
     // Return default menu if loading fails
     return {
       dashboard: [
-        { id: 'dashboard', label: 'Overview' }
+        { id: 'dashboard', label: 'Overview' },
+        { id: 'networth', label: 'Net Worth' }
       ],
       yourPlan: [
         { id: 'plan-next-period', label: 'Plan Next Period' },

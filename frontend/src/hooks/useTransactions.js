@@ -4,6 +4,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { apiService } from 'utils/apiService';
 import { Currency } from 'utils/currency';
+import {
+  handleTransactionForNetworth,
+  handleTransactionDeletionForNetworth,
+  getTransactionContext
+} from 'utils/networthLinking';
 
 /**
  * Custom hook for managing transactions
@@ -64,6 +69,19 @@ export const useTransactions = () => {
       const updatedTransactions = [...transactions, newTransaction];
       await apiService.saveTransactions(updatedTransactions);
       setTransactions(updatedTransactions);
+
+      // Handle net worth account linking
+      try {
+        const categories = await apiService.getBudgetCategories();
+        const context = getTransactionContext(newTransaction, categories);
+        if (context) {
+          await handleTransactionForNetworth(newTransaction, context);
+        }
+      } catch (linkError) {
+        console.error('Error linking transaction to net worth:', linkError);
+        // Don't fail the transaction if linking fails
+      }
+
       return true;
     } catch (err) {
       console.error('Error adding transaction:', err);
@@ -105,6 +123,7 @@ export const useTransactions = () => {
   const updateTransaction = useCallback(async (id, updates) => {
     // Optimistic update
     const previousTransactions = [...transactions];
+    const oldTransaction = transactions.find(txn => txn.id === id);
     const updatedTransactions = transactions.map(txn =>
       txn.id === id ? { ...txn, ...updates } : txn
     );
@@ -112,6 +131,35 @@ export const useTransactions = () => {
 
     try {
       await apiService.saveTransactions(updatedTransactions);
+
+      // Handle net worth account linking
+      try {
+        const categories = await apiService.getBudgetCategories();
+        const updatedTransaction = updatedTransactions.find(txn => txn.id === id);
+
+        // If category or amount changed, update net worth
+        if (oldTransaction && (
+          oldTransaction.category !== updatedTransaction.category ||
+          oldTransaction.amount !== updatedTransaction.amount ||
+          oldTransaction.date !== updatedTransaction.date
+        )) {
+          // Remove old transaction's effect
+          const oldContext = getTransactionContext(oldTransaction, categories);
+          if (oldContext) {
+            await handleTransactionDeletionForNetworth(oldTransaction, oldContext);
+          }
+
+          // Add new transaction's effect
+          const newContext = getTransactionContext(updatedTransaction, categories);
+          if (newContext) {
+            await handleTransactionForNetworth(updatedTransaction, newContext);
+          }
+        }
+      } catch (linkError) {
+        console.error('Error linking updated transaction to net worth:', linkError);
+        // Don't fail the transaction if linking fails
+      }
+
       return true;
     } catch (err) {
       console.error('Error updating transaction:', err);
@@ -130,11 +178,27 @@ export const useTransactions = () => {
   const deleteTransaction = useCallback(async (id) => {
     // Optimistic delete
     const previousTransactions = [...transactions];
+    const deletedTransaction = transactions.find(txn => txn.id === id);
     const updatedTransactions = transactions.filter(txn => txn.id !== id);
     setTransactions(updatedTransactions);
 
     try {
       await apiService.deleteTransaction(id);
+
+      // Handle net worth account linking
+      if (deletedTransaction) {
+        try {
+          const categories = await apiService.getBudgetCategories();
+          const context = getTransactionContext(deletedTransaction, categories);
+          if (context) {
+            await handleTransactionDeletionForNetworth(deletedTransaction, context);
+          }
+        } catch (linkError) {
+          console.error('Error unlinking deleted transaction from net worth:', linkError);
+          // Don't fail the deletion if linking fails
+        }
+      }
+
       return true;
     } catch (err) {
       console.error('Error deleting transaction:', err);
