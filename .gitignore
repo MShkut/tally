@@ -48,3 +48,10 @@ examples/
 test-data/
 backend/node_modules/
 *.db
+
+# Electron desktop app
+node_modules/
+dist-electron/
+package-lock.json
+electron/icons/*.icns
+electron/icons/*.ico

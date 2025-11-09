@@ -1,7 +1,13 @@
 // API Service - Central API client for backend communication
 // Replaces localStorage-based dataManager with backend API calls
 
-const API_BASE = window.location.origin; // Backend runs on same origin in production
+// Support for Electron desktop app
+// In Electron local mode: uses http://localhost:3001
+// In Electron remote mode: uses configured server URL
+// In browser/Docker/Start9: uses same origin
+const API_BASE = window.electronAPI?.isElectron
+  ? (window.electronAPI.mode === 'local' ? 'http://localhost:3001' : window.electronAPI.serverUrl)
+  : window.location.origin;
 
 class APIService {
   constructor() {
