@@ -32,15 +32,6 @@ app.use(cors({ credentials: true, origin: true }));
 app.use(express.json({ limit: '50mb' })); // Increased limit for bulk imports
 app.use(cookieParser());
 
-// Health check endpoints (both /health and /api/health for compatibility)
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', service: 'tally-budget-api' });
-});
-
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', service: 'tally-budget-api' });
-});
-
 // ==================== AUTHENTICATION ROUTES ====================
 
 /**

@@ -219,12 +219,6 @@ main:
   mounts:
     main: /data
 
-health-checks:
-  web-ui:
-    name: Web Interface
-    success-message: Tally is accessible and responding
-    type: script
-
 config: ~
 
 properties: ~
