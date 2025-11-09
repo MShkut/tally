@@ -2,6 +2,24 @@
 
 Desktop version of Tally for Windows and macOS, built with Electron.
 
+## 📥 For Users: Download Pre-built Installers
+
+**Don't want to build from source?** Download ready-to-use installers from [GitHub Releases](https://github.com/YOUR_USERNAME/tally/releases)
+
+**macOS:**
+1. Download `Tally-{version}.dmg`
+2. Open DMG → Drag Tally to Applications
+3. Right-click Tally → Open (first launch only, due to unsigned app)
+
+**Windows:**
+1. Download `Tally-Setup-{version}.exe`
+2. Run installer
+3. Click "More info" → "Run anyway" if SmartScreen appears
+
+**See [RELEASE-PROCESS.md](RELEASE-PROCESS.md) for how new versions are released.**
+
+---
+
 ## Features
 
 - **Local Mode**: Run Tally entirely on your computer with a built-in backend server
@@ -25,15 +43,40 @@ Desktop version of Tally for Windows and macOS, built with Electron.
 - All data stored on the server
 - Acts as a dedicated desktop client
 
-## Prerequisites
+---
 
-Before building, ensure you have:
+## 🤖 For Maintainers: Automated Releases
+
+**Creating a new release is automatic!**
+
+GitHub Actions builds installers for both Mac and Windows whenever you push a version tag:
+
+```bash
+git tag v0.1.6
+git push origin v0.1.6
+```
+
+That's it! GitHub will:
+- Build macOS installer (.dmg)
+- Build Windows installer (.exe)
+- Create GitHub Release
+- Upload installers automatically
+
+**See [RELEASE-PROCESS.md](RELEASE-PROCESS.md) for complete instructions.**
+
+---
+
+## 🛠️ For Developers: Manual Build Instructions
+
+### Prerequisites
+
+Before building manually, ensure you have:
 - Node.js 18+ installed
 - npm or yarn
 - For macOS builds: Xcode Command Line Tools
 - For Windows builds: Windows 10/11
 
-## Installation & Setup
+### Installation & Setup
 
 ### 1. Install Dependencies
 

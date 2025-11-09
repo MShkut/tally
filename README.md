@@ -8,7 +8,22 @@ A household budget app that runs entirely on your own hardware. No cloud, no tra
 
 Simple: track your household budget without sending your financial data to some random company's servers. Everything stays local - either in your browser or on your Start9 server.
 
+## 📥 Desktop App (New!)
+
+**Windows & macOS native apps now available!**
+
+Download installers from [GitHub Releases](https://github.com/YOUR_USERNAME/tally/releases)
+
+**Two modes:**
+- **Local Mode**: Run entirely on your computer (standalone app with built-in backend)
+- **Remote Mode**: Connect to your Start9 server or self-hosted instance
+
+See [DESKTOP-APP.md](DESKTOP-APP.md) for details.
+
+---
+
 **What's actually working (beta 0.0.11):**
+- **Desktop apps for Windows & macOS** (local or remote mode)
 - Runs on Start9 OS (tested on real hardware!)
 - Docker container deployment (nginx + Node.js API)
 - Password authentication (shared household password)
