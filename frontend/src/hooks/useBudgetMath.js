@@ -1,5 +1,74 @@
-// frontend/src/hooks/useBudgetMath.js
-// Centralized budget calculation hook - fixes inconsistent math across components
+/**
+ * useBudgetMath Hook - Centralized Budget Calculation Logic
+ *
+ * This custom React hook provides a unified API for all budget-related calculations
+ * throughout the Tally application. It was created to fix inconsistent math across
+ * components and ensure accurate currency handling.
+ *
+ * ## Architecture
+ *
+ * The hook delegates core calculations to two modules:
+ * - `utils/budgetCalculations.js` - Pure budget math functions
+ * - `utils/currency.js` - Currency-safe arithmetic (handles floating point precision)
+ *
+ * ## Key Features
+ *
+ * 1. **Income Calculations**
+ *    - Monthly, yearly, and period-based income totals
+ *    - Actual income from transactions
+ *    - Multi-frequency support (monthly, biweekly, yearly, etc.)
+ *
+ * 2. **Expense Calculations**
+ *    - Monthly and period expense totals
+ *    - Actual expenses from categorized transactions
+ *    - Category-based expense tracking
+ *
+ * 3. **Savings Calculations**
+ *    - Monthly and period savings targets
+ *    - Actual savings from transactions
+ *    - Keyword-based savings detection
+ *
+ * 4. **Performance Metrics**
+ *    - Planned vs. actual comparisons
+ *    - Month and period views
+ *    - Category-level spending analysis
+ *
+ * 5. **Transaction Filtering & Matching**
+ *    - Period-based filtering (month or custom period)
+ *    - Smart category matching (handles string and object formats)
+ *    - Income source and savings goal matching
+ *
+ * ## Currency Precision
+ *
+ * All calculations use the Currency utility to avoid floating-point errors.
+ * Never use raw JavaScript arithmetic (+ - * /) with money values.
+ *
+ * Example:
+ * ```js
+ * // ❌ WRONG - floating point errors
+ * const total = 10.1 + 20.2; // 30.299999999999997
+ *
+ * // ✅ CORRECT - precise decimal arithmetic
+ * const total = Currency.add(10.1, 20.2); // 30.3
+ * ```
+ *
+ * ## Usage
+ *
+ * ```jsx
+ * const Dashboard = () => {
+ *   const {
+ *     calculateMonthlyIncome,
+ *     calculatePerformanceData,
+ *     calculateCategoryTotals
+ *   } = useBudgetMath();
+ *
+ *   const monthlyIncome = calculateMonthlyIncome(incomeSources);
+ *   const performance = calculatePerformanceData(userData, transactions, 'month');
+ * };
+ * ```
+ *
+ * @returns {Object} Budget calculation API
+ */
 
 import { Currency } from 'utils/currency';
 import {

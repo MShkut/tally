@@ -1,15 +1,94 @@
-// API Service - Central API client for backend communication
-// Replaces localStorage-based dataManager with backend API calls
+/**
+ * API Service - Centralized Backend Communication Layer
+ *
+ * This singleton service handles all HTTP communication with the Tally backend API.
+ * It provides a type-safe, cached, and resilient interface for data operations.
+ *
+ * ## Architecture
+ *
+ * - **Singleton Pattern**: Single instance shared across the application
+ * - **Request Caching**: 5-minute cache for GET requests to reduce server load
+ * - **Request Deduplication**: Prevents duplicate simultaneous requests
+ * - **Retry Logic**: Automatic retry with exponential backoff for network errors
+ * - **Timeout Handling**: 30-second timeout for all requests
+ * - **Error Normalization**: Converts API errors to user-friendly messages
+ *
+ * ## Features
+ *
+ * 1. **Authentication**
+ *    - JWT token management
+ *    - Automatic token injection in requests
+ *    - Session expiration handling
+ *
+ * 2. **User Data**
+ *    - Load/save household configuration
+ *    - Settings management
+ *    - Data export/import
+ *
+ * 3. **Transactions**
+ *    - CSV bulk import
+ *    - CRUD operations
+ *    - Advanced filtering and pagination
+ *
+ * 4. **Categories**
+ *    - Merchant-to-category mappings
+ *    - Custom category management
+ *
+ * 5. **Resilience**
+ *    - Automatic retries (3 attempts with exponential backoff)
+ *    - Request deduplication (prevents race conditions)
+ *    - Request cancellation support
+ *    - Network timeout protection
+ *
+ * ## Usage
+ *
+ * ```js
+ * import { apiService } from 'utils/apiService';
+ *
+ * // Authentication
+ * await apiService.login(password);
+ *
+ * // User Data
+ * const userData = await apiService.getUserData();
+ * await apiService.saveUserData(updatedData);
+ *
+ * // Transactions
+ * const transactions = await apiService.getTransactions({ limit: 100 });
+ * await apiService.bulkImportTransactions(csvData);
+ * ```
+ *
+ * ## Error Handling
+ *
+ * The service throws errors for failed requests. Callers should wrap API calls
+ * in try-catch blocks:
+ *
+ * ```js
+ * try {
+ *   await apiService.saveUserData(data);
+ * } catch (error) {
+ *   console.error('Save failed:', error.message);
+ *   // error.message contains user-friendly error text
+ * }
+ * ```
+ *
+ * ## Performance Optimizations
+ *
+ * - **Caching**: GET requests are cached for 5 minutes
+ * - **Deduplication**: Identical concurrent requests return the same Promise
+ * - **Timeouts**: Long-running requests are automatically aborted
+ *
+ * @class APIService
+ */
 
 const API_BASE = window.location.origin; // Backend runs on same origin in production
 
 class APIService {
   constructor() {
-    this.token = null;
-    this.cache = new Map();
+    this.token = null; // JWT authentication token
+    this.cache = new Map(); // Response cache (key: URL, value: {data, timestamp})
     this.cacheTimeout = 5 * 60 * 1000; // 5 minutes cache
-    this.pendingRequests = new Map(); // For request deduplication
-    this.requestTimeout = 30000; // 30 second timeout
+    this.pendingRequests = new Map(); // Request deduplication map
+    this.requestTimeout = 30000; // 30 second timeout for all requests
   }
 
   /**

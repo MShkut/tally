@@ -1,16 +1,31 @@
-// backend/server.js
-// Tally Budget Backend - API server with database storage
+/**
+ * Tally Budget Backend - API Server
+ *
+ * This is the main Express server for the Tally budget tracking application.
+ * It provides REST API endpoints for:
+ * - User authentication (registration, login, logout)
+ * - User data management (household income, expenses, savings)
+ * - Transaction management (CRUD operations, bulk import/export)
+ * - Category management (custom categories, smart mappings)
+ * - Settings management (preferences, currency, theme)
+ * - Data import/export (backup and restore functionality)
+ *
+ * Database: SQLite with better-sqlite3 (synchronous operations)
+ * Authentication: JWT tokens stored in httpOnly cookies
+ * Security: Argon2 password hashing, CORS enabled for frontend
+ */
 
 const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const compression = require('compression');
 
-// Initialize database
+// Initialize database connection and schema
+// This must happen before any model operations
 const { getDatabase } = require('./database/db');
-getDatabase(); // Initialize connection and schema
+getDatabase(); // Creates tables if they don't exist, returns singleton connection
 
-// Import models
+// Import data models
 const User = require('./models/User');
 const UserData = require('./models/UserData');
 const Settings = require('./models/Settings');
@@ -23,44 +38,60 @@ const { generateToken, authenticateToken, optionalAuth } = require('./middleware
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Enable compression for all responses
-app.use(compression());
-
-// Enable CORS for frontend
-app.use(cors({ credentials: true, origin: true }));
-app.use(express.json({ limit: '50mb' })); // Increased limit for bulk imports
-app.use(cookieParser());
+// Middleware configuration
+app.use(compression()); // Compress all HTTP responses for better performance
+app.use(cors({ credentials: true, origin: true })); // Allow cross-origin requests from frontend
+app.use(express.json({ limit: '50mb' })); // Parse JSON bodies (large limit for bulk transaction imports)
+app.use(cookieParser()); // Parse cookies for JWT token extraction
 
 // ==================== AUTHENTICATION ROUTES ====================
 
 /**
  * POST /api/auth/register
- * Register new user (first-time setup)
+ * Register a new household user (first-time setup only)
+ *
+ * Tally operates in single-user mode - only one household can be registered.
+ * This endpoint creates the initial user account with Argon2 hashed password.
+ *
+ * @route POST /api/auth/register
+ * @access Public (but only works if no users exist)
+ *
+ * @body {string} householdName - Name of the household (e.g., "Smith Family")
+ * @body {string} password - Password for authentication (will be hashed)
+ *
+ * @returns {Object} success: true, data: { user, token }
+ * @returns {Object} user - Created user object (without password hash)
+ * @returns {string} token - JWT authentication token (also set as httpOnly cookie)
+ *
+ * @throws {400} If household name or password missing
+ * @throws {400} If a user already exists (single-user mode)
+ * @throws {500} If database or hashing operation fails
  */
 app.post('/api/auth/register', async (req, res) => {
   try {
     const { householdName, password } = req.body;
 
+    // Validate required fields
     if (!householdName || !password) {
       return res.status(400).json({ success: false, error: 'Household name and password required' });
     }
 
-    // Check if user already exists (single user mode)
+    // Enforce single-user mode - only one household can be registered
     if (User.hasUsers()) {
       return res.status(400).json({ success: false, error: 'User already registered' });
     }
 
-    // Create user
+    // Create user with Argon2 hashed password
     const user = await User.create(householdName, password);
 
-    // Generate token
+    // Generate JWT token for authentication
     const token = generateToken(user.id);
 
-    // Set httpOnly cookie
+    // Set token as httpOnly cookie for security (prevents XSS attacks)
     res.cookie('token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+      httpOnly: true, // Cannot be accessed by client-side JavaScript
+      secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+      maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days expiration
     });
 
     res.json({
@@ -75,7 +106,24 @@ app.post('/api/auth/register', async (req, res) => {
 
 /**
  * POST /api/auth/login
- * Login existing user
+ * Authenticate existing user with password
+ *
+ * Verifies password using Argon2 comparison and returns JWT token.
+ * In single-user mode, only one household exists so no username is required.
+ *
+ * @route POST /api/auth/login
+ * @access Public
+ *
+ * @body {string} password - User's password for authentication
+ *
+ * @returns {Object} success: true, data: { user, token }
+ * @returns {Object} user - User object (without password hash)
+ * @returns {string} token - JWT authentication token (also set as httpOnly cookie)
+ *
+ * @throws {400} If password is missing
+ * @throws {404} If no user is registered
+ * @throws {401} If password is incorrect
+ * @throws {500} If verification fails
  */
 app.post('/api/auth/login', async (req, res) => {
   try {
@@ -85,24 +133,24 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Password required' });
     }
 
-    // Get the user (single user mode)
+    // Get the single registered user
     const user = User.getUser();
 
     if (!user) {
       return res.status(404).json({ success: false, error: 'No user found. Please register first.' });
     }
 
-    // Verify password
+    // Verify password using Argon2
     const valid = await User.verifyPassword(user.id, password);
 
     if (!valid) {
       return res.status(401).json({ success: false, error: 'Invalid password' });
     }
 
-    // Generate token
+    // Generate JWT token
     const token = generateToken(user.id);
 
-    // Set httpOnly cookie
+    // Set httpOnly cookie for secure session management
     res.cookie('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -121,7 +169,12 @@ app.post('/api/auth/login', async (req, res) => {
 
 /**
  * POST /api/auth/logout
- * Logout user
+ * Log out current user by clearing authentication cookie
+ *
+ * @route POST /api/auth/logout
+ * @access Public
+ *
+ * @returns {Object} success: true
  */
 app.post('/api/auth/logout', (req, res) => {
   res.clearCookie('token');
@@ -130,7 +183,13 @@ app.post('/api/auth/logout', (req, res) => {
 
 /**
  * GET /api/auth/me
- * Get current user
+ * Get currently authenticated user information
+ *
+ * @route GET /api/auth/me
+ * @access Private (requires authentication)
+ *
+ * @returns {Object} success: true, data: user
+ * @returns {Object} user - Current user object from JWT token
  */
 app.get('/api/auth/me', authenticateToken, (req, res) => {
   res.json({ success: true, data: req.user });
@@ -138,7 +197,16 @@ app.get('/api/auth/me', authenticateToken, (req, res) => {
 
 /**
  * GET /api/auth/status
- * Check if user is registered (no auth required)
+ * Check if a user is registered in the system
+ *
+ * Used by the frontend to determine whether to show registration or login screen.
+ * This is a public endpoint (no authentication required).
+ *
+ * @route GET /api/auth/status
+ * @access Public
+ *
+ * @returns {Object} success: true, data: { registered: boolean }
+ * @returns {boolean} registered - True if a user exists, false otherwise
  */
 app.get('/api/auth/status', (req, res) => {
   const hasUsers = User.hasUsers();
@@ -146,10 +214,26 @@ app.get('/api/auth/status', (req, res) => {
 });
 
 // ==================== USER DATA ROUTES ====================
+// UserData contains household configuration: income, monthly expenses, savings goals
 
 /**
  * GET /api/user
- * Get user data (household, income, expenses, savings)
+ * Get household configuration data
+ *
+ * Retrieves all user data including:
+ * - Household information
+ * - Income sources and amounts
+ * - Monthly expense allocations
+ * - Savings goals and targets
+ * - Onboarding completion status
+ *
+ * @route GET /api/user
+ * @access Private (requires authentication)
+ *
+ * @returns {Object} success: true, data: userData
+ * @returns {Object} userData - Complete household configuration object
+ *
+ * @throws {500} If database read fails
  */
 app.get('/api/user', authenticateToken, (req, res) => {
   try {
@@ -162,7 +246,24 @@ app.get('/api/user', authenticateToken, (req, res) => {
 
 /**
  * PUT /api/user
- * Save user data
+ * Save household configuration data
+ *
+ * Updates user data including income, expenses, savings allocation, and onboarding status.
+ * This endpoint is used during onboarding and when updating household settings.
+ *
+ * @route PUT /api/user
+ * @access Private (requires authentication)
+ *
+ * @body {Object} userData - Complete or partial user data object
+ * @body {boolean} [userData.onboardingComplete] - Whether onboarding is finished
+ * @body {Array} [userData.income] - Income sources
+ * @body {Object} [userData.expenses] - Monthly expense allocations
+ * @body {Object} [userData.savings] - Savings goals and targets
+ *
+ * @returns {Object} success: true, data: savedUserData
+ * @returns {Object} savedUserData - Updated user data object
+ *
+ * @throws {500} If database write fails
  */
 app.put('/api/user', authenticateToken, (req, res) => {
   try {
@@ -174,10 +275,25 @@ app.put('/api/user', authenticateToken, (req, res) => {
 });
 
 // ==================== SETTINGS ROUTES ====================
+// User preferences: currency, theme, display options, etc.
 
 /**
  * GET /api/settings
- * Get user settings
+ * Get user preferences and application settings
+ *
+ * Retrieves user-specific settings such as:
+ * - Preferred currency
+ * - Theme preference (light/dark)
+ * - Display options
+ * - Other application preferences
+ *
+ * @route GET /api/settings
+ * @access Private (requires authentication)
+ *
+ * @returns {Object} success: true, data: settings
+ * @returns {Object} settings - User settings object
+ *
+ * @throws {500} If database read fails
  */
 app.get('/api/settings', authenticateToken, (req, res) => {
   try {
@@ -190,7 +306,19 @@ app.get('/api/settings', authenticateToken, (req, res) => {
 
 /**
  * PUT /api/settings
- * Save user settings
+ * Update user preferences and application settings
+ *
+ * @route PUT /api/settings
+ * @access Private (requires authentication)
+ *
+ * @body {Object} settings - Complete or partial settings object
+ * @body {string} [settings.currency] - Preferred currency code (e.g., "USD", "EUR")
+ * @body {string} [settings.theme] - Theme preference ("light" or "dark")
+ *
+ * @returns {Object} success: true, data: savedSettings
+ * @returns {Object} savedSettings - Updated settings object
+ *
+ * @throws {500} If database write fails
  */
 app.put('/api/settings', authenticateToken, (req, res) => {
   try {
@@ -202,11 +330,32 @@ app.put('/api/settings', authenticateToken, (req, res) => {
 });
 
 // ==================== TRANSACTION ROUTES ====================
+// Transaction management: CSV imports, filtering, categorization, CRUD operations
 
 /**
  * GET /api/transactions
- * Get all transactions with optional filters
- * Query params: limit, offset, search, type, category, dateFilter, sortBy, sortOrder
+ * Get transactions with pagination, filtering, and sorting
+ *
+ * Supports advanced querying with multiple filters and sort options.
+ * Primarily used for displaying transaction lists and generating reports.
+ *
+ * @route GET /api/transactions
+ * @access Private (requires authentication)
+ *
+ * @query {number} [limit=1000] - Maximum number of transactions to return
+ * @query {number} [offset=0] - Number of transactions to skip (for pagination)
+ * @query {string} [search=''] - Search term for merchant/description
+ * @query {string} [type=''] - Filter by transaction type (e.g., "income", "expense")
+ * @query {string} [category=''] - Filter by category
+ * @query {string} [dateFilter=''] - Filter by date range
+ * @query {string} [sortBy='date'] - Field to sort by (date, amount, merchant, etc.)
+ * @query {string} [sortOrder='desc'] - Sort direction (asc or desc)
+ *
+ * @returns {Object} success: true, data: transactions, total: count
+ * @returns {Array} data - Array of transaction objects
+ * @returns {number} total - Total count of transactions matching filters
+ *
+ * @throws {500} If database query fails
  */
 app.get('/api/transactions', authenticateToken, (req, res) => {
   try {
@@ -221,6 +370,7 @@ app.get('/api/transactions', authenticateToken, (req, res) => {
       sortOrder = 'desc'
     } = req.query;
 
+    // Build options object for database query
     const options = {
       limit: parseInt(limit),
       offset: parseInt(offset),
@@ -243,7 +393,28 @@ app.get('/api/transactions', authenticateToken, (req, res) => {
 
 /**
  * POST /api/transactions
- * Bulk import transactions
+ * Bulk import transactions from CSV
+ *
+ * Inserts multiple transactions in a single operation for efficiency.
+ * Typically used when importing CSV files from bank statements.
+ * Uses INSERT OR REPLACE to handle duplicate imports.
+ *
+ * @route POST /api/transactions
+ * @access Private (requires authentication)
+ *
+ * @body {Array} transactions - Array of transaction objects
+ * @body {string} transactions[].date - Transaction date (ISO format)
+ * @body {string} transactions[].merchant - Merchant name
+ * @body {string} transactions[].category - Category name
+ * @body {number} transactions[].amount - Transaction amount
+ * @body {string} transactions[].type - Transaction type (income/expense)
+ * @body {string} [transactions[].description] - Optional description
+ *
+ * @returns {Object} success: true, data: { count: number }
+ * @returns {number} count - Number of transactions imported
+ *
+ * @throws {400} If transactions is not an array
+ * @throws {500} If database insert fails
  */
 app.post('/api/transactions', authenticateToken, (req, res) => {
   try {
@@ -262,7 +433,28 @@ app.post('/api/transactions', authenticateToken, (req, res) => {
 
 /**
  * PUT /api/transactions/:id
- * Update single transaction
+ * Update an existing transaction
+ *
+ * Allows editing of transaction details such as category, merchant, date, etc.
+ * Used for correcting imported data or manual adjustments.
+ *
+ * @route PUT /api/transactions/:id
+ * @access Private (requires authentication)
+ *
+ * @param {string} id - Transaction ID
+ *
+ * @body {string} [date] - Updated transaction date
+ * @body {string} [merchant] - Updated merchant name
+ * @body {string} [category] - Updated category
+ * @body {number} [amount] - Updated amount
+ * @body {string} [type] - Updated type (income/expense)
+ * @body {string} [description] - Updated description
+ *
+ * @returns {Object} success: true, data: updatedTransaction
+ * @returns {Object} data - Updated transaction object
+ *
+ * @throws {404} If transaction not found or doesn't belong to user
+ * @throws {500} If database update fails
  */
 app.put('/api/transactions/:id', authenticateToken, (req, res) => {
   try {
@@ -289,7 +481,21 @@ app.put('/api/transactions/:id', authenticateToken, (req, res) => {
 
 /**
  * POST /api/transactions/bulk-delete
- * Bulk delete multiple transactions
+ * Delete multiple transactions at once
+ *
+ * Efficiently removes multiple transactions in a single database operation.
+ * Used for cleaning up unwanted transactions after CSV import.
+ *
+ * @route POST /api/transactions/bulk-delete
+ * @access Private (requires authentication)
+ *
+ * @body {Array<string>} transactionIds - Array of transaction IDs to delete
+ *
+ * @returns {Object} success: true, data: { count: number }
+ * @returns {number} count - Number of transactions deleted
+ *
+ * @throws {400} If transactionIds is not an array
+ * @throws {500} If database delete fails
  */
 app.post('/api/transactions/bulk-delete', authenticateToken, (req, res) => {
   try {
@@ -308,7 +514,17 @@ app.post('/api/transactions/bulk-delete', authenticateToken, (req, res) => {
 
 /**
  * DELETE /api/transactions/:id
- * Delete transaction
+ * Delete a single transaction
+ *
+ * @route DELETE /api/transactions/:id
+ * @access Private (requires authentication)
+ *
+ * @param {string} id - Transaction ID to delete
+ *
+ * @returns {Object} success: true
+ *
+ * @throws {404} If transaction not found or doesn't belong to user
+ * @throws {500} If database delete fails
  */
 app.delete('/api/transactions/:id', authenticateToken, (req, res) => {
   try {
@@ -323,10 +539,24 @@ app.delete('/api/transactions/:id', authenticateToken, (req, res) => {
 });
 
 // ==================== CATEGORY MAPPING ROUTES ====================
+// Smart categorization: merchant-to-category mappings and custom categories
 
 /**
  * GET /api/categories/mappings
- * Get all category mappings
+ * Get all merchant-to-category mappings
+ *
+ * Returns learned mappings that automatically categorize transactions
+ * based on merchant names. These mappings are created when users manually
+ * categorize transactions.
+ *
+ * @route GET /api/categories/mappings
+ * @access Private (requires authentication)
+ *
+ * @returns {Object} success: true, data: mappings
+ * @returns {Object} data - Object with merchant names as keys, categories as values
+ * @example { "Starbucks": "Coffee & Dining", "Shell": "Transportation" }
+ *
+ * @throws {500} If database read fails
  */
 app.get('/api/categories/mappings', authenticateToken, (req, res) => {
   try {
@@ -339,13 +569,28 @@ app.get('/api/categories/mappings', authenticateToken, (req, res) => {
 
 /**
  * PUT /api/categories/mappings
- * Save category mappings
+ * Save merchant-to-category mappings
+ *
+ * Updates the smart categorization rules. When a merchant is mapped to
+ * a category, future transactions from that merchant will automatically
+ * be assigned that category.
+ *
+ * @route PUT /api/categories/mappings
+ * @access Private (requires authentication)
+ *
+ * @body {Object} mappings - Object with merchant names as keys, categories as values
+ * @example { "Walmart": "Groceries", "Target": "Shopping" }
+ *
+ * @returns {Object} success: true, data: mappings
+ * @returns {Object} data - Saved mappings object
+ *
+ * @throws {500} If database write fails
  */
 app.put('/api/categories/mappings', authenticateToken, (req, res) => {
   try {
     const mappings = req.body;
 
-    // Save each mapping
+    // Save each merchant-to-category mapping
     Object.entries(mappings).forEach(([merchant, category]) => {
       CategoryMapping.save(req.userId, merchant, category);
     });
@@ -358,7 +603,22 @@ app.put('/api/categories/mappings', authenticateToken, (req, res) => {
 
 /**
  * GET /api/categories/custom/:context
- * Get custom categories for context
+ * Get user-defined custom categories for a specific context
+ *
+ * Contexts allow different category sets for different purposes:
+ * - "expenses": Categories for monthly expenses
+ * - "transactions": Categories for imported transactions
+ * - "income": Categories for income sources
+ *
+ * @route GET /api/categories/custom/:context
+ * @access Private (requires authentication)
+ *
+ * @param {string} context - Category context (expenses, transactions, income, etc.)
+ *
+ * @returns {Object} success: true, data: categories
+ * @returns {Array} data - Array of custom category names
+ *
+ * @throws {500} If database read fails
  */
 app.get('/api/categories/custom/:context', authenticateToken, (req, res) => {
   try {
@@ -372,7 +632,18 @@ app.get('/api/categories/custom/:context', authenticateToken, (req, res) => {
 
 /**
  * PUT /api/categories/custom/:context
- * Save custom categories for context
+ * Save user-defined custom categories for a specific context
+ *
+ * @route PUT /api/categories/custom/:context
+ * @access Private (requires authentication)
+ *
+ * @param {string} context - Category context (expenses, transactions, income, etc.)
+ * @body {Array<string>} categories - Array of category names
+ *
+ * @returns {Object} success: true, data: categories
+ * @returns {Array} data - Saved categories array
+ *
+ * @throws {500} If database write fails
  */
 app.put('/api/categories/custom/:context', authenticateToken, (req, res) => {
   try {
@@ -387,10 +658,34 @@ app.put('/api/categories/custom/:context', authenticateToken, (req, res) => {
 });
 
 // ==================== DATA MANAGEMENT ROUTES ====================
+// Backup, restore, and data management operations
 
 /**
  * GET /api/data/export
- * Export all user data
+ * Export all user data for backup purposes
+ *
+ * Creates a complete snapshot of all user data including:
+ * - Household configuration (income, expenses, savings)
+ * - All transactions
+ * - User settings (currency, theme, etc.)
+ *
+ * The exported data can be used for:
+ * - Backup before major changes
+ * - Migration to another Tally instance
+ * - Data portability
+ *
+ * @route GET /api/data/export
+ * @access Private (requires authentication)
+ *
+ * @returns {Object} success: true, data: exportData
+ * @returns {Object} exportData - Complete user data export
+ * @returns {string} exportData.version - Export format version
+ * @returns {string} exportData.exportedAt - ISO timestamp of export
+ * @returns {Object} exportData.userData - Household configuration
+ * @returns {Array} exportData.transactions - All transactions
+ * @returns {Object} exportData.settings - User settings
+ *
+ * @throws {500} If data retrieval fails
  */
 app.get('/api/data/export', authenticateToken, async (req, res) => {
   try {
@@ -399,7 +694,7 @@ app.get('/api/data/export', authenticateToken, async (req, res) => {
     const settings = Settings.load(req.userId);
     const transactions = Transaction.findByUser(req.userId, 10000, 0); // Get all transactions (high limit)
 
-    // Build export object
+    // Build export object with version metadata
     const exportData = {
       version: '1.0',
       exportedAt: new Date().toISOString(),
@@ -417,7 +712,28 @@ app.get('/api/data/export', authenticateToken, async (req, res) => {
 
 /**
  * POST /api/data/import
- * Import user data (replaces all existing data)
+ * Import user data from a previous export (restore from backup)
+ *
+ * Restores data from a previous export. This operation:
+ * - Replaces ALL existing user data
+ * - Automatically marks onboarding as complete
+ * - Handles partial imports (userData, settings, or transactions can be imported individually)
+ *
+ * CAUTION: This is a destructive operation. All existing data will be replaced.
+ *
+ * @route POST /api/data/import
+ * @access Private (requires authentication)
+ *
+ * @body {Object} importData - Export data object from /api/data/export
+ * @body {string} [importData.version] - Export format version
+ * @body {Object} [importData.userData] - Household configuration to import
+ * @body {Array} [importData.transactions] - Transactions to import
+ * @body {Object} [importData.settings] - Settings to import
+ *
+ * @returns {Object} success: true, data: { message: string }
+ *
+ * @throws {400} If import data structure is invalid
+ * @throws {500} If data import fails
  */
 app.post('/api/data/import', authenticateToken, async (req, res) => {
   try {
@@ -433,10 +749,11 @@ app.post('/api/data/import', authenticateToken, async (req, res) => {
 
     console.log('[IMPORT] Starting import...');
 
-    // Import user data
+    // Import user data (household configuration)
     if (importData.userData) {
       try {
         // Ensure onboardingComplete is set to true for imported data
+        // This prevents users from being stuck in onboarding after import
         const userDataToImport = {
           ...importData.userData,
           onboardingComplete: true
@@ -449,18 +766,18 @@ app.post('/api/data/import', authenticateToken, async (req, res) => {
       }
     }
 
-    // Import settings
+    // Import settings (non-critical)
     if (importData.settings) {
       try {
         Settings.save(req.userId, importData.settings);
         console.log('[IMPORT] ✓ Settings imported');
       } catch (error) {
         console.error('[IMPORT] Error importing settings:', error);
-        // Non-critical, continue
+        // Non-critical, continue with import
       }
     }
 
-    // Import transactions (bulk)
+    // Import transactions (bulk operation)
     if (importData.transactions && importData.transactions.length > 0) {
       try {
         console.log(`[IMPORT] Importing ${importData.transactions.length} transactions...`);
@@ -482,11 +799,27 @@ app.post('/api/data/import', authenticateToken, async (req, res) => {
 
 /**
  * POST /api/data/reset
- * Reset all user data (destructive operation)
+ * Reset all user data (DESTRUCTIVE OPERATION)
+ *
+ * Permanently deletes ALL user data:
+ * - Household configuration
+ * - All transactions
+ * - All settings
+ * - All category mappings
+ *
+ * This operation cannot be undone. Users should export data before reset.
+ * The user account itself is NOT deleted, only the associated data.
+ *
+ * @route POST /api/data/reset
+ * @access Private (requires authentication)
+ *
+ * @returns {Object} success: true, data: { message: string }
+ *
+ * @throws {500} If data deletion fails
  */
 app.post('/api/data/reset', authenticateToken, async (req, res) => {
   try {
-    // Delete all user data
+    // Delete all user data (irreversible)
     UserData.delete(req.userId);
     Settings.delete(req.userId);
     Transaction.deleteAll(req.userId);
@@ -500,7 +833,9 @@ app.post('/api/data/reset', authenticateToken, async (req, res) => {
   }
 });
 
-// Start server
+// ==================== SERVER INITIALIZATION ====================
+
+// Start Express server
 app.listen(PORT, () => {
   console.log(`✅ API server running on port ${PORT}`);
   console.log(`   Health check: http://localhost:${PORT}/health`);
