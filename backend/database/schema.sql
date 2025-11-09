@@ -88,7 +88,7 @@ CREATE INDEX IF NOT EXISTS idx_category_mappings_user ON category_mappings(user_
 CREATE TABLE IF NOT EXISTS custom_categories (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id INTEGER NOT NULL,
-  context TEXT NOT NULL, -- 'expenses', 'savings', 'income', 'assets', 'liabilities'
+  context TEXT NOT NULL, -- 'expenses', 'savings', 'income'
   categories TEXT NOT NULL, -- JSON array of category names
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now')),

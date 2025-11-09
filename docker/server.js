@@ -206,7 +206,6 @@ app.get('/api/budget', validateToken, async (req, res) => {
       budgetData = {
         userData: {},
         transactions: [],
-        netWorthItems: [],
         giftData: { people: [], gifts: [] },
         version: '1.0.0',
         lastModified: new Date().toISOString()

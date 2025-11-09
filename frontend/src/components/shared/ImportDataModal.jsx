@@ -41,7 +41,7 @@ export const ImportDataModal = ({ isOpen, onClose, onSuccess }) => {
         }
 
         // Validate the data structure
-        if (!jsonData.userData && !jsonData.transactions && !jsonData.netWorthData && !jsonData.giftData) {
+        if (!jsonData.userData && !jsonData.transactions && !jsonData.giftData) {
           setError('Invalid Tally export file. Missing expected data.');
           setFileData(null);
           return;
@@ -79,7 +79,7 @@ export const ImportDataModal = ({ isOpen, onClose, onSuccess }) => {
       const decrypted = await decryptData(rawEncryptedData, password);
 
       // Validate decrypted data
-      if (!decrypted.userData && !decrypted.transactions && !decrypted.netWorthData && !decrypted.giftData) {
+      if (!decrypted.userData && !decrypted.transactions && !decrypted.giftData) {
         setError('Invalid Tally export file. Missing expected data.');
         return;
       }
@@ -276,9 +276,6 @@ export const ImportDataModal = ({ isOpen, onClose, onSuccess }) => {
               <div className="text-xs mt-2 space-y-1">
                 {fileData.userData && <p>• User data: Found</p>}
                 {fileData.transactions && <p>• Transactions: {fileData.transactions.length} items</p>}
-                {fileData.netWorthData && (
-                  <p>• Net worth: {(fileData.netWorthData.assets?.length || 0) + (fileData.netWorthData.liabilities?.length || 0)} items</p>
-                )}
                 {fileData.giftData && <p>• Gift data: {fileData.giftData.people?.length || 0} people</p>}
               </div>
             </div>

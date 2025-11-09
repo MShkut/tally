@@ -161,15 +161,6 @@ export const WelcomeStep = ({ onNext, savedData = null }) => {
           availableForExpenses: 5200,
           remainingBudget: 1700
         },
-        netWorth: {
-          assets: [
-            { id: '1', name: 'Savings Account', amount: '10000' },
-            { id: '2', name: 'Investment Account', amount: '25000' }
-          ],
-          liabilities: [
-            { id: '1', name: 'Car Loan', amount: '15000' }
-          ]
-        },
         onboardingComplete: true,
         onboardingCompletedDate: today.toISOString()
       };

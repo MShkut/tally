@@ -110,7 +110,7 @@ export const PlanNextPeriod = ({ onComplete, onCancel }) => {
           <div className="max-w-3xl mx-auto">
             {/* Current Period Summary */}
             <FormSection title="Current Period Summary">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-center">
                 <SummaryCard
                   title="Period"
                   value={`${currentData?.period?.duration_months || 0} months`}
@@ -120,11 +120,6 @@ export const PlanNextPeriod = ({ onComplete, onCancel }) => {
                   title="Budget"
                   value={calculateMonthlyBudget(currentData)}
                   subtitle="Monthly average"
-                />
-                <SummaryCard
-                  title="Net Worth"
-                  value={currentData?.netWorth?.netWorth || 0}
-                  subtitle="Current value"
                 />
               </div>
             </FormSection>
@@ -240,19 +235,6 @@ export const PlanNextPeriod = ({ onComplete, onCancel }) => {
                   </div>
                 </div>
               ))}
-            </div>
-          </FormSection>
-
-          {/* Note about Net Worth */}
-          <FormSection>
-            <div className={`text-center p-8 border ${
-              isDarkMode ? 'border-gray-800' : 'border-gray-200'
-            }`}>
-              <p className={`text-lg font-light ${
-                isDarkMode ? 'text-gray-400' : 'text-gray-600'
-              }`}>
-                Your net worth will continue from its current value. You can update assets and liabilities anytime.
-              </p>
             </div>
           </FormSection>
         </div>

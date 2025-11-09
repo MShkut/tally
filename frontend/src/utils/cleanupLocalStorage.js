@@ -5,8 +5,6 @@ const OLD_STORAGE_KEYS = [
   'financeTracker_userData',
   'financeTracker_transactions',
   'financeTracker_giftData',
-  'financeTracker_netWorthItems',
-  'financeTracker_netWorthHistory',
   'financeTracker_settings',
   'financeTracker_version',
   'merchantMappings',
@@ -15,8 +13,6 @@ const OLD_STORAGE_KEYS = [
   'customCategories_expenses',
   'customCategories_savings',
   'customCategories_income',
-  'customCategories_assets',
-  'customCategories_liabilities',
   // CSV mapping preferences (these can stay but let's clean old ones)
   'csvColumnMappings',
   'defaultColumnMapping',

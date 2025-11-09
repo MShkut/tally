@@ -23,8 +23,7 @@ export const useOnboarding = () => {
       emergencyFund: { hasExisting: false, monthlyAmount: '' },
       savingsGoals: []
     },
-    expenses: [],
-    netWorth: { assets: [], liabilities: [] }
+    expenses: []
   });
 
   const totalSteps = 5;
