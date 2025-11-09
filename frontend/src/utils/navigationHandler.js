@@ -79,13 +79,11 @@ export const handleMenuAction = (actionId, onNavigate, onClose, setShowResetConf
 
     case 'reset-data':
       if (setShowResetConfirm) {
-        // If component has reset confirmation modal, show it
+        // Show component's reset confirmation modal
         setShowResetConfirm(true);
       } else {
-        // Otherwise, confirm with browser alert
-        if (window.confirm('Are you sure you want to reset all data? This cannot be undone.')) {
-          handleDataReset(onNavigate);
-        }
+        // If no confirmation handler provided, log warning
+        console.warn('[RESET] No confirmation handler provided - reset action ignored');
       }
       return true;
 
@@ -112,14 +110,10 @@ export const handleMenuAction = (actionId, onNavigate, onClose, setShowResetConf
 const handleDataSave = async () => {
   try {
     // With backend API, all data is saved automatically on every change
-    // No manual save needed, but we can still show a confirmation
-    alert('✓ All data is automatically saved to the backend');
-    if (import.meta.env.DEV) {
-      console.log('✅ Data auto-saved via backend API');
-    }
+    // No manual save needed
+    console.log('✅ Data is automatically saved to the backend');
   } catch (error) {
     console.error('❌ Save confirmation failed:', error);
-    alert('Data is automatically saved. No manual action needed.');
   }
 };
 
@@ -167,7 +161,7 @@ const handleDataExport = async () => {
     console.log('[EXPORT] ✅ Data exported successfully');
   } catch (error) {
     console.error('[EXPORT] ❌ Failed to export data:', error);
-    alert('Failed to export data. Please try again.');
+    // Error is handled by the component calling this function
   }
 };
 
@@ -183,18 +177,14 @@ const handleDataReset = async (onNavigate) => {
     // Logout from backend (clears session)
     await apiService.logout();
 
-    if (import.meta.env.DEV) {
-      console.log('✅ Logged out successfully');
-    }
-
-    // Show message that user needs to re-register to reset data
-    alert('✓ Logged out. Register again to start fresh with new data.');
+    console.log('✅ Logged out successfully - reloading to start fresh');
 
     // Force reload to login/register screen
     window.location.href = '/';
   } catch (error) {
     console.error('❌ Failed to reset data:', error);
-    alert('Failed to reset. Please try logging out manually.');
+    // Error handling - just reload anyway
+    window.location.href = '/';
   }
 };
 

@@ -12,12 +12,18 @@ cd /app/api
 node server.js &
 API_PID=$!
 
-# Wait for API server to be ready with health check loop
+# Wait for API server to be ready by checking if process is running and port is listening
 echo "Waiting for API server to be ready..."
 MAX_ATTEMPTS=30
 ATTEMPT=0
 while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
-    if wget -q -O /dev/null http://localhost:3001/health 2>/dev/null; then
+    # Check if process is still running
+    if ! kill -0 $API_PID 2>/dev/null; then
+        echo "ERROR: API server process died"
+        exit 1
+    fi
+    # Check if port 3001 is listening
+    if netstat -tuln 2>/dev/null | grep -q ":3001 "; then
         echo "API server is ready!"
         break
     fi

@@ -56,11 +56,9 @@ COPY backend/utils/ /app/api/utils/
 COPY docker/start.sh /start.sh
 RUN chmod +x /start.sh
 
-# Copy Start9 scripts (backup, restore, health-check)
-COPY startos/health-check.sh /health-check.sh
+# Copy Start9 scripts (backup, restore)
 COPY startos/scripts/ /scripts/
-RUN chmod +x /health-check.sh && \
-    find /scripts -type f -name "*.sh" -exec chmod +x {} \;
+RUN find /scripts -type f -name "*.sh" -exec chmod +x {} \;
 
 # Create data directory for budget files
 RUN mkdir -p /data

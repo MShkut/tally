@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useTheme } from 'contexts/ThemeContext';
 import { apiService } from 'utils/apiService';
+import { decryptData, isEncrypted } from 'utils/encryption';
 
 export const ImportDataModal = ({ isOpen, onClose, onSuccess }) => {
   const { isDarkMode } = useTheme();
@@ -8,6 +9,9 @@ export const ImportDataModal = ({ isOpen, onClose, onSuccess }) => {
   const [fileData, setFileData] = useState(null);
   const [error, setError] = useState(null);
   const [importing, setImporting] = useState(false);
+  const [needsPassword, setNeedsPassword] = useState(false);
+  const [password, setPassword] = useState('');
+  const [rawEncryptedData, setRawEncryptedData] = useState(null);
   const fileInputRef = useRef(null);
 
   const handleFileSelect = (event) => {
@@ -27,6 +31,15 @@ export const ImportDataModal = ({ isOpen, onClose, onSuccess }) => {
       try {
         const jsonData = JSON.parse(e.target.result);
 
+        // Check if file is encrypted
+        if (isEncrypted(jsonData)) {
+          console.log('[IMPORT] File is encrypted, prompting for password');
+          setRawEncryptedData(jsonData);
+          setNeedsPassword(true);
+          setFileData(null);
+          return;
+        }
+
         // Validate the data structure
         if (!jsonData.userData && !jsonData.transactions && !jsonData.netWorthData && !jsonData.giftData) {
           setError('Invalid Tally export file. Missing expected data.');
@@ -35,6 +48,8 @@ export const ImportDataModal = ({ isOpen, onClose, onSuccess }) => {
         }
 
         setFileData(jsonData);
+        setNeedsPassword(false);
+        setRawEncryptedData(null);
         console.log('[IMPORT] File loaded and validated successfully');
       } catch (err) {
         console.error('[IMPORT] Parse error:', err);
@@ -52,6 +67,33 @@ export const ImportDataModal = ({ isOpen, onClose, onSuccess }) => {
     reader.readAsText(file);
   };
 
+  const handleDecrypt = async () => {
+    if (!rawEncryptedData || !password) {
+      setError('Please enter the encryption password');
+      return;
+    }
+
+    try {
+      setError(null);
+      console.log('[IMPORT] Attempting to decrypt file...');
+      const decrypted = await decryptData(rawEncryptedData, password);
+
+      // Validate decrypted data
+      if (!decrypted.userData && !decrypted.transactions && !decrypted.netWorthData && !decrypted.giftData) {
+        setError('Invalid Tally export file. Missing expected data.');
+        return;
+      }
+
+      setFileData(decrypted);
+      setNeedsPassword(false);
+      setPassword('');
+      console.log('[IMPORT] File decrypted and validated successfully');
+    } catch (err) {
+      console.error('[IMPORT] Decryption error:', err);
+      setError(err.message || 'Failed to decrypt file. Check your password.');
+    }
+  };
+
   const handleImport = async () => {
     if (!fileData) return;
 
@@ -67,7 +109,6 @@ export const ImportDataModal = ({ isOpen, onClose, onSuccess }) => {
         await apiService.importData(fileData);
 
         console.log('[IMPORT] ✓ All data imported successfully');
-        alert('✓ Data imported successfully!');
 
         // Close modal and trigger success callback
         // Let the parent component (WelcomeStep, Settings, etc.) handle navigation
@@ -91,6 +132,9 @@ export const ImportDataModal = ({ isOpen, onClose, onSuccess }) => {
     setSelectedFile(null);
     setFileData(null);
     setError(null);
+    setNeedsPassword(false);
+    setPassword('');
+    setRawEncryptedData(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -153,12 +197,12 @@ export const ImportDataModal = ({ isOpen, onClose, onSuccess }) => {
             <label className={`block text-sm font-medium mb-2 ${
               isDarkMode ? 'text-gray-300' : 'text-gray-700'
             }`}>
-              Select Tally Export File (JSON)
+              Select Tally Export File (.json or .tally)
             </label>
             <input
               ref={fileInputRef}
               type="file"
-              accept=".json,application/json"
+              accept=".json,.tally,application/json"
               onChange={handleFileSelect}
               className={`block w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-medium ${
                 isDarkMode
@@ -168,6 +212,50 @@ export const ImportDataModal = ({ isOpen, onClose, onSuccess }) => {
               disabled={importing}
             />
           </div>
+
+          {/* Password Input for Encrypted Files */}
+          {needsPassword && rawEncryptedData && (
+            <div className={`mb-6 p-4 rounded border ${
+              isDarkMode
+                ? 'bg-yellow-900 bg-opacity-20 border-yellow-800'
+                : 'bg-yellow-50 border-yellow-200'
+            }`}>
+              <p className={`text-sm font-medium mb-3 ${
+                isDarkMode ? 'text-yellow-400' : 'text-yellow-700'
+              }`}>
+                🔒 This file is encrypted
+              </p>
+              <p className={`text-sm mb-3 ${
+                isDarkMode ? 'text-gray-400' : 'text-gray-600'
+              }`}>
+                Enter the encryption password to decrypt and continue
+              </p>
+              <input
+                type="password"
+                placeholder="Enter encryption password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleDecrypt()}
+                className={`w-full px-4 py-2 border-2 font-light bg-transparent mb-3 ${
+                  isDarkMode
+                    ? 'border-gray-700 text-white placeholder-gray-500'
+                    : 'border-gray-300 text-black placeholder-gray-400'
+                }`}
+                autoFocus
+              />
+              <button
+                onClick={handleDecrypt}
+                disabled={!password}
+                className={`px-6 py-2 text-sm font-medium rounded transition-colors ${
+                  isDarkMode
+                    ? 'bg-white text-black hover:bg-gray-100'
+                    : 'bg-black text-white hover:bg-gray-800'
+                } disabled:opacity-50 disabled:cursor-not-allowed`}
+              >
+                Decrypt File
+              </button>
+            </div>
+          )}
 
           {/* File Info */}
           {selectedFile && fileData && (

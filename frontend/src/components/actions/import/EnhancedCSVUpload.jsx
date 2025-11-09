@@ -23,6 +23,7 @@ export const EnhancedCSVUpload = ({ onComplete, onBack, onStepChange }) => {
   const [csvData, setCsvData] = useState([]);
   const [fileName, setFileName] = useState('');
   const [dragActive, setDragActive] = useState(false);
+  const [error, setError] = useState('');
   const [columnMapping, setColumnMapping] = useState({
     date: '',
     description: '',
@@ -45,7 +46,8 @@ export const EnhancedCSVUpload = ({ onComplete, onBack, onStepChange }) => {
     const file = files[0];
 
     if (!file.name.toLowerCase().endsWith('.csv')) {
-      alert('Please upload a CSV file');
+      setError('Please upload a CSV file');
+      setTimeout(() => setError(''), 5000);
       return;
     }
 
@@ -263,19 +265,19 @@ export const EnhancedCSVUpload = ({ onComplete, onBack, onStepChange }) => {
               {...dragHandlers}
               onClick={() => document.getElementById('csv-file-input').click()}
               className={`w-full py-6 border-2 border-dashed transition-colors text-center mb-8 cursor-pointer ${
-                dragActive 
-                  ? isDarkMode 
-                    ? 'border-white bg-gray-900' 
+                dragActive
+                  ? isDarkMode
+                    ? 'border-white bg-gray-900'
                     : 'border-black bg-gray-100'
-                  : isDarkMode 
-                    ? 'border-gray-600 text-gray-400 hover:border-gray-500 hover:text-gray-300' 
+                  : isDarkMode
+                    ? 'border-gray-600 text-gray-400 hover:border-gray-500 hover:text-gray-300'
                     : 'border-gray-300 text-gray-600 hover:border-gray-400 hover:text-gray-700'
               }`}
             >
               <span className="text-lg font-light">
                 Drop CSV file here or click to browse
               </span>
-              
+
               <input
                 type="file"
                 accept=".csv"
@@ -284,6 +286,17 @@ export const EnhancedCSVUpload = ({ onComplete, onBack, onStepChange }) => {
                 id="csv-file-input"
               />
             </div>
+
+            {/* Error Message */}
+            {error && (
+              <div className={`p-4 rounded border-l-4 mb-4 ${
+                isDarkMode
+                  ? 'bg-red-900 bg-opacity-20 border-red-600 text-red-400'
+                  : 'bg-red-50 border-red-500 text-red-700'
+              }`}>
+                <p className="text-sm font-light">{error}</p>
+              </div>
+            )}
           </FormSection>
 
           {/* Format Help */}

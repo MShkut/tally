@@ -15,7 +15,6 @@ const User = require('./models/User');
 const UserData = require('./models/UserData');
 const Settings = require('./models/Settings');
 const Transaction = require('./models/Transaction');
-const GiftData = require('./models/GiftData');
 const CategoryMapping = require('./models/CategoryMapping');
 
 // Import middleware
@@ -323,34 +322,6 @@ app.delete('/api/transactions/:id', authenticateToken, (req, res) => {
   }
 });
 
-// ==================== GIFT DATA ROUTES ====================
-
-/**
- * GET /api/gifts
- * Get gift data
- */
-app.get('/api/gifts', authenticateToken, (req, res) => {
-  try {
-    const data = GiftData.load(req.userId);
-    res.json({ success: true, data });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-/**
- * PUT /api/gifts
- * Save gift data
- */
-app.put('/api/gifts', authenticateToken, (req, res) => {
-  try {
-    const data = GiftData.save(req.userId, req.body);
-    res.json({ success: true, data });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
 // ==================== CATEGORY MAPPING ROUTES ====================
 
 /**
@@ -427,7 +398,6 @@ app.get('/api/data/export', authenticateToken, async (req, res) => {
     const userData = UserData.load(req.userId);
     const settings = Settings.load(req.userId);
     const transactions = Transaction.findByUser(req.userId, 10000, 0); // Get all transactions (high limit)
-    const giftData = GiftData.load(req.userId);
 
     // Build export object
     const exportData = {
@@ -435,7 +405,6 @@ app.get('/api/data/export', authenticateToken, async (req, res) => {
       exportedAt: new Date().toISOString(),
       userData: userData || null,
       transactions: transactions || [],
-      giftData: giftData || null,
       settings: settings || null
     };
 
@@ -455,7 +424,7 @@ app.post('/api/data/import', authenticateToken, async (req, res) => {
     const importData = req.body;
 
     // Validate import data structure
-    if (!importData.userData && !importData.transactions && !importData.giftData) {
+    if (!importData.userData && !importData.transactions) {
       return res.status(400).json({
         success: false,
         error: 'Invalid import data structure'
@@ -467,8 +436,13 @@ app.post('/api/data/import', authenticateToken, async (req, res) => {
     // Import user data
     if (importData.userData) {
       try {
-        UserData.save(req.userId, importData.userData);
-        console.log('[IMPORT] ✓ User data imported');
+        // Ensure onboardingComplete is set to true for imported data
+        const userDataToImport = {
+          ...importData.userData,
+          onboardingComplete: true
+        };
+        UserData.save(req.userId, userDataToImport);
+        console.log('[IMPORT] ✓ User data imported (onboardingComplete: true)');
       } catch (error) {
         console.error('[IMPORT] Error importing user data:', error);
         throw new Error(`User data import failed: ${error.message}`);
@@ -498,17 +472,6 @@ app.post('/api/data/import', authenticateToken, async (req, res) => {
       }
     }
 
-    // Import gift data
-    if (importData.giftData) {
-      try {
-        GiftData.save(req.userId, importData.giftData);
-        console.log('[IMPORT] ✓ Gift data imported');
-      } catch (error) {
-        console.error('[IMPORT] Error importing gift data:', error);
-        // Non-critical, continue
-      }
-    }
-
     console.log('[IMPORT] ✅ Data imported successfully');
     res.json({ success: true, data: { message: 'Data imported successfully' } });
   } catch (error) {
@@ -527,7 +490,6 @@ app.post('/api/data/reset', authenticateToken, async (req, res) => {
     UserData.delete(req.userId);
     Settings.delete(req.userId);
     Transaction.deleteAll(req.userId);
-    GiftData.delete(req.userId);
     CategoryMapping.deleteAll(req.userId);
 
     console.log('[RESET] ✅ All data reset for user', req.userId);

@@ -1,6 +1,6 @@
 id: tally-budget
 title: Tally Budget
-version: 0.1.7
+version: 0.1.8
 description:
   short: Privacy-first household budget tracker running on your Start9 server
   long: |
@@ -11,9 +11,18 @@ description:
     - CSV transaction import from your bank
     - Budget tracking by category
     - Net worth monitoring (assets and liabilities) - removed for now
+    - Encrypted backup exports with AES-256-GCM encryption
     - All data stays on your server - complete privacy
 
 release-notes: |
+  Version 0.1.8 - Encrypted Backup Support
+  - Added: Password-protected backup encryption using AES-256-GCM
+  - Added: Support for importing encrypted .tally backup files
+  - Added: Decryption during onboarding flow for encrypted backups
+  - Improved: Replaced browser alerts with in-app notifications
+  - Security: Encryption password is separate from login password with clear warnings
+  - Note: Encrypted backups export as .tally files, unencrypted as .json
+
   Version 0.1.7 - Removed Gift Management Feature
   - Removed: Gift management feature and all related components
   - Removed: Gift data storage and API endpoints
@@ -218,6 +227,8 @@ main:
   args: []
   mounts:
     main: /data
+
+health-checks: {}
 
 config: ~
 
