@@ -5,9 +5,15 @@
 // In Electron local mode: uses http://localhost:3001
 // In Electron remote mode: uses configured server URL
 // In browser/Docker/Start9: uses same origin
-const API_BASE = window.electronAPI?.isElectron
-  ? (window.electronAPI.mode === 'local' ? 'http://localhost:3001' : window.electronAPI.serverUrl)
-  : window.location.origin;
+// Use function instead of constant to avoid race condition with Electron config injection
+function getAPIBase() {
+  if (window.electronAPI?.isElectron) {
+    return window.electronAPI.mode === 'local'
+      ? 'http://localhost:3001'
+      : window.electronAPI.serverUrl;
+  }
+  return window.location.origin;
+}
 
 class APIService {
   constructor() {
@@ -18,7 +24,7 @@ class APIService {
    * Make authenticated API request
    */
   async request(endpoint, options = {}) {
-    const url = `${API_BASE}/api${endpoint}`;
+    const url = `${getAPIBase()}/api${endpoint}`;
 
     const config = {
       credentials: 'include', // Include cookies
@@ -61,7 +67,7 @@ class APIService {
    * Check if user is registered
    */
   async checkRegistrationStatus() {
-    const response = await fetch(`${API_BASE}/api/auth/status`);
+    const response = await fetch(`${getAPIBase()}/api/auth/status`);
     const data = await response.json();
     return data.data.registered;
   }

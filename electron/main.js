@@ -94,8 +94,8 @@ function startBackend() {
     // Timeout after 10 seconds
     setTimeout(() => {
       if (!backendReady) {
-        console.log('Backend started (timeout fallback)');
-        resolve();
+        console.error('Backend failed to start within 10 seconds');
+        reject(new Error('Backend startup timeout - server did not respond within 10 seconds'));
       }
     }, 10000);
   });
@@ -130,6 +130,19 @@ function createSetupWindow() {
   });
 
   setupWindow.loadFile(path.join(__dirname, 'setup-wizard.html'));
+
+  // When wizard closes, create main window if setup was completed
+  setupWindow.on('closed', () => {
+    // Check if setup was completed
+    if (store.get('setupComplete')) {
+      console.log('Setup completed, creating main window...');
+      createMainWindow();
+    } else {
+      // User cancelled setup without completing
+      console.log('Setup cancelled, quitting app...');
+      app.quit();
+    }
+  });
 
   if (isDev) {
     setupWindow.webContents.openDevTools();
@@ -208,15 +221,18 @@ async function createMainWindow() {
 
   // Inject configuration after page loads
   mainWindow.webContents.on('did-finish-load', () => {
+    // Use JSON.stringify to prevent XSS vulnerabilities
+    const configData = JSON.stringify({
+      mode: config.mode,
+      serverUrl: config.serverUrl || ''
+    });
     mainWindow.webContents.executeJavaScript(`
       if (window.electronAPI) {
-        window.electronAPI.mode = '${config.mode}';
-        window.electronAPI.serverUrl = '${config.serverUrl || ''}';
+        const config = ${configData};
+        window.electronAPI.mode = config.mode;
+        window.electronAPI.serverUrl = config.serverUrl;
       }
-      console.log('Electron config injected:', {
-        mode: '${config.mode}',
-        serverUrl: '${config.serverUrl || ''}'
-      });
+      console.log('Electron config injected:', ${configData});
     `);
   });
 
@@ -252,11 +268,17 @@ ipcMain.handle('save-config', async (event, config) => {
 ipcMain.handle('test-connection', async (event, serverUrl) => {
   console.log('Testing connection to:', serverUrl);
 
+  // Use AbortController for timeout (native fetch doesn't support timeout option)
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 5000);
+
   try {
     const response = await fetch(`${serverUrl}/api/health`, {
       method: 'GET',
-      timeout: 5000
+      signal: controller.signal
     });
+
+    clearTimeout(timeoutId);
 
     if (response.ok) {
       return { success: true, message: 'Connection successful!' };
@@ -264,7 +286,13 @@ ipcMain.handle('test-connection', async (event, serverUrl) => {
       return { success: false, message: 'Server responded but health check failed' };
     }
   } catch (error) {
+    clearTimeout(timeoutId);
     console.error('Connection test failed:', error);
+
+    if (error.name === 'AbortError') {
+      return { success: false, message: 'Connection timeout (5 seconds)' };
+    }
+
     return { success: false, message: error.message };
   }
 });
