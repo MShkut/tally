@@ -1,6 +1,6 @@
 id: tally-budget
 title: Tally Budget
-version: 0.1.5
+version: 0.1.7
 description:
   short: Privacy-first household budget tracker running on your Start9 server
   long: |
@@ -11,10 +11,21 @@ description:
     - CSV transaction import from your bank
     - Budget tracking by category
     - Net worth monitoring (assets and liabilities) - removed for now
-    - Gift budget management
     - All data stays on your server - complete privacy
 
 release-notes: |
+  Version 0.1.7 - Removed Gift Management Feature
+  - Removed: Gift management feature and all related components
+  - Removed: Gift data storage and API endpoints
+  - Cleaned: Menu items and navigation references to gifts
+  - Note: Gift management will be re-implemented in a future version with improved functionality
+
+  Version 0.1.6 - Efficiency Improvements Merged
+  - Merged: Performance improvements from efficiency branch
+  - Improved: Backend database query optimization
+  - Improved: Frontend connection status monitoring
+  - Added: Query analyzer utility for backend performance tracking
+
   Version 0.1.5 - Performance Optimization for Large Datasets
   - FIXED: Performance issues with large transaction datasets (1000+ transactions)
   - Added: Pagination to All Transactions view (50 items per page by default)
@@ -22,12 +33,6 @@ release-notes: |
   - Added: "Select All Filtered" button for bulk operations across pages
   - Improved: Only renders visible transactions instead of all at once
   - Improved: Page load time reduced from 5+ seconds to instant with large datasets
-
-  Version 0.1.4 - Onboarding Redirect Fix (Critical)
-  - FIXED: Onboarding import redirect - now properly generates household ID from name
-  - FIXED: Regular onboarding completion redirect - uses same fallback logic
-  - Added: Extensive logging to debug redirect issues
-  - Improved: Household ID generation now matches router expectations
 
   Version 0.1.3 - Performance and UX Improvements
   - FIXED: Bulk delete performance - now uses single backend call instead of hundreds

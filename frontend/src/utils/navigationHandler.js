@@ -32,10 +32,6 @@ export const handleMenuAction = (actionId, onNavigate, onClose, setShowResetConf
       onNavigate('alltransactions');
       return true;
 
-    case 'gifts':
-      onNavigate('gifts');
-      return true;
-
     // Edit Actions
     case 'edit-income':
       onNavigate('edit-income');
@@ -135,10 +131,9 @@ const handleDataExport = async () => {
     console.log('[EXPORT] Loading all data from backend...');
 
     // Load all data from backend
-    const [userData, transactions, giftData, settings] = await Promise.all([
+    const [userData, transactions, settings] = await Promise.all([
       apiService.loadUserData().catch(() => null),
       apiService.loadTransactions().catch(() => []),
-      apiService.loadGiftData().catch(() => null),
       apiService.loadSettings().catch(() => null)
     ]);
 
@@ -148,7 +143,6 @@ const handleDataExport = async () => {
       exportedAt: new Date().toISOString(),
       userData,
       transactions,
-      giftData,
       settings
     };
 
@@ -209,41 +203,34 @@ const handleDataReset = async (onNavigate) => {
  * This centralizes the logic for determining which menu items to show
  */
 export const getMenuItems = async () => {
-  // Check if user has gifts category
   try {
-    const userData = await apiService.loadUserData();
-    const hasGiftsCategory = userData?.expenses?.expenseCategories?.some(
-      cat => cat.name.toLowerCase() === 'gifts'
-    ) || false;
+    const dashboardItems = [
+      { id: 'dashboard', label: 'Overview' }
+    ];
 
-  const dashboardItems = [
-    { id: 'dashboard', label: 'Overview' }
-  ];
+    const yourPlanItems = [
+      { id: 'plan-next-period', label: 'Plan Next Period' },
+      { id: 'edit-income', label: 'Edit Income Sources' },
+      { id: 'edit-savings', label: 'Edit Savings Plan' },
+      { id: 'edit-expenses', label: 'Edit Expenses' }
+    ];
 
-  const yourPlanItems = [
-    { id: 'plan-next-period', label: 'Plan Next Period' },
-    { id: 'edit-income', label: 'Edit Income Sources' },
-    { id: 'edit-savings', label: 'Edit Savings Plan' },
-    { id: 'edit-expenses', label: 'Edit Expenses' }
-  ];
+    const actionsItems = [
+      { id: 'import', label: 'Import Transactions' },
+      { id: 'alltransactions', label: 'View and Edit Transactions' }
+    ];
 
-  const actionsItems = [
-    { id: 'import', label: 'Import Transactions' },
-    { id: 'alltransactions', label: 'View and Edit Transactions' },
-    { id: 'gifts', label: 'Gift Management' }
-  ];
+    const settingsItems = [
+      { id: 'settings', label: 'Settings' },
+      { id: 'logout', label: 'Logout' }
+    ];
 
-  const settingsItems = [
-    { id: 'settings', label: 'Settings' },
-    { id: 'logout', label: 'Logout' }
-  ];
-
-  return {
-    dashboard: dashboardItems,
-    yourPlan: yourPlanItems,
-    actions: actionsItems,
-    settings: settingsItems
-  };
+    return {
+      dashboard: dashboardItems,
+      yourPlan: yourPlanItems,
+      actions: actionsItems,
+      settings: settingsItems
+    };
   } catch (error) {
     console.error('[MENU] Failed to load menu items:', error);
     // Return default menu if loading fails
@@ -259,8 +246,7 @@ export const getMenuItems = async () => {
       ],
       actions: [
         { id: 'import', label: 'Import Transactions' },
-        { id: 'alltransactions', label: 'View and Edit Transactions' },
-        { id: 'gifts', label: 'Gift Management' }
+        { id: 'alltransactions', label: 'View and Edit Transactions' }
       ],
       settings: [
         { id: 'settings', label: 'Settings' },

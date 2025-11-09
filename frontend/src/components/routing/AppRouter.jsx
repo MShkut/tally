@@ -7,7 +7,6 @@ const OnboardingFlow = lazy(() => import('components/setup/OnboardingFlow').then
 const Dashboard = lazy(() => import('components/overview/dashboard/Dashboard').then(m => ({ default: m.Dashboard })));
 const TransactionImport = lazy(() => import('components/actions/import/TransactionImport').then(m => ({ default: m.TransactionImport })));
 const AllTransactions = lazy(() => import('components/actions/alltransactions/AllTransactions').then(m => ({ default: m.AllTransactions })));
-const GiftManagement = lazy(() => import('components/actions/gifts/GiftManagement').then(m => ({ default: m.GiftManagement })));
 const EditWrapper = lazy(() => import('components/actions/edit/EditWrapper').then(m => ({ default: m.EditWrapper })));
 const PlanNextPeriod = lazy(() => import('components/actions/plan/PlanNextPeriod').then(m => ({ default: m.PlanNextPeriod })));
 const SettingsDashboard = lazy(() => import('components/settings/SettingsDashboard').then(m => ({ default: m.SettingsDashboard })));
@@ -151,7 +150,6 @@ const HouseholdRoutes = ({ onLogout }) => {
         <Route path="dashboard" element={<Dashboard onNavigate={handleNavigate} onLogout={onLogout} />} />
         <Route path="import" element={<TransactionImport onNavigate={handleNavigate} onLogout={onLogout} />} />
         <Route path="alltransactions" element={<AllTransactions onNavigate={handleNavigate} onLogout={onLogout} />} />
-        <Route path="gifts" element={<GiftManagement onNavigate={handleNavigate} onLogout={onLogout} />} />
         <Route path="settings" element={<SettingsDashboard onNavigate={handleNavigate} onLogout={onLogout} />} />
         <Route path="edit-income" element={
           <EditWrapper

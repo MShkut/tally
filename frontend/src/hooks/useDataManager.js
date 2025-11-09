@@ -14,7 +14,6 @@ export const useDataManager = () => {
   // Data state
   const [userData, setUserData] = useState(null);
   const [transactions, setTransactions] = useState([]);
-  const [giftData, setGiftData] = useState(null);
   const [netWorthItems, setNetWorthItems] = useState([]);
 
   // UI state
@@ -55,20 +54,6 @@ export const useDataManager = () => {
     }
   }, []);
 
-  /**
-   * Load gift data
-   */
-  const loadGiftData = useCallback(async () => {
-    try {
-      const data = await apiService.loadGiftData();
-      setGiftData(data);
-      return data;
-    } catch (err) {
-      console.error('Error loading gift data:', err);
-      setError(`Failed to load gift data: ${err.message}`);
-      return null;
-    }
-  }, []);
 
   /**
    * Load net worth items
@@ -123,22 +108,6 @@ export const useDataManager = () => {
     }
   }, []);
 
-  /**
-   * Save gift data and update state
-   * @param {Object} data - Gift data to save
-   * @returns {boolean} Success status
-   */
-  const saveGiftDataFn = useCallback(async (data) => {
-    try {
-      await apiService.saveGiftData(data);
-      setGiftData(data);
-      return true;
-    } catch (err) {
-      console.error('Error saving gift data:', err);
-      setError(`Failed to save gift data: ${err.message}`);
-      return false;
-    }
-  }, []);
 
   /**
    * Save net worth items and update state
@@ -299,7 +268,6 @@ export const useDataManager = () => {
     // Data state
     userData,
     transactions,
-    giftData,
     netWorthItems,
 
     // UI state
@@ -310,7 +278,6 @@ export const useDataManager = () => {
     // Save functions
     saveUserData: saveUserDataFn,
     saveTransactions: saveTransactionsFn,
-    saveGiftData: saveGiftDataFn,
     saveNetWorthItems: saveNetWorthItemsFn,
 
     // Update functions
@@ -324,7 +291,6 @@ export const useDataManager = () => {
     // Reload functions (for manual refresh)
     reloadUserData: loadUserData,
     reloadTransactions: loadTransactions,
-    reloadGiftData: loadGiftData,
     reloadNetWorthItems: loadNetWorthItems
   };
 };

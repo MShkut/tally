@@ -35,8 +35,7 @@ export const BurgerMenu = ({ isOpen, onClose, onAction, currentPage = 'dashboard
           ],
           actions: [
             { id: 'import', label: 'Import Transactions' },
-            { id: 'alltransactions', label: 'View and Edit Transactions' },
-            { id: 'gifts', label: 'Gift Management' }
+            { id: 'alltransactions', label: 'View and Edit Transactions' }
           ],
           settings: [
             { id: 'settings', label: 'Settings' },
@@ -187,7 +186,6 @@ export const BurgerMenu = ({ isOpen, onClose, onAction, currentPage = 'dashboard
             'Onboarding setup and budget configuration',
             'All imported and manual transactions',
             'Savings goals',
-            'Gift management data',
             'Theme preferences'
           ]}
           warningText="This action cannot be undone."
