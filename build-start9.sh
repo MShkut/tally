@@ -19,7 +19,7 @@ echo "🐳 Step 2/5: Building Docker image..."
 cd /home/mitch/tally
 VERSION=$(grep "^version:" startos/manifest.yaml | awk '{print $2}')
 echo "   Version: $VERSION"
-docker build --no-cache --load -t start9/tally-budget/main:$VERSION -f docker/Dockerfile . > /tmp/docker-build.log 2>&1
+docker build --load -t start9/tally-budget/main:$VERSION -f docker/Dockerfile . > /tmp/docker-build.log 2>&1
 if [ $? -eq 0 ]; then
     echo "✅ Docker image built"
 else

@@ -291,7 +291,7 @@ const BurgerIcon = () => (
   </div>
 );
 
-const BudgetCategoryItem = ({ category }) => {
+const BudgetCategoryItem = React.memo(({ category }) => {
   const { isDarkMode } = useTheme();
   const percentage = category.budget > 0 ? (category.spent / category.budget) * 100 : 0;
   const isOverBudget = percentage > 100;
@@ -330,9 +330,9 @@ const BudgetCategoryItem = ({ category }) => {
       </div>
     </div>
   );
-};
+});
 
-const IncomeSourceItem = ({ source, viewMode }) => {
+const IncomeSourceItem = React.memo(({ source, viewMode }) => {
   const { isDarkMode } = useTheme();
   const percentage = source.expected > 0 ? (source.actual / source.expected) * 100 : 0;
   const isOverExpected = percentage > 100;
@@ -371,9 +371,9 @@ const IncomeSourceItem = ({ source, viewMode }) => {
       </div>
     </div>
   );
-};
+});
 
-const CleanSavingsGoalItem = ({ goal }) => {
+const CleanSavingsGoalItem = React.memo(({ goal }) => {
   const { isDarkMode } = useTheme();
   const percentage = goal.target > 0 ? (goal.current / goal.target) * 100 : 0;
   const isOnTrack = percentage >= 100;
@@ -414,7 +414,7 @@ const CleanSavingsGoalItem = ({ goal }) => {
       </div>
     </div>
   );
-};
+});
 
 // Enhanced data processing function using budgetMath hook
 function processDashboardData(onboardingData, transactions, viewMode, selectedMonth, categories, budgetMath) {

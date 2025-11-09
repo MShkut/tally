@@ -6,13 +6,112 @@ const API_BASE = window.location.origin; // Backend runs on same origin in produ
 class APIService {
   constructor() {
     this.token = null;
+    this.cache = new Map();
+    this.cacheTimeout = 5 * 60 * 1000; // 5 minutes cache
+    this.pendingRequests = new Map(); // For request deduplication
+    this.requestTimeout = 30000; // 30 second timeout
   }
 
   /**
-   * Make authenticated API request
+   * Clear cache for a specific endpoint or all cache
+   */
+  clearCache(endpoint = null) {
+    if (endpoint) {
+      // Clear specific endpoint cache
+      for (const key of this.cache.keys()) {
+        if (key.includes(endpoint)) {
+          this.cache.delete(key);
+        }
+      }
+    } else {
+      // Clear all cache
+      this.cache.clear();
+    }
+  }
+
+  /**
+   * Cancel all pending requests
+   */
+  cancelPendingRequests() {
+    for (const [key, controller] of this.pendingRequests.entries()) {
+      controller.abort();
+      this.pendingRequests.delete(key);
+    }
+  }
+
+  /**
+   * Retry logic with exponential backoff
+   */
+  async retryRequest(fn, retries = 3, delay = 1000) {
+    for (let i = 0; i < retries; i++) {
+      try {
+        return await fn();
+      } catch (error) {
+        // Don't retry on auth errors or user errors (400s)
+        if (error.message === 'Session expired' || error.status >= 400 && error.status < 500) {
+          throw error;
+        }
+
+        // Last attempt, throw error
+        if (i === retries - 1) {
+          throw error;
+        }
+
+        // Wait before retrying (exponential backoff)
+        const waitTime = delay * Math.pow(2, i);
+        console.log(`[API Retry] Attempt ${i + 1}/${retries} failed, retrying in ${waitTime}ms...`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+      }
+    }
+  }
+
+  /**
+   * Get user-friendly error message
+   */
+  getFriendlyErrorMessage(error) {
+    if (error.name === 'AbortError') {
+      return 'Request was cancelled';
+    }
+    if (error.message === 'Failed to fetch') {
+      return 'Cannot connect to server. Please check your internet connection.';
+    }
+    if (error.message.includes('timeout')) {
+      return 'Request timed out. Please try again.';
+    }
+    if (error.message === 'Session expired') {
+      return 'Your session has expired. Please log in again.';
+    }
+    // Return original message if no friendly version
+    return error.message || 'An unexpected error occurred';
+  }
+
+  /**
+   * Make authenticated API request with caching, timeout, retry, and deduplication
    */
   async request(endpoint, options = {}) {
     const url = `${API_BASE}/api${endpoint}`;
+    const method = options.method || 'GET';
+    const cacheKey = `${method}:${endpoint}`;
+    const requestKey = `${method}:${endpoint}:${JSON.stringify(options.body || '')}`;
+
+    // Check cache for GET requests
+    if (method === 'GET' && !options.skipCache) {
+      const cached = this.cache.get(cacheKey);
+      if (cached && Date.now() - cached.timestamp < this.cacheTimeout) {
+        console.log(`[API Cache] Hit for ${endpoint}`);
+        return cached.data;
+      }
+    }
+
+    // Request deduplication - if same request is in-flight, return the same promise
+    if (this.pendingRequests.has(requestKey)) {
+      console.log(`[API Dedupe] Reusing pending request for ${endpoint}`);
+      return this.pendingRequests.get(requestKey).promise;
+    }
+
+    // Create abort controller for cancellation and timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), this.requestTimeout);
 
     const config = {
       credentials: 'include', // Include cookies
@@ -20,6 +119,7 @@ class APIService {
         'Content-Type': 'application/json',
         ...options.headers
       },
+      signal: controller.signal,
       ...options
     };
 
@@ -28,23 +128,64 @@ class APIService {
       config.headers['Authorization'] = `Bearer ${this.token}`;
     }
 
-    try {
-      const response = await fetch(url, config);
-      const data = await response.json();
+    // Create the request function for retry logic
+    const makeRequest = async () => {
+      try {
+        const response = await fetch(url, config);
 
-      if (!data.success) {
-        // Token expired - trigger re-auth
-        if (data.expired) {
-          this.token = null;
-          window.location.href = '/login';
-          throw new Error('Session expired');
+        // Clear timeout since request completed
+        clearTimeout(timeoutId);
+
+        const data = await response.json();
+
+        if (!data.success) {
+          // Token expired - trigger re-auth
+          if (data.expired) {
+            this.token = null;
+            window.location.href = '/login';
+            const error = new Error('Session expired');
+            error.status = 401;
+            throw error;
+          }
+          const error = new Error(data.error || 'Request failed');
+          error.status = response.status;
+          throw error;
         }
-        throw new Error(data.error || 'Request failed');
-      }
 
-      return data.data;
+        // Cache successful GET responses
+        if (method === 'GET') {
+          this.cache.set(cacheKey, {
+            data: data.data,
+            timestamp: Date.now()
+          });
+        } else {
+          // Invalidate cache for mutations (POST, PUT, DELETE)
+          const baseEndpoint = endpoint.split('?')[0].split('/')[1];
+          this.clearCache(baseEndpoint);
+        }
+
+        return data.data;
+      } catch (error) {
+        clearTimeout(timeoutId);
+
+        // Add friendly error message
+        error.friendlyMessage = this.getFriendlyErrorMessage(error);
+
+        console.error(`[API Error] ${endpoint}:`, error.friendlyMessage);
+        throw error;
+      }
+    };
+
+    // Store pending request
+    const promise = this.retryRequest(makeRequest, 3, 1000);
+    this.pendingRequests.set(requestKey, { controller, promise });
+
+    try {
+      const result = await promise;
+      this.pendingRequests.delete(requestKey);
+      return result;
     } catch (error) {
-      console.error(`API Error [${endpoint}]:`, error);
+      this.pendingRequests.delete(requestKey);
       throw error;
     }
   }
@@ -140,10 +281,43 @@ class APIService {
   // ==================== TRANSACTIONS ====================
 
   /**
-   * Load all transactions
+   * Load all transactions with optional filters
+   * @param {Object} options - Filter options
+   * @param {number} options.limit - Maximum results to return
+   * @param {number} options.offset - Number of results to skip
+   * @param {string} options.search - Search term for description/merchant
+   * @param {string} options.type - Filter by type (Income/Expense/Savings)
+   * @param {string} options.category - Filter by category name
+   * @param {string} options.dateFilter - Date filter (current-month)
+   * @param {string} options.sortBy - Sort field (date/amount/description/category)
+   * @param {string} options.sortOrder - Sort order (asc/desc)
    */
-  async loadTransactions(limit = 1000, offset = 0) {
-    return await this.request(`/transactions?limit=${limit}&offset=${offset}`);
+  async loadTransactions(options = {}) {
+    const {
+      limit = 1000,
+      offset = 0,
+      search = '',
+      type = '',
+      category = '',
+      dateFilter = '',
+      sortBy = 'date',
+      sortOrder = 'desc'
+    } = options;
+
+    // Build query string
+    const params = new URLSearchParams({
+      limit: limit.toString(),
+      offset: offset.toString()
+    });
+
+    if (search) params.append('search', search);
+    if (type) params.append('type', type);
+    if (category) params.append('category', category);
+    if (dateFilter) params.append('dateFilter', dateFilter);
+    if (sortBy) params.append('sortBy', sortBy);
+    if (sortOrder) params.append('sortOrder', sortOrder);
+
+    return await this.request(`/transactions?${params.toString()}`);
   }
 
   /**

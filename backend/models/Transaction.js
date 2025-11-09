@@ -74,13 +74,88 @@ class Transaction {
   }
 
   /**
-   * Get all transactions for user
+   * Get all transactions for user with optional filters
+   * @param {number} userId - User ID
+   * @param {Object} options - Filter options
+   * @param {number} options.limit - Maximum results to return
+   * @param {number} options.offset - Number of results to skip
+   * @param {string} options.search - Search term for description/merchant
+   * @param {string} options.type - Filter by type (Income/Expense/Savings)
+   * @param {string} options.category - Filter by category name
+   * @param {string} options.dateFilter - Date filter (current-month)
+   * @param {string} options.sortBy - Sort field (date/amount/description/category)
+   * @param {string} options.sortOrder - Sort order (asc/desc)
    */
-  static findByUser(userId, limit = 1000, offset = 0) {
-    const transactions = query(
-      'SELECT * FROM transactions WHERE user_id = ? ORDER BY date DESC LIMIT ? OFFSET ?',
-      [userId, limit, offset]
-    );
+  static findByUser(userId, options = {}) {
+    const {
+      limit = 1000,
+      offset = 0,
+      search = '',
+      type = '',
+      category = '',
+      dateFilter = '',
+      sortBy = 'date',
+      sortOrder = 'desc'
+    } = options;
+
+    // Build WHERE clause dynamically
+    const conditions = ['user_id = ?'];
+    const params = [userId];
+
+    // Search filter (description or merchant)
+    if (search) {
+      conditions.push('(description LIKE ? OR merchant LIKE ?)');
+      const searchPattern = `%${search}%`;
+      params.push(searchPattern, searchPattern);
+    }
+
+    // Type filter
+    if (type) {
+      conditions.push('type = ?');
+      params.push(type);
+    }
+
+    // Category filter
+    if (category) {
+      conditions.push('category = ?');
+      params.push(category);
+    }
+
+    // Date filter
+    if (dateFilter === 'current-month') {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const startOfMonth = `${year}-${month}-01`;
+      const nextMonth = month === '12' ? '01' : String(parseInt(month) + 1).padStart(2, '0');
+      const nextYear = month === '12' ? year + 1 : year;
+      const endOfMonth = `${nextYear}-${nextMonth}-01`;
+
+      conditions.push('date >= ? AND date < ?');
+      params.push(startOfMonth, endOfMonth);
+    }
+
+    // Build ORDER BY clause
+    const validSortFields = {
+      'date': 'date',
+      'amount': 'amount',
+      'description': 'description',
+      'category': 'category'
+    };
+    const sortField = validSortFields[sortBy] || 'date';
+    const sortDirection = sortOrder.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+
+    // Build final query
+    const whereClause = conditions.join(' AND ');
+    const sql = `
+      SELECT * FROM transactions
+      WHERE ${whereClause}
+      ORDER BY ${sortField} ${sortDirection}
+      LIMIT ? OFFSET ?
+    `;
+    params.push(limit, offset);
+
+    const transactions = query(sql, params);
 
     return transactions.map(tx => ({
       id: tx.id.toString(),
@@ -95,10 +170,55 @@ class Transaction {
   }
 
   /**
-   * Get transaction count for user
+   * Get transaction count for user with filters
+   * @param {number} userId - User ID
+   * @param {Object} options - Same filter options as findByUser
    */
-  static countByUser(userId) {
-    const result = queryOne('SELECT COUNT(*) as count FROM transactions WHERE user_id = ?', [userId]);
+  static countByUser(userId, options = {}) {
+    const {
+      search = '',
+      type = '',
+      category = '',
+      dateFilter = ''
+    } = options;
+
+    // Build WHERE clause (same as findByUser)
+    const conditions = ['user_id = ?'];
+    const params = [userId];
+
+    if (search) {
+      conditions.push('(description LIKE ? OR merchant LIKE ?)');
+      const searchPattern = `%${search}%`;
+      params.push(searchPattern, searchPattern);
+    }
+
+    if (type) {
+      conditions.push('type = ?');
+      params.push(type);
+    }
+
+    if (category) {
+      conditions.push('category = ?');
+      params.push(category);
+    }
+
+    if (dateFilter === 'current-month') {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const startOfMonth = `${year}-${month}-01`;
+      const nextMonth = month === '12' ? '01' : String(parseInt(month) + 1).padStart(2, '0');
+      const nextYear = month === '12' ? year + 1 : year;
+      const endOfMonth = `${nextYear}-${nextMonth}-01`;
+
+      conditions.push('date >= ? AND date < ?');
+      params.push(startOfMonth, endOfMonth);
+    }
+
+    const whereClause = conditions.join(' AND ');
+    const sql = `SELECT COUNT(*) as count FROM transactions WHERE ${whereClause}`;
+
+    const result = queryOne(sql, params);
     return result.count;
   }
 

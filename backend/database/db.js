@@ -27,10 +27,17 @@ function getDatabase() {
   // Enable foreign keys
   db.pragma('foreign_keys = ON');
 
+  // Performance optimizations
+  db.pragma('journal_mode = WAL');      // Write-Ahead Logging for better concurrency
+  db.pragma('synchronous = NORMAL');    // Faster writes while maintaining safety
+  db.pragma('cache_size = -64000');     // 64MB cache (negative = KB)
+  db.pragma('temp_store = MEMORY');     // Use RAM for temporary tables
+  db.pragma('mmap_size = 30000000000'); // 30GB memory-mapped I/O limit
+
   // Initialize schema if needed
   initializeSchema();
 
-  console.log(`✅ Database connected: ${DB_PATH}`);
+  console.log(`✅ Database connected: ${DB_PATH} (WAL mode enabled)`);
   return db;
 }
 

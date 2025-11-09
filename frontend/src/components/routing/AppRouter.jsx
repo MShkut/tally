@@ -1,14 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { apiService } from 'utils/apiService';
-import { OnboardingFlow } from 'components/setup/OnboardingFlow';
-import { Dashboard } from 'components/overview/dashboard/Dashboard';
-import { TransactionImport } from 'components/actions/import/TransactionImport';
-import { AllTransactions } from 'components/actions/alltransactions/AllTransactions';
-import { GiftManagement } from 'components/actions/gifts/GiftManagement';
-import { EditWrapper } from 'components/actions/edit/EditWrapper';
-import { PlanNextPeriod } from 'components/actions/plan/PlanNextPeriod';
-import { SettingsDashboard } from 'components/settings/SettingsDashboard';
+
+// Lazy load all route components for better performance
+const OnboardingFlow = lazy(() => import('components/setup/OnboardingFlow').then(m => ({ default: m.OnboardingFlow })));
+const Dashboard = lazy(() => import('components/overview/dashboard/Dashboard').then(m => ({ default: m.Dashboard })));
+const TransactionImport = lazy(() => import('components/actions/import/TransactionImport').then(m => ({ default: m.TransactionImport })));
+const AllTransactions = lazy(() => import('components/actions/alltransactions/AllTransactions').then(m => ({ default: m.AllTransactions })));
+const GiftManagement = lazy(() => import('components/actions/gifts/GiftManagement').then(m => ({ default: m.GiftManagement })));
+const EditWrapper = lazy(() => import('components/actions/edit/EditWrapper').then(m => ({ default: m.EditWrapper })));
+const PlanNextPeriod = lazy(() => import('components/actions/plan/PlanNextPeriod').then(m => ({ default: m.PlanNextPeriod })));
+const SettingsDashboard = lazy(() => import('components/settings/SettingsDashboard').then(m => ({ default: m.SettingsDashboard })));
+
+// Loading component for suspense
+const LoadingFallback = () => (
+  <div className="min-h-screen bg-black flex items-center justify-center">
+    <div className="text-white text-lg">Loading...</div>
+  </div>
+);
 
 // Get household ID from userData
 const getHouseholdId = (userData) => {
@@ -120,7 +129,11 @@ const OnboardingRoute = () => {
     }
   };
 
-  return <OnboardingFlow onComplete={handleOnboardingComplete} />;
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <OnboardingFlow onComplete={handleOnboardingComplete} />
+    </Suspense>
+  );
 };
 
 // Household-specific routes
@@ -133,42 +146,44 @@ const HouseholdRoutes = ({ onLogout }) => {
   };
 
   return (
-    <Routes>
-      <Route path="dashboard" element={<Dashboard onNavigate={handleNavigate} onLogout={onLogout} />} />
-      <Route path="import" element={<TransactionImport onNavigate={handleNavigate} onLogout={onLogout} />} />
-      <Route path="alltransactions" element={<AllTransactions onNavigate={handleNavigate} onLogout={onLogout} />} />
-      <Route path="gifts" element={<GiftManagement onNavigate={handleNavigate} onLogout={onLogout} />} />
-      <Route path="settings" element={<SettingsDashboard onNavigate={handleNavigate} onLogout={onLogout} />} />
-      <Route path="edit-income" element={
-        <EditWrapper
-          editType="income"
-          onComplete={() => handleNavigate('dashboard')}
-          onCancel={() => handleNavigate('dashboard')}
-        />
-      } />
-      <Route path="edit-savings" element={
-        <EditWrapper
-          editType="savingsAllocation"
-          onComplete={() => handleNavigate('dashboard')}
-          onCancel={() => handleNavigate('dashboard')}
-        />
-      } />
-      <Route path="edit-expenses" element={
-        <EditWrapper
-          editType="expenses"
-          onComplete={() => handleNavigate('dashboard')}
-          onCancel={() => handleNavigate('dashboard')}
-        />
-      } />
-      <Route path="plan-next-period" element={
-        <PlanNextPeriod
-          onComplete={() => handleNavigate('dashboard')}
-          onCancel={() => handleNavigate('dashboard')}
-        />
-      } />
-      {/* Default redirect for household */}
-      <Route path="" element={<Navigate to={`/${household}/dashboard`} replace />} />
-    </Routes>
+    <Suspense fallback={<LoadingFallback />}>
+      <Routes>
+        <Route path="dashboard" element={<Dashboard onNavigate={handleNavigate} onLogout={onLogout} />} />
+        <Route path="import" element={<TransactionImport onNavigate={handleNavigate} onLogout={onLogout} />} />
+        <Route path="alltransactions" element={<AllTransactions onNavigate={handleNavigate} onLogout={onLogout} />} />
+        <Route path="gifts" element={<GiftManagement onNavigate={handleNavigate} onLogout={onLogout} />} />
+        <Route path="settings" element={<SettingsDashboard onNavigate={handleNavigate} onLogout={onLogout} />} />
+        <Route path="edit-income" element={
+          <EditWrapper
+            editType="income"
+            onComplete={() => handleNavigate('dashboard')}
+            onCancel={() => handleNavigate('dashboard')}
+          />
+        } />
+        <Route path="edit-savings" element={
+          <EditWrapper
+            editType="savingsAllocation"
+            onComplete={() => handleNavigate('dashboard')}
+            onCancel={() => handleNavigate('dashboard')}
+          />
+        } />
+        <Route path="edit-expenses" element={
+          <EditWrapper
+            editType="expenses"
+            onComplete={() => handleNavigate('dashboard')}
+            onCancel={() => handleNavigate('dashboard')}
+          />
+        } />
+        <Route path="plan-next-period" element={
+          <PlanNextPeriod
+            onComplete={() => handleNavigate('dashboard')}
+            onCancel={() => handleNavigate('dashboard')}
+          />
+        } />
+        {/* Default redirect for household */}
+        <Route path="" element={<Navigate to={`/${household}/dashboard`} replace />} />
+      </Routes>
+    </Suspense>
   );
 };
 

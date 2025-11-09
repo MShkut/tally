@@ -51,18 +51,40 @@ export function AuthProvider({ children }) {
     const user = await apiService.register(householdName, password);
     setUser(user);
     setIsRegistered(true);
+
+    // Prefetch dashboard data in background
+    prefetchDashboardData();
+
     return user;
   };
 
   const login = async (password) => {
     const user = await apiService.login(password);
     setUser(user);
+
+    // Prefetch dashboard data in background for instant dashboard load
+    prefetchDashboardData();
+
     return user;
+  };
+
+  const prefetchDashboardData = () => {
+    // Start loading critical dashboard data in background
+    // These will be cached by apiService, so when Dashboard mounts, data is ready
+    Promise.all([
+      apiService.loadUserData().catch(err => console.warn('[Prefetch] UserData failed:', err)),
+      apiService.loadTransactions({ limit: 100, offset: 0 }).catch(err => console.warn('[Prefetch] Transactions failed:', err)),
+      apiService.loadSettings().catch(err => console.warn('[Prefetch] Settings failed:', err))
+    ]).then(() => {
+      console.log('[Prefetch] Dashboard data preloaded successfully');
+    });
   };
 
   const logout = async () => {
     await apiService.logout();
     setUser(null);
+    // Clear API cache on logout for security
+    apiService.clearCache();
   };
 
   const value = {

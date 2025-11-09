@@ -15,6 +15,25 @@ export default defineConfig({
       // add more as needed
     }
   },
+  build: {
+    // Code splitting and optimization
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Separate vendor chunks for better caching
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'charts': ['recharts'],
+          'icons': ['lucide-react']
+        }
+      }
+    },
+    // Increase chunk size warning limit
+    chunkSizeWarningLimit: 1000,
+    // Disable sourcemaps in production for smaller bundle
+    sourcemap: false,
+    // Enable minification with esbuild (default, faster than terser)
+    minify: 'esbuild'
+  },
   server: {
     proxy: {
       // Proxy API requests to backend in development

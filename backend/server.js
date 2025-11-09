@@ -4,6 +4,7 @@
 const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
+const compression = require('compression');
 
 // Initialize database
 const { getDatabase } = require('./database/db');
@@ -22,6 +23,9 @@ const { generateToken, authenticateToken, optionalAuth } = require('./middleware
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+// Enable compression for all responses
+app.use(compression());
 
 // Enable CORS for frontend
 app.use(cors({ credentials: true, origin: true }));
@@ -211,13 +215,35 @@ app.put('/api/settings', authenticateToken, (req, res) => {
 
 /**
  * GET /api/transactions
- * Get all transactions
+ * Get all transactions with optional filters
+ * Query params: limit, offset, search, type, category, dateFilter, sortBy, sortOrder
  */
 app.get('/api/transactions', authenticateToken, (req, res) => {
   try {
-    const { limit = 1000, offset = 0 } = req.query;
-    const transactions = Transaction.findByUser(req.userId, parseInt(limit), parseInt(offset));
-    const total = Transaction.countByUser(req.userId);
+    const {
+      limit = 1000,
+      offset = 0,
+      search = '',
+      type = '',
+      category = '',
+      dateFilter = '',
+      sortBy = 'date',
+      sortOrder = 'desc'
+    } = req.query;
+
+    const options = {
+      limit: parseInt(limit),
+      offset: parseInt(offset),
+      search,
+      type,
+      category,
+      dateFilter,
+      sortBy,
+      sortOrder
+    };
+
+    const transactions = Transaction.findByUser(req.userId, options);
+    const total = Transaction.countByUser(req.userId, options);
 
     res.json({ success: true, data: transactions, total });
   } catch (error) {

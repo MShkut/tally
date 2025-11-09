@@ -18,7 +18,7 @@ export const useDataManager = () => {
   const [netWorthItems, setNetWorthItems] = useState([]);
 
   // UI state
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
   // ============================================
@@ -285,31 +285,11 @@ export const useDataManager = () => {
   }, []);
 
   // ============================================
-  // INITIAL DATA LOAD
+  // MANUAL DATA LOADING
   // ============================================
-
-  useEffect(() => {
-    const loadAllData = async () => {
-      setIsLoading(true);
-
-      try {
-        // Load all data on mount
-        await Promise.all([
-          loadUserData(),
-          loadTransactions(),
-          loadGiftData(),
-          loadNetWorthItems()
-        ]);
-      } catch (err) {
-        console.error('Error loading initial data:', err);
-        setError('Failed to load initial data');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadAllData();
-  }, [loadUserData, loadTransactions, loadGiftData, loadNetWorthItems]);
+  // Note: This hook no longer loads data automatically on mount.
+  // Components should explicitly call the load functions they need.
+  // This improves performance by avoiding unnecessary data fetching.
 
   // ============================================
   // RETURN HOOK API
