@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS settings (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id INTEGER NOT NULL,
-  currency TEXT DEFAULT 'USD',
+  currency TEXT DEFAULT 'CAD',
   theme TEXT DEFAULT 'dark',
   data TEXT, -- JSON storage for flexible settings
   created_at TEXT NOT NULL DEFAULT (datetime('now')),

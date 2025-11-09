@@ -14,12 +14,12 @@ class Settings {
     if (existing) {
       execute(
         "UPDATE settings SET currency = ?, theme = ?, data = ?, updated_at = ? WHERE user_id = ?",
-        [currency || 'USD', theme || 'dark', JSON.stringify(otherSettings), now, userId]
+        [currency || 'CAD', theme || 'dark', JSON.stringify(otherSettings), now, userId]
       );
     } else {
       execute(
         'INSERT INTO settings (user_id, currency, theme, data) VALUES (?, ?, ?, ?)',
-        [userId, currency || 'USD', theme || 'dark', JSON.stringify(otherSettings)]
+        [userId, currency || 'CAD', theme || 'dark', JSON.stringify(otherSettings)]
       );
     }
 
@@ -33,7 +33,7 @@ class Settings {
     const result = queryOne('SELECT currency, theme, data FROM settings WHERE user_id = ?', [userId]);
 
     if (!result) {
-      return { currency: 'USD', theme: 'dark' };
+      return { currency: 'CAD', theme: 'dark' };
     }
 
     const data = result.data ? JSON.parse(result.data) : {};
