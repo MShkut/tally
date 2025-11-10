@@ -1,0 +1,165 @@
+name: Build Desktop App Installers
+
+on:
+  push:
+    tags:
+      - 'v*' # Triggers on version tags like v0.1.5, v1.0.0, etc.
+  workflow_dispatch: # Allows manual trigger from GitHub UI
+
+jobs:
+  build:
+    name: Build ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [macos-latest, windows-latest]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install root dependencies
+        run: npm install
+
+      - name: Install frontend dependencies
+        run: |
+          cd frontend
+          npm install
+
+      - name: Install backend dependencies
+        run: |
+          cd backend
+          npm install
+
+      - name: Build frontend
+        run: |
+          cd frontend
+          npm run build
+
+      - name: Build desktop app (macOS)
+        if: matrix.os == 'macos-latest'
+        run: npm run electron:build:mac
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build desktop app (Windows)
+        if: matrix.os == 'windows-latest'
+        run: npm run electron:build:win
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: List build outputs (macOS)
+        if: matrix.os == 'macos-latest'
+        run: ls -lh dist-electron/
+
+      - name: List build outputs (Windows)
+        if: matrix.os == 'windows-latest'
+        run: dir dist-electron\
+
+      # Upload macOS artifacts
+      - name: Upload macOS DMG (x64)
+        if: matrix.os == 'macos-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Tally-macOS-x64
+          path: dist-electron/Tally-*.dmg
+          if-no-files-found: warn
+
+      # Upload Windows artifacts
+      - name: Upload Windows Installer
+        if: matrix.os == 'windows-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Tally-Windows
+          path: dist-electron/Tally*.exe
+          if-no-files-found: warn
+
+  # Create release and upload installers
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: installers
+
+      - name: List downloaded artifacts
+        run: |
+          echo "Downloaded artifacts:"
+          ls -R installers/
+
+      - name: Extract version from tag
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Tally v${{ steps.get_version.outputs.VERSION }}
+          body: |
+            ## Tally Desktop v${{ steps.get_version.outputs.VERSION }}
+
+            Privacy-first household budget tracker for Windows and macOS.
+
+            ### Downloads
+
+            **macOS:**
+            - Universal (Intel + Apple Silicon): Download the `.dmg` file below
+
+            **Windows:**
+            - Download the `.exe` installer below
+
+            ### Installation
+
+            **macOS:**
+            1. Download `Tally-${{ steps.get_version.outputs.VERSION }}.dmg`
+            2. Open the DMG file
+            3. Drag Tally to Applications
+            4. Launch Tally from Applications
+            5. On first launch: Right-click → Open (due to unsigned app)
+
+            **Windows:**
+            1. Download `Tally-Setup-${{ steps.get_version.outputs.VERSION }}.exe`
+            2. Run the installer
+            3. If SmartScreen warning appears: Click "More info" → "Run anyway"
+            4. Follow installation wizard
+
+            ### First Launch Setup
+
+            Choose your mode:
+            - **Local Mode**: Run entirely on your computer (standalone)
+            - **Remote Mode**: Connect to your Start9 or self-hosted server
+
+            ### What's New
+
+            See CHANGELOG.md for details.
+
+            ### Known Issues
+
+            - Apps are not code-signed (security warnings on first launch are normal)
+            - Icon shows as default Electron icon (custom .icns/.ico not yet created)
+
+            ---
+
+            **Need help?** Open an issue on GitHub
+          draft: false
+          prerelease: false
+          files: |
+            installers/**/*.dmg
+            installers/**/*.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

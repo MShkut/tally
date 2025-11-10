@@ -80,7 +80,19 @@
  * @class APIService
  */
 
-const API_BASE = window.location.origin; // Backend runs on same origin in production
+// Support for Electron desktop app
+// In Electron local mode: uses http://localhost:3001
+// In Electron remote mode: uses configured server URL
+// In browser/Docker/Start9: uses same origin
+// Use function instead of constant to avoid race condition with Electron config injection
+function getAPIBase() {
+  if (window.electronAPI?.isElectron) {
+    return window.electronAPI.mode === 'local'
+      ? 'http://localhost:3001'
+      : window.electronAPI.serverUrl;
+  }
+  return window.location.origin;
+}
 
 class APIService {
   constructor() {
@@ -168,7 +180,7 @@ class APIService {
    * Make authenticated API request with caching, timeout, retry, and deduplication
    */
   async request(endpoint, options = {}) {
-    const url = `${API_BASE}/api${endpoint}`;
+    const url = `${getAPIBase()}/api${endpoint}`;
     const method = options.method || 'GET';
     const cacheKey = `${method}:${endpoint}`;
     const requestKey = `${method}:${endpoint}:${JSON.stringify(options.body || '')}`;
@@ -275,7 +287,7 @@ class APIService {
    * Check if user is registered
    */
   async checkRegistrationStatus() {
-    const response = await fetch(`${API_BASE}/api/auth/status`);
+    const response = await fetch(`${getAPIBase()}/api/auth/status`);
     const data = await response.json();
     return data.data.registered;
   }
