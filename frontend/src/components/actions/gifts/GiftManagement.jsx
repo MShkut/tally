@@ -14,7 +14,6 @@ import {
 } from 'components/shared/FormComponents';
 import { apiService } from 'utils/apiService';
 import { BurgerMenu } from 'components/shared/BurgerMenu';
-import { ContactImport } from './ContactImport';
 import { PersonCard } from './PersonCard';
 import { GiftBudgetOverview } from './GiftBudgetOverview';
 import { PersonEdit } from './PersonEdit';
@@ -74,23 +73,6 @@ export const GiftManagement = ({ onNavigate }) => {
     handleMenuAction(actionId, onNavigate, () => setMenuOpen(false));
   };
 
-  const handleContactsImported = async (importedContacts) => {
-    // Add new people using hook
-    for (const contact of importedContacts) {
-      await addPerson({
-        name: contact.name,
-        relationship: contact.relationship || '',
-        birthday: contact.birthday || null,
-        notes: contact.notes || '',
-        applicableHolidays: ['christmas'], // Default holidays
-        budgets: {}, // To be set later
-        customOccasions: [] // Initialize custom occasions
-      });
-    }
-
-    setView('overview');
-    setActiveTab('contact-management'); // Stay on contact management tab
-  };
 
   const handleImportGiftsFromExpenses = async () => {
     try {
@@ -240,16 +222,6 @@ export const GiftManagement = ({ onNavigate }) => {
   const budgetInfo = calculateBudgetAllocation();
 
   // Render different views
-  if (view === 'import') {
-    return (
-      <ContactImport
-        onComplete={handleContactsImported}
-        onBack={() => setView('overview')}
-        existingPeople={people}
-      />
-    );
-  }
-
   if (view === 'edit-person' && selectedPerson) {
     const assignedGifts = getGiftsForPerson(selectedPerson.id);
     return (
@@ -304,7 +276,6 @@ export const GiftManagement = ({ onNavigate }) => {
         >
           {unassignedGifts.length === 0 ? (
             <EmptyState
-              icon="✓"
               title="All gifts assigned!"
               description="All your gift expenses have been assigned to people and occasions"
             />
@@ -464,7 +435,6 @@ export const GiftManagement = ({ onNavigate }) => {
                   text-center py-16 border-2 border-dashed
                   ${isDarkMode ? 'border-gray-700' : 'border-gray-300'}
                 `}>
-                  <div className="text-4xl mb-6 opacity-50">🎁</div>
                   <h3 className={`text-2xl font-light mb-4 ${
                     isDarkMode ? 'text-white' : 'text-black'
                   }`}>
@@ -496,9 +466,8 @@ export const GiftManagement = ({ onNavigate }) => {
               <FormSection title="Gift Recipients">
                 {people.length === 0 ? (
                   <EmptyState
-                    icon="👥"
                     title="No recipients yet"
-                    description="Import contacts or add people manually to start planning gifts"
+                    description="Add contacts to start planning gifts"
                   />
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
@@ -527,7 +496,6 @@ export const GiftManagement = ({ onNavigate }) => {
             {giftBudget === 0 ? (
               <FormSection>
                 <EmptyState
-                  icon="💰"
                   title="No Gift Budget Set"
                   description="Set up a gift budget in your expenses to enable gift assignment"
                 />
@@ -535,7 +503,6 @@ export const GiftManagement = ({ onNavigate }) => {
             ) : people.length === 0 ? (
               <FormSection>
                 <EmptyState
-                  icon="👥"
                   title="No Recipients Yet"
                   description="Add people to your gift list before assigning gifts"
                 />
@@ -546,7 +513,6 @@ export const GiftManagement = ({ onNavigate }) => {
                   text-center py-12 border-2 border-dashed
                   ${isDarkMode ? 'border-gray-700' : 'border-gray-300'}
                 `}>
-                  <div className="text-4xl mb-6 opacity-50">🎁</div>
                   <h3 className={`text-xl font-light mb-4 ${
                     isDarkMode ? 'text-white' : 'text-black'
                   }`}>
@@ -597,71 +563,34 @@ export const GiftManagement = ({ onNavigate }) => {
             {giftBudget === 0 ? (
               <FormSection>
                 <EmptyState
-                  icon="💰"
                   title="No Gift Budget Set"
                   description="Set up a gift budget in your expenses to enable contact management"
                 />
               </FormSection>
             ) : (
               <>
-                <FormSection title="Import Contacts">
+                <FormSection>
                   <div className={`
-                    text-center py-12 border-2 border-dashed
+                    text-center py-8 border-2 border-dashed
                     ${isDarkMode ? 'border-gray-700' : 'border-gray-300'}
                   `}>
-                    <div className="text-4xl mb-6 opacity-50">📁</div>
-                    <h3 className={`text-xl font-light mb-4 ${
+                    <h3 className={`text-lg font-light mb-4 ${
                       isDarkMode ? 'text-white' : 'text-black'
                     }`}>
-                      Import from CSV or VCF
+                      Add a Contact
                     </h3>
-                    <p className={`text-base font-light mb-8 ${
-                      isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                    }`}>
-                      Quickly add multiple people from your contacts file
-                    </p>
-                    <button
-                      onClick={() => setView('import')}
-                      className={`
-                        text-lg font-light border-b-2 pb-2 transition-all
-                        ${isDarkMode
-                          ? 'text-white border-white hover:border-gray-400'
-                          : 'text-black border-black hover:border-gray-600'
-                        }
-                      `}
-                    >
-                      Import Contacts
-                    </button>
-                  </div>
-                </FormSection>
-
-                <FormSection title="Add Manually">
-                  <div className={`
-                    text-center py-12 border-2 border-dashed
-                    ${isDarkMode ? 'border-gray-700' : 'border-gray-300'}
-                  `}>
-                    <div className="text-4xl mb-6 opacity-50">✏️</div>
-                    <h3 className={`text-xl font-light mb-4 ${
-                      isDarkMode ? 'text-white' : 'text-black'
-                    }`}>
-                      Add Person Manually
-                    </h3>
-                    <p className={`text-base font-light mb-8 ${
-                      isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                    }`}>
-                      Add a single person to your gift list
-                    </p>
                     <button
                       onClick={() => setView('add-person')}
                       className={`
-                        text-lg font-light border-b-2 pb-2 transition-all
+                        text-2xl font-light transition-colors
                         ${isDarkMode
-                          ? 'text-white border-white hover:border-gray-400'
-                          : 'text-black border-black hover:border-gray-600'
+                          ? 'text-white hover:text-gray-400'
+                          : 'text-black hover:text-gray-600'
                         }
                       `}
+                      title="Add a new contact"
                     >
-                      Add Person
+                      +
                     </button>
                   </div>
                 </FormSection>

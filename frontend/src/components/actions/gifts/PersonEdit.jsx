@@ -327,7 +327,7 @@ export const PersonEdit = ({ person, people, onSave, onBack, assignedGifts = [] 
                           }
                         `}
                       >
-                        <div className="font-light">{holiday.icon} {holiday.name}</div>
+                        <div className="font-light">{holiday.name}</div>
                         {holiday.description && (
                           <div className={`text-xs font-light mt-1 ${
                             isDarkMode ? 'text-gray-500' : 'text-gray-400'

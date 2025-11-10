@@ -6,7 +6,6 @@ export const HOLIDAYS = [
     id: 'birthday',
     name: 'Birthday',
     type: 'personal',
-    icon: '🎂',
     description: 'Personal birthday'
   },
   {
@@ -14,7 +13,6 @@ export const HOLIDAYS = [
     name: 'Christmas',
     type: 'fixed',
     date: 'Dec 25',
-    icon: '🎄',
     description: 'December 25th'
   },
   {
@@ -22,7 +20,6 @@ export const HOLIDAYS = [
     name: "Mother's Day",
     type: 'calculated',
     date: '2nd Sunday in May',
-    icon: '💐',
     description: '2nd Sunday in May'
   },
   {
@@ -30,7 +27,6 @@ export const HOLIDAYS = [
     name: "Father's Day",
     type: 'calculated',
     date: '3rd Sunday in June',
-    icon: '👔',
     description: '3rd Sunday in June'
   },
   {
@@ -38,21 +34,18 @@ export const HOLIDAYS = [
     name: "Valentine's Day",
     type: 'fixed',
     date: 'Feb 14',
-    icon: '💝',
     description: 'February 14th'
   },
   {
     id: 'anniversary',
     name: 'Anniversary',
     type: 'personal',
-    icon: '💍',
     description: 'Personal anniversary'
   },
   {
     id: 'other',
     name: 'Other',
     type: 'custom',
-    icon: '🎁',
     description: 'Custom occasion'
   }
 ];
