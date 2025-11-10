@@ -31,13 +31,16 @@ export const PersonCard = ({ person, onEdit, onDelete, spent = 0 }) => {
   };
 
   return (
-    <div className={`
-      p-8 border transition-all
-      ${isDarkMode
-        ? 'border-gray-800 hover:border-gray-600'
-        : 'border-gray-200 hover:border-gray-400'
-      }
-    `}>
+    <div
+      onClick={() => onEdit(person)}
+      className={`
+        p-8 border transition-all cursor-pointer
+        ${isDarkMode
+          ? 'border-gray-800 hover:border-gray-600'
+          : 'border-gray-200 hover:border-gray-400'
+        }
+      `}
+    >
       {/* Header with name and budget */}
       <div className="flex justify-between items-start mb-6">
         <div className="flex-1">
@@ -92,7 +95,7 @@ export const PersonCard = ({ person, onEdit, onDelete, spent = 0 }) => {
 
       {/* Spending info */}
       {spent > 0 && (
-        <div className={`py-4 border-t ${
+        <div className={`pt-4 border-t ${
           isDarkMode ? 'border-gray-800' : 'border-gray-200'
         }`}>
           <div className={`text-sm font-light ${
@@ -107,42 +110,6 @@ export const PersonCard = ({ person, onEdit, onDelete, spent = 0 }) => {
           </div>
         </div>
       )}
-
-      {/* Action buttons */}
-      <div className={`mt-6 pt-4 border-t flex gap-3 ${
-        isDarkMode ? 'border-gray-800' : 'border-gray-200'
-      }`}>
-        <button
-          onClick={() => onEdit(person)}
-          className={`
-            text-sm font-light transition-colors
-            ${isDarkMode
-              ? 'text-gray-500 hover:text-gray-300'
-              : 'text-gray-400 hover:text-gray-600'
-            }
-          `}
-          title="Edit person"
-        >
-          Edit
-        </button>
-        <button
-          onClick={() => {
-            if (window.confirm(`Remove ${person.name} from your gift list?`)) {
-              onDelete(person.id);
-            }
-          }}
-          className={`
-            text-sm font-light transition-colors
-            ${isDarkMode
-              ? 'text-gray-500 hover:text-red-400'
-              : 'text-gray-400 hover:text-red-600'
-            }
-          `}
-          title="Remove person"
-        >
-          Remove
-        </button>
-      </div>
     </div>
   );
 };
