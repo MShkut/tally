@@ -3,7 +3,6 @@ import React, { useState } from 'react';
 
 import { useTheme } from 'contexts/ThemeContext';
 import { ThemeToggle } from 'components/shared/ThemeToggle';
-import { DatePicker } from 'components/shared/DatePicker';
 import {
   FormGrid,
   FormField,
@@ -19,8 +18,6 @@ export const AddPersonManually = ({ onAdd, onBack }) => {
   const [person, setPerson] = useState({
     name: '',
     relationship: '',
-    birthday: '',
-    notes: '',
     applicableHolidays: [],
     budgets: {},
     customOccasions: []
@@ -105,7 +102,6 @@ export const AddPersonManually = ({ onAdd, onBack }) => {
   const getAvailableHolidays = () => {
     return HOLIDAYS.filter(h => {
       if (h.id === 'other') return false;
-      if (h.id === 'birthday' && !person.birthday) return false;
       return !person.applicableHolidays.includes(h.id);
     });
   };
@@ -161,31 +157,6 @@ export const AddPersonManually = ({ onAdd, onBack }) => {
                 value={person.relationship}
                 onChange={(value) => handleFieldChange('relationship', value)}
                 placeholder="Friend, sister, coworker, etc."
-              />
-            </FormField>
-          </FormGrid>
-
-          <FormGrid>
-            <FormField span={4}>
-              <label className={`block text-sm font-light mb-2 ${
-                isDarkMode ? 'text-gray-400' : 'text-gray-600'
-              }`}>
-                Birthday
-              </label>
-              <DatePicker
-                value={person.birthday}
-                onChange={(value) => handleFieldChange('birthday', value)}
-                placeholder="Select birthday"
-                useBudgetConstraints={false}
-                align="right"
-              />
-            </FormField>
-            <FormField span={8}>
-              <StandardInput
-                label="Notes"
-                value={person.notes}
-                onChange={(value) => handleFieldChange('notes', value)}
-                placeholder="Gift preferences, sizes, interests, etc."
               />
             </FormField>
           </FormGrid>

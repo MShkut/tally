@@ -611,11 +611,6 @@ export const GiftManagement = ({ onNavigate }) => {
                                   {person.relationship}
                                 </div>
                               )}
-                              {person.birthday && (
-                                <div className={`text-sm font-light mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                                  Birthday: {new Date(person.birthday).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                                </div>
-                              )}
                             </div>
                             <div className="flex gap-3">
                               <button
