@@ -41,45 +41,102 @@ export function getDefaultDateRange() {
 }
 
 /**
- * Generate net worth chart data
+ * Generate net worth chart data (optimized)
  */
 export async function generateNetworthChartData(startDate, endDate, chartView = 'currency') {
   try {
+    // Fetch all data upfront (single API call)
     const accounts = await apiService.getNetworthAccounts();
 
     if (!accounts.data || accounts.data.length === 0) {
       return [];
     }
 
+    // Fetch all snapshots and holdings data upfront
+    const accountDataMap = {};
+
+    for (const account of accounts.data) {
+      accountDataMap[account.id] = {
+        account,
+        snapshots: [],
+        holdings: [],
+        transactions: []
+      };
+
+      if (account.tracking_method === 'simple') {
+        // Fetch all snapshots for this account
+        const snapshots = await apiService.getAccountSnapshots(account.id);
+        accountDataMap[account.id].snapshots = snapshots.data || [];
+      } else {
+        // Fetch holdings and their transactions
+        const holdings = await apiService.getAccountHoldings(account.id);
+        if (holdings.data) {
+          accountDataMap[account.id].holdings = holdings.data;
+
+          // Fetch transactions for each holding
+          for (const holding of holdings.data) {
+            const transactions = await apiService.getHoldingTransactions(holding.id);
+            if (transactions.data) {
+              accountDataMap[account.id].transactions.push(...transactions.data.map(t => ({
+                ...t,
+                holding_id: holding.id
+              })));
+            }
+          }
+
+          // Sort transactions by date
+          accountDataMap[account.id].transactions.sort((a, b) => a.date.localeCompare(b.date));
+        }
+      }
+    }
+
     // Generate date range
     const dates = generateDateRange(startDate, endDate, 'day');
     const chartData = [];
 
+    // Calculate values for each date using cached data
     for (const date of dates) {
-      const dataPoint = {
-        date,
-        value: 0
-      };
-
-      // Calculate net worth for this date
       let totalAssets = 0;
       let totalLiabilities = 0;
 
-      for (const account of accounts.data) {
+      for (const accountId in accountDataMap) {
+        const { account, snapshots, holdings, transactions } = accountDataMap[accountId];
         let accountValue = 0;
 
         if (account.tracking_method === 'simple') {
-          // Get most recent snapshot before/on this date
-          const snapshots = await apiService.getAccountSnapshots(account.id, null, date);
-          if (snapshots.data && snapshots.data.length > 0) {
-            accountValue = snapshots.data[0].balance / 100; // Convert cents to base unit
+          // Find most recent snapshot before/on this date
+          const relevantSnapshot = snapshots
+            .filter(s => s.date <= date)
+            .sort((a, b) => b.date.localeCompare(a.date))[0];
+
+          if (relevantSnapshot) {
+            accountValue = relevantSnapshot.balance / 100;
           }
         } else {
-          // Sum holdings (simplified - in real app, would calculate based on transactions and prices)
-          const holdings = await apiService.getAccountHoldings(account.id);
-          if (holdings.data) {
-            for (const holding of holdings.data) {
-              accountValue += (holding.current_value || 0) / 100;
+          // Calculate holdings value at this date
+          const holdingQuantities = {};
+
+          // Calculate quantity for each holding based on transactions up to this date
+          for (const tx of transactions) {
+            if (tx.date <= date) {
+              if (!holdingQuantities[tx.holding_id]) {
+                holdingQuantities[tx.holding_id] = 0;
+              }
+              if (tx.type === 'buy') {
+                holdingQuantities[tx.holding_id] += tx.quantity;
+              } else if (tx.type === 'sell') {
+                holdingQuantities[tx.holding_id] -= tx.quantity;
+              }
+            }
+          }
+
+          // Calculate value using latest known price for each holding
+          for (const holding of holdings) {
+            const quantity = holdingQuantities[holding.id] || 0;
+            if (quantity > 0) {
+              // Use current_price from holding (this should be the latest price)
+              const price = holding.current_price || holding.cost_basis || 0;
+              accountValue += (quantity * price) / 100;
             }
           }
         }
@@ -93,27 +150,12 @@ export async function generateNetworthChartData(startDate, endDate, chartView = 
 
       const netWorth = totalAssets - totalLiabilities;
 
-      // Apply chart view
-      switch (chartView) {
-        case 'currency':
-          dataPoint.value = netWorth;
-          dataPoint.assets = totalAssets;
-          dataPoint.liabilities = totalLiabilities;
-          break;
-
-        case 'btc':
-        case 'gold':
-          // For BTC/Gold view, we'd convert the net worth
-          // This requires getting the price from holdings
-          // Simplified for now
-          dataPoint.value = netWorth;
-          break;
-
-        default:
-          dataPoint.value = netWorth;
-      }
-
-      chartData.push(dataPoint);
+      chartData.push({
+        date,
+        value: netWorth,
+        assets: totalAssets,
+        liabilities: totalLiabilities
+      });
     }
 
     return chartData;
