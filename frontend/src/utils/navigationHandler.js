@@ -36,6 +36,14 @@ export const handleMenuAction = (actionId, onNavigate, onClose, setShowResetConf
       onNavigate('alltransactions');
       return true;
 
+    case 'networth-import':
+      onNavigate('networth/import');
+      return true;
+
+    case 'networth-items':
+      onNavigate('networth/items');
+      return true;
+
     // Edit Actions
     case 'edit-income':
       onNavigate('edit-income');
@@ -212,7 +220,9 @@ export const getMenuItems = async () => {
 
     const actionsItems = [
       { id: 'import', label: 'Import Transactions' },
-      { id: 'alltransactions', label: 'View and Edit Transactions' }
+      { id: 'alltransactions', label: 'View and Edit Transactions' },
+      { id: 'networth-import', label: 'Import Net Worth Data' },
+      { id: 'networth-items', label: 'View and Edit Net Worth Items' }
     ];
 
     const settingsItems = [
@@ -242,7 +252,9 @@ export const getMenuItems = async () => {
       ],
       actions: [
         { id: 'import', label: 'Import Transactions' },
-        { id: 'alltransactions', label: 'View and Edit Transactions' }
+        { id: 'alltransactions', label: 'View and Edit Transactions' },
+        { id: 'networth-import', label: 'Import Net Worth Data' },
+        { id: 'networth-items', label: 'View and Edit Net Worth Items' }
       ],
       settings: [
         { id: 'settings', label: 'Settings' },
