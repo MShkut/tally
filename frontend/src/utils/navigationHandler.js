@@ -32,6 +32,10 @@ export const handleMenuAction = (actionId, onNavigate, onClose, setShowResetConf
       onNavigate('alltransactions');
       return true;
 
+    case 'gifts':
+      onNavigate('gifts');
+      return true;
+
     // Edit Actions
     case 'edit-income':
       onNavigate('edit-income');
@@ -207,7 +211,8 @@ export const getMenuItems = async () => {
 
     const actionsItems = [
       { id: 'import', label: 'Import Transactions' },
-      { id: 'alltransactions', label: 'View and Edit Transactions' }
+      { id: 'alltransactions', label: 'View and Edit Transactions' },
+      { id: 'gifts', label: 'Gift Management' }
     ];
 
     const settingsItems = [
@@ -236,7 +241,8 @@ export const getMenuItems = async () => {
       ],
       actions: [
         { id: 'import', label: 'Import Transactions' },
-        { id: 'alltransactions', label: 'View and Edit Transactions' }
+        { id: 'alltransactions', label: 'View and Edit Transactions' },
+        { id: 'gifts', label: 'Gift Management' }
       ],
       settings: [
         { id: 'settings', label: 'Settings' },

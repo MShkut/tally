@@ -9,6 +9,7 @@ const TransactionImport = lazy(() => import('components/actions/import/Transacti
 const AllTransactions = lazy(() => import('components/actions/alltransactions/AllTransactions').then(m => ({ default: m.AllTransactions })));
 const EditWrapper = lazy(() => import('components/actions/edit/EditWrapper').then(m => ({ default: m.EditWrapper })));
 const PlanNextPeriod = lazy(() => import('components/actions/plan/PlanNextPeriod').then(m => ({ default: m.PlanNextPeriod })));
+const GiftManagement = lazy(() => import('components/actions/gifts/GiftManagement').then(m => ({ default: m.GiftManagement })));
 const SettingsDashboard = lazy(() => import('components/settings/SettingsDashboard').then(m => ({ default: m.SettingsDashboard })));
 
 // Loading component for suspense
@@ -150,6 +151,7 @@ const HouseholdRoutes = ({ onLogout }) => {
         <Route path="dashboard" element={<Dashboard onNavigate={handleNavigate} onLogout={onLogout} />} />
         <Route path="import" element={<TransactionImport onNavigate={handleNavigate} onLogout={onLogout} />} />
         <Route path="alltransactions" element={<AllTransactions onNavigate={handleNavigate} onLogout={onLogout} />} />
+        <Route path="gifts" element={<GiftManagement onNavigate={handleNavigate} onLogout={onLogout} />} />
         <Route path="settings" element={<SettingsDashboard onNavigate={handleNavigate} onLogout={onLogout} />} />
         <Route path="edit-income" element={
           <EditWrapper

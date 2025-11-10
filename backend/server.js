@@ -657,6 +657,49 @@ app.put('/api/categories/custom/:context', authenticateToken, (req, res) => {
   }
 });
 
+// ==================== GIFT DATA ROUTES ====================
+// Gift budget tracking and management
+
+/**
+ * GET /api/gifts
+ * Load gift data for the current user
+ *
+ * @route GET /api/gifts
+ * @access Private (requires authentication)
+ * @returns {Object} success: true, data: {people: Array, gifts: Array}
+ */
+app.get('/api/gifts', authenticateToken, (req, res) => {
+  try {
+    const GiftData = require('./models/GiftData');
+    const data = GiftData.load(req.userId);
+    res.json({ success: true, data });
+  } catch (error) {
+    console.error('[GIFTS] Load error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * PUT /api/gifts
+ * Save gift data for the current user
+ *
+ * @route PUT /api/gifts
+ * @access Private (requires authentication)
+ * @body {Object} data - Gift data {people: Array, gifts: Array}
+ * @returns {Object} success: true, data: saved gift data
+ */
+app.put('/api/gifts', authenticateToken, (req, res) => {
+  try {
+    const GiftData = require('./models/GiftData');
+    const data = req.body;
+    const savedData = GiftData.save(req.userId, data);
+    res.json({ success: true, data: savedData });
+  } catch (error) {
+    console.error('[GIFTS] Save error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // ==================== DATA MANAGEMENT ROUTES ====================
 // Backup, restore, and data management operations
 
@@ -690,9 +733,11 @@ app.put('/api/categories/custom/:context', authenticateToken, (req, res) => {
 app.get('/api/data/export', authenticateToken, async (req, res) => {
   try {
     // Load all data for export
+    const GiftData = require('./models/GiftData');
     const userData = UserData.load(req.userId);
     const settings = Settings.load(req.userId);
     const transactions = Transaction.findByUser(req.userId, 10000, 0); // Get all transactions (high limit)
+    const giftData = GiftData.load(req.userId);
 
     // Build export object with version metadata
     const exportData = {
@@ -700,7 +745,8 @@ app.get('/api/data/export', authenticateToken, async (req, res) => {
       exportedAt: new Date().toISOString(),
       userData: userData || null,
       transactions: transactions || [],
-      settings: settings || null
+      settings: settings || null,
+      giftData: giftData || { people: [], gifts: [] }
     };
 
     res.json({ success: true, data: exportData });
@@ -789,6 +835,18 @@ app.post('/api/data/import', authenticateToken, async (req, res) => {
       }
     }
 
+    // Import gift data (non-critical)
+    if (importData.giftData) {
+      try {
+        const GiftData = require('./models/GiftData');
+        GiftData.save(req.userId, importData.giftData);
+        console.log('[IMPORT] ✓ Gift data imported');
+      } catch (error) {
+        console.error('[IMPORT] Error importing gift data:', error);
+        // Non-critical, continue with import
+      }
+    }
+
     console.log('[IMPORT] ✅ Data imported successfully');
     res.json({ success: true, data: { message: 'Data imported successfully' } });
   } catch (error) {
@@ -819,11 +877,13 @@ app.post('/api/data/import', authenticateToken, async (req, res) => {
  */
 app.post('/api/data/reset', authenticateToken, async (req, res) => {
   try {
+    const GiftData = require('./models/GiftData');
     // Delete all user data (irreversible)
     UserData.delete(req.userId);
     Settings.delete(req.userId);
     Transaction.deleteAll(req.userId);
     CategoryMapping.deleteAll(req.userId);
+    GiftData.delete(req.userId);
 
     console.log('[RESET] ✅ All data reset for user', req.userId);
     res.json({ success: true, data: { message: 'All data reset successfully' } });
