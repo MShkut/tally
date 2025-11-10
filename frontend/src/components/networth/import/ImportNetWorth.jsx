@@ -652,69 +652,12 @@ export const ImportNetWorth = ({ onNavigate, onLogout }) => {
         {/* CSV Upload View */}
         {activeView === 'upload' && (
           <>
-        {/* Import Type Selection */}
+        {/* Import Type Selection + Template Download */}
         <div className={`p-6 rounded-lg border mb-6 ${
           isDarkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'
         }`}>
-          <h2 className="text-xl font-medium mb-4">Import Type</h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <button
-              onClick={() => {
-                setImportType('transactions');
-                setSelectedFile(null);
-                setParsedData([]);
-                setValidationErrors([]);
-                setImportResults(null);
-              }}
-              className={`p-4 rounded-lg border text-left transition-colors ${
-                importType === 'transactions'
-                  ? isDarkMode
-                    ? 'bg-blue-900 border-blue-700 text-blue-200'
-                    : 'bg-blue-100 border-blue-500 text-blue-700'
-                  : isDarkMode
-                    ? 'bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700'
-                    : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
-              }`}
-            >
-              <div className="font-medium mb-1">Transactions</div>
-              <div className="text-sm opacity-75">
-                Import buy/sell transactions for holdings. Accounts will be auto-created if they don't exist.
-              </div>
-            </button>
-
-            <button
-              onClick={() => {
-                setImportType('prices');
-                setSelectedFile(null);
-                setParsedData([]);
-                setValidationErrors([]);
-                setImportResults(null);
-              }}
-              className={`p-4 rounded-lg border text-left transition-colors ${
-                importType === 'prices'
-                  ? isDarkMode
-                    ? 'bg-blue-900 border-blue-700 text-blue-200'
-                    : 'bg-blue-100 border-blue-500 text-blue-700'
-                  : isDarkMode
-                    ? 'bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700'
-                    : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
-              }`}
-            >
-              <div className="font-medium mb-1">Price Updates</div>
-              <div className="text-sm opacity-75">
-                Import historical prices for holdings
-              </div>
-            </button>
-          </div>
-        </div>
-
-        {/* File Upload */}
-        <div className={`p-6 rounded-lg border mb-6 ${
-          isDarkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'
-        }`}>
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-medium">Upload CSV File</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-medium">Import Type</h2>
             <button
               onClick={downloadTemplate}
               className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
@@ -723,9 +666,41 @@ export const ImportNetWorth = ({ onNavigate, onLogout }) => {
                   : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
               }`}
             >
-              📥 Download Template
+              📥 Download {importType === 'transactions' ? 'Transactions' : 'Prices'} Template
             </button>
           </div>
+
+          <StandardSelect
+            label="What would you like to import?"
+            value={importType}
+            onChange={(value) => {
+              setImportType(value);
+              setSelectedFile(null);
+              setParsedData([]);
+              setValidationErrors([]);
+              setImportResults(null);
+            }}
+            options={[
+              { value: 'transactions', label: 'Transactions (Buy/Sell)' },
+              { value: 'prices', label: 'Price Updates' }
+            ]}
+            className="[&_label]:text-base [&_label]:font-light [&_button]:text-base [&_button]:font-light"
+          />
+
+          <div className={`mt-3 text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+            {importType === 'transactions' ? (
+              <p>Import buy/sell transactions for holdings. Accounts will be auto-created if they don't exist.</p>
+            ) : (
+              <p>Import historical prices for existing holdings. Import transactions first to create accounts and holdings.</p>
+            )}
+          </div>
+        </div>
+
+        {/* File Upload */}
+        <div className={`p-6 rounded-lg border mb-6 ${
+          isDarkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'
+        }`}>
+          <h2 className="text-xl font-medium mb-4">Upload CSV File</h2>
 
           <div className={`border-2 border-dashed rounded-lg p-8 text-center ${
             isDarkMode ? 'border-gray-700' : 'border-gray-300'
