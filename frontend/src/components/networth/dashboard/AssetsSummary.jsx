@@ -1,7 +1,7 @@
 // AssetsSummary.jsx - Assets summary section
 import React from 'react';
 import { useTheme } from 'contexts/ThemeContext';
-import { currency } from 'utils/currency';
+import { Currency } from 'utils/currency';
 import { groupAccountsByCategory } from 'utils/networthChartUtils';
 
 export const AssetsSummary = ({ accounts, total }) => {
@@ -17,7 +17,7 @@ export const AssetsSummary = ({ accounts, total }) => {
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-medium">Assets</h2>
         <div className="text-2xl font-medium text-green-500">
-          {currency.format(total)}
+          {Currency.format(total)}
         </div>
       </div>
 
@@ -40,7 +40,7 @@ export const AssetsSummary = ({ accounts, total }) => {
                   isDarkMode ? 'border-gray-800' : 'border-gray-200'
                 }`}>
                   <div className="font-medium">{category}</div>
-                  <div className="text-sm">{currency.format(categoryTotal)}</div>
+                  <div className="text-sm">{Currency.format(categoryTotal)}</div>
                 </div>
 
                 {categoryAccounts.map(account => (
@@ -60,7 +60,7 @@ export const AssetsSummary = ({ accounts, total }) => {
                         </span>
                       )}
                     </div>
-                    <div>{currency.format(account.current_value || 0)}</div>
+                    <div>{Currency.format(account.current_value || 0)}</div>
                   </div>
                 ))}
               </div>

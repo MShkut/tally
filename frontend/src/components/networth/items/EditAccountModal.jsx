@@ -4,7 +4,7 @@ import { useTheme } from 'contexts/ThemeContext';
 import { useNetworth } from 'hooks/useNetworth';
 import { useBudget } from 'hooks/useBudget';
 import { apiService } from 'utils/apiService';
-import { currency } from 'utils/currency';
+import { Currency } from 'utils/currency';
 
 export const EditAccountModal = ({ account, onClose }) => {
   const { isDarkMode } = useTheme();
@@ -538,9 +538,9 @@ export const EditAccountModal = ({ account, onClose }) => {
                                 )}
                               </div>
                               <div className="text-right">
-                                <div className="font-medium">{currency.format(holding.current_value || 0)}</div>
+                                <div className="font-medium">{Currency.format(holding.current_value || 0)}</div>
                                 <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                                  {holding.current_quantity || 0} @ {currency.format(holding.current_price || 0)}
+                                  {holding.current_quantity || 0} @ {Currency.format(holding.current_price || 0)}
                                 </div>
                               </div>
                             </div>

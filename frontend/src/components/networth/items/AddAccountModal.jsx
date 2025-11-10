@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { useTheme } from 'contexts/ThemeContext';
 import { useNetworth } from 'hooks/useNetworth';
 import { useBudget } from 'hooks/useBudget';
-import { currency } from 'utils/currency';
+import { Currency } from 'utils/currency';
 
 export const AddAccountModal = ({ onClose }) => {
   const { isDarkMode } = useTheme();

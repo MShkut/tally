@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { useTheme } from 'contexts/ThemeContext';
 import { useNetworth } from 'hooks/useNetworth';
 import { apiService } from 'utils/apiService';
-import { currency } from 'utils/currency';
+import { Currency } from 'utils/currency';
 
 export const ImportNetWorth = () => {
   const { isDarkMode } = useTheme();
