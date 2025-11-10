@@ -6,14 +6,12 @@ import { useNetworth } from 'hooks/useNetworth';
 import { BurgerMenu } from 'components/shared/BurgerMenu';
 import { handleMenuAction } from 'utils/navigationHandler';
 import { AccountCard } from './AccountCard';
-import { AddAccountModal } from './AddAccountModal';
 import { EditAccountModal } from './EditAccountModal';
 
 export const NetWorthItems = ({ onNavigate, onLogout }) => {
   const { isDarkMode } = useTheme();
   const { accounts, deleteAccount } = useNetworth();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [showAddModal, setShowAddModal] = useState(false);
   const [editingAccount, setEditingAccount] = useState(null);
   const [deletingAccount, setDeletingAccount] = useState(null);
   const [filter, setFilter] = useState('all'); // all, assets, liabilities
@@ -139,17 +137,6 @@ export const NetWorthItems = ({ onNavigate, onLogout }) => {
               <option value="assets">Assets Only</option>
               <option value="liabilities">Liabilities Only</option>
             </select>
-
-            <button
-              onClick={() => setShowAddModal(true)}
-              className={`px-6 py-3 rounded font-light whitespace-nowrap transition-colors ${
-                isDarkMode
-                  ? 'bg-white text-black hover:bg-gray-100'
-                  : 'bg-black text-white hover:bg-gray-900'
-              }`}
-            >
-              Add Account
-            </button>
           </div>
 
           {/* Summary Stats */}
@@ -209,7 +196,7 @@ export const NetWorthItems = ({ onNavigate, onLogout }) => {
               <p className="text-sm font-light">
                 {search || filter !== 'all'
                   ? 'Try adjusting your search or filter'
-                  : 'Add your first account to get started tracking your net worth'}
+                  : 'Import net worth data from the Actions menu to get started tracking your net worth'}
               </p>
             </div>
           ) : (
@@ -230,10 +217,6 @@ export const NetWorthItems = ({ onNavigate, onLogout }) => {
       </div>
 
       {/* Modals */}
-      {showAddModal && (
-        <AddAccountModal onClose={() => setShowAddModal(false)} />
-      )}
-
       {editingAccount && (
         <EditAccountModal
           account={editingAccount}
