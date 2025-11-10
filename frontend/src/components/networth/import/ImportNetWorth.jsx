@@ -34,7 +34,7 @@ export const ImportNetWorth = ({ onNavigate, onLogout }) => {
     handleMenuAction(actionId, onNavigate, () => setMenuOpen(false));
   };
 
-  const [importType, setImportType] = useState('snapshots'); // snapshots, transactions, prices
+  const [importType, setImportType] = useState('transactions'); // transactions, prices
   const [selectedFile, setSelectedFile] = useState(null);
   const [parsedData, setParsedData] = useState([]);
   const [validationErrors, setValidationErrors] = useState([]);
@@ -90,48 +90,24 @@ export const ImportNetWorth = ({ onNavigate, onLogout }) => {
       return;
     }
 
-    if (importType === 'snapshots') {
-      // Validate snapshots format: account_name, date, balance
-      data.forEach((row, index) => {
-        const rowNum = index + 2; // +2 because index starts at 0 and row 1 is headers
-
-        if (!row.account_name) {
-          errors.push(`Row ${rowNum}: account_name is required`);
-        } else {
-          const account = accounts.find(a => a.name === row.account_name);
-          if (!account) {
-            errors.push(`Row ${rowNum}: Account "${row.account_name}" not found`);
-          } else if (account.tracking_method !== 'simple') {
-            errors.push(`Row ${rowNum}: Account "${row.account_name}" is not a simple balance account`);
-          }
-        }
-
-        if (!row.date) {
-          errors.push(`Row ${rowNum}: date is required`);
-        } else if (!/^\d{4}-\d{2}-\d{2}$/.test(row.date)) {
-          errors.push(`Row ${rowNum}: date must be in YYYY-MM-DD format`);
-        }
-
-        if (!row.balance && row.balance !== '0') {
-          errors.push(`Row ${rowNum}: balance is required`);
-        } else if (isNaN(parseFloat(row.balance))) {
-          errors.push(`Row ${rowNum}: balance must be a valid number`);
-        }
-      });
-    } else if (importType === 'transactions') {
-      // Validate transactions format: account_name, holding_name, type, date, quantity, price_per_unit
+    if (importType === 'transactions') {
+      // Validate transactions format: account_name, account_type, account_category, holding_name, type, date, quantity, price_per_unit
+      // Note: Account will be auto-created if it doesn't exist
       data.forEach((row, index) => {
         const rowNum = index + 2;
 
         if (!row.account_name) {
           errors.push(`Row ${rowNum}: account_name is required`);
-        } else {
-          const account = accounts.find(a => a.name === row.account_name);
-          if (!account) {
-            errors.push(`Row ${rowNum}: Account "${row.account_name}" not found`);
-          } else if (account.tracking_method !== 'quantity_based') {
-            errors.push(`Row ${rowNum}: Account "${row.account_name}" is not a quantity-based account`);
-          }
+        }
+
+        if (!row.account_type) {
+          errors.push(`Row ${rowNum}: account_type is required (asset or liability)`);
+        } else if (!['asset', 'liability'].includes(row.account_type.toLowerCase())) {
+          errors.push(`Row ${rowNum}: account_type must be "asset" or "liability"`);
+        }
+
+        if (!row.account_category) {
+          errors.push(`Row ${rowNum}: account_category is required (e.g., Investments, Crypto, etc.)`);
         }
 
         if (!row.holding_name) {
@@ -202,26 +178,24 @@ export const ImportNetWorth = ({ onNavigate, onLogout }) => {
     const results = { success: 0, failed: 0, errors: [] };
 
     try {
-      if (importType === 'snapshots') {
+      if (importType === 'transactions') {
         for (const row of parsedData) {
           try {
-            const account = accounts.find(a => a.name === row.account_name);
-            await apiService.createSnapshot({
-              account_id: account.id,
-              date: row.date,
-              balance: parseFloat(row.balance),
-              source: 'import'
-            });
-            results.success++;
-          } catch (error) {
-            results.failed++;
-            results.errors.push(`${row.account_name} (${row.date}): ${error.message}`);
-          }
-        }
-      } else if (importType === 'transactions') {
-        for (const row of parsedData) {
-          try {
-            const account = accounts.find(a => a.name === row.account_name);
+            // Find or create account
+            let account = accounts.find(a => a.name === row.account_name);
+
+            if (!account) {
+              // Auto-create account if it doesn't exist
+              account = await apiService.createNetworthAccount({
+                name: row.account_name,
+                type: row.account_type.toLowerCase(),
+                category: row.account_category,
+                tracking_method: 'quantity_based',
+                notes: 'Auto-created during import'
+              });
+              // Add to accounts array for future lookups in this import
+              accounts.push(account);
+            }
 
             // Get or create holding
             let holdings = await apiService.getAccountHoldings(account.id);
@@ -254,11 +228,16 @@ export const ImportNetWorth = ({ onNavigate, onLogout }) => {
         for (const row of parsedData) {
           try {
             const account = accounts.find(a => a.name === row.account_name);
+
+            if (!account) {
+              throw new Error(`Account "${row.account_name}" not found. Please import transactions first to create accounts and holdings.`);
+            }
+
             const holdings = await apiService.getAccountHoldings(account.id);
             const holding = holdings.find(h => h.name === row.holding_name);
 
             if (!holding) {
-              throw new Error('Holding not found');
+              throw new Error(`Holding "${row.holding_name}" not found in account "${row.account_name}". Please import transactions first.`);
             }
 
             await apiService.createPriceUpdate({
@@ -295,12 +274,10 @@ export const ImportNetWorth = ({ onNavigate, onLogout }) => {
   };
 
   const getTemplateCSV = () => {
-    if (importType === 'snapshots') {
-      return 'account_name,date,balance\nMy Chequing,2025-01-01,5000.00\nMy Savings,2025-01-01,10000.00';
-    } else if (importType === 'transactions') {
-      return 'account_name,holding_name,ticker_symbol,asset_type,type,date,quantity,price_per_unit\nMy TFSA,Apple Inc.,AAPL,stock,buy,2025-01-01,10,150.00\nMy TFSA,Apple Inc.,AAPL,stock,buy,2025-02-01,5,155.00';
+    if (importType === 'transactions') {
+      return 'account_name,account_type,account_category,holding_name,ticker_symbol,asset_type,type,date,quantity,price_per_unit\nMy TFSA,asset,Investments,Apple Inc.,AAPL,stock,buy,2025-01-01,10,150.00\nMy TFSA,asset,Investments,Apple Inc.,AAPL,stock,buy,2025-02-01,5,155.00\nCrypto Wallet,asset,Crypto,Bitcoin,BTC,crypto,buy,2025-01-15,0.5,45000.00';
     } else if (importType === 'prices') {
-      return 'account_name,holding_name,date,price\nMy TFSA,Apple Inc.,2025-03-01,160.00\nMy TFSA,Apple Inc.,2025-04-01,165.00';
+      return 'account_name,holding_name,date,price\nMy TFSA,Apple Inc.,2025-03-01,160.00\nMy TFSA,Apple Inc.,2025-04-01,165.00\nCrypto Wallet,Bitcoin,2025-03-01,48000.00';
     }
   };
 
@@ -365,31 +342,7 @@ export const ImportNetWorth = ({ onNavigate, onLogout }) => {
         }`}>
           <h2 className="text-xl font-medium mb-4">Import Type</h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <button
-              onClick={() => {
-                setImportType('snapshots');
-                setSelectedFile(null);
-                setParsedData([]);
-                setValidationErrors([]);
-                setImportResults(null);
-              }}
-              className={`p-4 rounded-lg border text-left transition-colors ${
-                importType === 'snapshots'
-                  ? isDarkMode
-                    ? 'bg-blue-900 border-blue-700 text-blue-200'
-                    : 'bg-blue-100 border-blue-500 text-blue-700'
-                  : isDarkMode
-                    ? 'bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700'
-                    : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
-              }`}
-            >
-              <div className="font-medium mb-1">Balance Snapshots</div>
-              <div className="text-sm opacity-75">
-                Import historical balances for simple accounts
-              </div>
-            </button>
-
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <button
               onClick={() => {
                 setImportType('transactions');
@@ -410,7 +363,7 @@ export const ImportNetWorth = ({ onNavigate, onLogout }) => {
             >
               <div className="font-medium mb-1">Transactions</div>
               <div className="text-sm opacity-75">
-                Import buy/sell transactions for holdings
+                Import buy/sell transactions for holdings. Accounts will be auto-created if they don't exist.
               </div>
             </button>
 
@@ -496,22 +449,22 @@ export const ImportNetWorth = ({ onNavigate, onLogout }) => {
           }`}>
             <h3 className="font-medium mb-2">Required CSV Format:</h3>
             <div className={`text-sm font-mono ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-              {importType === 'snapshots' && (
-                <>
-                  <div>account_name,date,balance</div>
-                  <div className="mt-1 opacity-75">Example: My Chequing,2025-01-01,5000.00</div>
-                </>
-              )}
               {importType === 'transactions' && (
                 <>
-                  <div>account_name,holding_name,ticker_symbol,asset_type,type,date,quantity,price_per_unit</div>
-                  <div className="mt-1 opacity-75">Example: My TFSA,Apple Inc.,AAPL,stock,buy,2025-01-01,10,150.00</div>
+                  <div className="mb-2">account_name,account_type,account_category,holding_name,ticker_symbol,asset_type,type,date,quantity,price_per_unit</div>
+                  <div className="mt-1 opacity-75">Example: My TFSA,asset,Investments,Apple Inc.,AAPL,stock,buy,2025-01-01,10,150.00</div>
+                  <div className="mt-3 text-xs opacity-90">
+                    <strong>Note:</strong> If the account doesn't exist, it will be auto-created using the account_type and account_category fields.
+                  </div>
                 </>
               )}
               {importType === 'prices' && (
                 <>
                   <div>account_name,holding_name,date,price</div>
                   <div className="mt-1 opacity-75">Example: My TFSA,Apple Inc.,2025-03-01,160.00</div>
+                  <div className="mt-3 text-xs opacity-90">
+                    <strong>Note:</strong> Import transactions first to create accounts and holdings before importing price updates.
+                  </div>
                 </>
               )}
             </div>
