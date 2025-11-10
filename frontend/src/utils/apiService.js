@@ -485,7 +485,7 @@ class APIService {
    * Get all net worth accounts
    */
   async getNetworthAccounts() {
-    return this.request('/api/networth/accounts', { method: 'GET', cache: true });
+    return this.request('/api/networth/accounts', { method: 'GET' });
   }
 
   /**
@@ -504,7 +504,7 @@ class APIService {
    * Get net worth account by ID
    */
   async getNetworthAccount(accountId) {
-    return this.request(`/api/networth/accounts/${accountId}`, { method: 'GET', cache: true });
+    return this.request(`/api/networth/accounts/${accountId}`, { method: 'GET' });
   }
 
   /**
@@ -532,7 +532,7 @@ class APIService {
    * Get holdings for an account
    */
   async getAccountHoldings(accountId) {
-    return this.request(`/api/networth/accounts/${accountId}/holdings`, { method: 'GET', cache: true });
+    return this.request(`/api/networth/accounts/${accountId}/holdings`, { method: 'GET' });
   }
 
   /**
@@ -572,7 +572,7 @@ class APIService {
    * Get transactions for a holding
    */
   async getHoldingTransactions(holdingId) {
-    return this.request(`/api/networth/holdings/${holdingId}/transactions`, { method: 'GET', cache: true });
+    return this.request(`/api/networth/holdings/${holdingId}/transactions`, { method: 'GET' });
   }
 
   /**
@@ -624,7 +624,7 @@ class APIService {
    * Get price history for holding
    */
   async getHoldingPrices(holdingId) {
-    return this.request(`/api/networth/holdings/${holdingId}/prices`, { method: 'GET', cache: true });
+    return this.request(`/api/networth/holdings/${holdingId}/prices`, { method: 'GET' });
   }
 
   /**
@@ -648,7 +648,7 @@ class APIService {
     if (endDate) params.append('endDate', endDate);
 
     const url = `/api/networth/accounts/${accountId}/snapshots${params.toString() ? '?' + params.toString() : ''}`;
-    return this.request(url, { method: 'GET', cache: true });
+    return this.request(url, { method: 'GET' });
   }
 
   /**
@@ -664,7 +664,7 @@ class APIService {
    * Get net worth summary
    */
   async getNetworthSummary() {
-    return this.request('/api/networth/summary', { method: 'GET', cache: true });
+    return this.request('/api/networth/summary', { method: 'GET' });
   }
 
   /**
@@ -676,7 +676,7 @@ class APIService {
     if (endDate) params.append('endDate', endDate);
 
     const url = `/api/networth/chart${params.toString() ? '?' + params.toString() : ''}`;
-    return this.request(url, { method: 'GET', cache: true });
+    return this.request(url, { method: 'GET' });
   }
 
 }
