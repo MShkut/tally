@@ -290,4 +290,53 @@ module.exports = function(app, authenticateToken) {
     }
   });
 
+  // GET /api/networth/chart - Get historical chart data
+  app.get('/api/networth/chart', authenticateToken, (req, res) => {
+    try {
+      // For now, just return current snapshot
+      // In the future, this could return historical data points
+      const accounts = NetWorthAccount.findByUser(req.userId);
+
+      if (accounts.length === 0) {
+        return res.json({ success: true, data: [] });
+      }
+
+      let totalAssets = 0;
+      let totalLiabilities = 0;
+
+      for (const account of accounts) {
+        let value = 0;
+
+        if (account.tracking_method === 'simple') {
+          value = NetWorthAccount.getCurrentBalance(req.userId, account.id);
+        } else {
+          const holdings = NetWorthHolding.findByAccount(account.id);
+          for (const holding of holdings) {
+            value += NetWorthHolding.getCurrentValue(holding.id);
+          }
+        }
+
+        if (account.type === 'asset') {
+          totalAssets += value;
+        } else {
+          totalLiabilities += value;
+        }
+      }
+
+      // Return a single data point for now (current value)
+      const today = new Date().toISOString().split('T')[0];
+      res.json({
+        success: true,
+        data: [{
+          date: today,
+          value: totalAssets - totalLiabilities,
+          assets: totalAssets,
+          liabilities: totalLiabilities
+        }]
+      });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
 };

@@ -7,11 +7,231 @@ import { BurgerMenu } from 'components/shared/BurgerMenu';
 import { handleMenuAction } from 'utils/navigationHandler';
 import { apiService } from 'utils/apiService';
 import { Currency } from 'utils/currency';
+import { StandardInput, StandardSelect } from 'components/shared/FormComponents';
+import { DatePicker } from 'components/shared/DatePicker';
+
+// Manual Transaction Form Component
+const ManualTransactionForm = ({ formData, onUpdate, onAdd, showAddButton = true }) => {
+  const { isDarkMode } = useTheme();
+  const [errors, setErrors] = useState({});
+
+  const handleSubmit = () => {
+    setErrors({});
+
+    // Validate inputs
+    if (!formData.account_name.trim()) {
+      setErrors({ account_name: 'Account name is required' });
+      return;
+    }
+    if (!formData.account_type) {
+      setErrors({ account_type: 'Account type is required' });
+      return;
+    }
+    if (!formData.account_category.trim()) {
+      setErrors({ account_category: 'Account category is required' });
+      return;
+    }
+    if (!formData.holding_name.trim()) {
+      setErrors({ holding_name: 'Holding name is required' });
+      return;
+    }
+    if (!formData.type) {
+      setErrors({ type: 'Transaction type is required' });
+      return;
+    }
+    if (!formData.quantity || isNaN(parseFloat(formData.quantity))) {
+      setErrors({ quantity: 'Valid quantity is required' });
+      return;
+    }
+    if (!formData.price_per_unit || isNaN(parseFloat(formData.price_per_unit))) {
+      setErrors({ price_per_unit: 'Valid price is required' });
+      return;
+    }
+
+    onAdd();
+  };
+
+  const accountTypeOptions = [
+    { value: 'asset', label: 'Asset' },
+    { value: 'liability', label: 'Liability' }
+  ];
+
+  const transactionTypeOptions = [
+    { value: 'buy', label: 'Buy' },
+    { value: 'sell', label: 'Sell' }
+  ];
+
+  const assetTypeOptions = [
+    { value: 'stock', label: 'Stock' },
+    { value: 'crypto', label: 'Crypto' },
+    { value: 'bond', label: 'Bond' },
+    { value: 'etf', label: 'ETF' },
+    { value: 'mutual_fund', label: 'Mutual Fund' },
+    { value: 'other', label: 'Other' }
+  ];
+
+  return (
+    <div className="space-y-6">
+      {/* Row 1: Account Info */}
+      <div className="grid grid-cols-12 gap-4">
+        <div className="col-span-4">
+          <StandardInput
+            label="Account Name"
+            value={formData.account_name}
+            onChange={(value) => onUpdate({ ...formData, account_name: value })}
+            placeholder="My TFSA"
+            error={errors.account_name}
+            className="[&_label]:text-base [&_label]:font-light [&_input]:text-base [&_input]:font-light"
+          />
+        </div>
+        <div className="col-span-3">
+          <StandardSelect
+            label="Account Type"
+            value={formData.account_type}
+            onChange={(value) => onUpdate({ ...formData, account_type: value })}
+            options={accountTypeOptions}
+            error={errors.account_type}
+            placeholder="Select type"
+            className="[&_label]:text-base [&_label]:font-light [&_button]:text-base [&_button]:font-light"
+          />
+        </div>
+        <div className="col-span-5">
+          <StandardInput
+            label="Account Category"
+            value={formData.account_category}
+            onChange={(value) => onUpdate({ ...formData, account_category: value })}
+            placeholder="Investments, Crypto, etc."
+            error={errors.account_category}
+            className="[&_label]:text-base [&_label]:font-light [&_input]:text-base [&_input]:font-light"
+          />
+        </div>
+      </div>
+
+      {/* Row 2: Holding Info */}
+      <div className="grid grid-cols-12 gap-4">
+        <div className="col-span-4">
+          <StandardInput
+            label="Holding Name"
+            value={formData.holding_name}
+            onChange={(value) => onUpdate({ ...formData, holding_name: value })}
+            placeholder="Apple Inc."
+            error={errors.holding_name}
+            className="[&_label]:text-base [&_label]:font-light [&_input]:text-base [&_input]:font-light"
+          />
+        </div>
+        <div className="col-span-3">
+          <StandardInput
+            label="Ticker Symbol"
+            value={formData.ticker_symbol}
+            onChange={(value) => onUpdate({ ...formData, ticker_symbol: value })}
+            placeholder="AAPL (optional)"
+            className="[&_label]:text-base [&_label]:font-light [&_input]:text-base [&_input]:font-light"
+          />
+        </div>
+        <div className="col-span-3">
+          <StandardSelect
+            label="Asset Type"
+            value={formData.asset_type}
+            onChange={(value) => onUpdate({ ...formData, asset_type: value })}
+            options={assetTypeOptions}
+            placeholder="Select type"
+            className="[&_label]:text-base [&_label]:font-light [&_button]:text-base [&_button]:font-light"
+          />
+        </div>
+        <div className="col-span-2">
+          <StandardSelect
+            label="Type"
+            value={formData.type}
+            onChange={(value) => onUpdate({ ...formData, type: value })}
+            options={transactionTypeOptions}
+            error={errors.type}
+            placeholder="Buy/Sell"
+            className="[&_label]:text-base [&_label]:font-light [&_button]:text-base [&_button]:font-light"
+          />
+        </div>
+      </div>
+
+      {/* Row 3: Transaction Details */}
+      <div className="grid grid-cols-12 gap-4">
+        <div className="col-span-3">
+          <div>
+            <label className={`block text-base font-light mb-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+              Date
+            </label>
+            <DatePicker
+              value={formData.date}
+              onChange={(isoDate) => onUpdate({ ...formData, date: isoDate })}
+              placeholder="Select date"
+              className="w-full [&>button]:py-3 [&>button]:pb-4 [&>button]:text-base [&>button]:font-light"
+            />
+          </div>
+        </div>
+        <div className="col-span-3">
+          <StandardInput
+            label="Quantity"
+            type="number"
+            value={formData.quantity}
+            onChange={(value) => onUpdate({ ...formData, quantity: value })}
+            placeholder="10"
+            error={errors.quantity}
+            className="[&_label]:text-base [&_label]:font-light [&_input]:text-base [&_input]:font-light"
+          />
+        </div>
+        <div className="col-span-3">
+          <StandardInput
+            label="Price Per Unit"
+            type="currency"
+            value={formData.price_per_unit}
+            onChange={(value) => onUpdate({ ...formData, price_per_unit: value })}
+            prefix="$"
+            placeholder="150.00"
+            error={errors.price_per_unit}
+            className="[&_label]:text-base [&_label]:font-light [&_input]:text-base [&_input]:font-light"
+          />
+        </div>
+        <div className="col-span-3">
+          <div className={`text-base font-light mb-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+            Total Value
+          </div>
+          <div className={`text-2xl font-light ${isDarkMode ? 'text-white' : 'text-black'} mt-3`}>
+            {formData.quantity && formData.price_per_unit
+              ? Currency.format(parseFloat(formData.quantity) * parseFloat(formData.price_per_unit))
+              : '$0.00'}
+          </div>
+        </div>
+      </div>
+
+      {/* Add transaction button */}
+      {showAddButton && (
+        <button
+          onClick={handleSubmit}
+          disabled={!formData.account_name || !formData.holding_name || !formData.quantity || !formData.price_per_unit}
+          className={`
+            w-full py-6 border-2 border-dashed transition-colors text-center
+            ${formData.account_name && formData.holding_name && formData.quantity && formData.price_per_unit
+              ? isDarkMode
+                ? 'border-gray-600 text-gray-400 hover:border-gray-500 hover:text-gray-300'
+                : 'border-gray-300 text-gray-600 hover:border-gray-400 hover:text-gray-700'
+              : isDarkMode
+                ? 'border-gray-700 text-gray-500 cursor-not-allowed'
+                : 'border-gray-200 text-gray-400 cursor-not-allowed'
+            }
+          `}
+        >
+          <span className="text-xl font-light">
+            Add Transaction
+          </span>
+        </button>
+      )}
+    </div>
+  );
+};
 
 export const ImportNetWorth = ({ onNavigate, onLogout }) => {
   const { isDarkMode } = useTheme();
   const { accounts, loadAccounts } = useNetworth();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [activeView, setActiveView] = useState('upload'); // 'upload', 'manual'
 
   // Handle menu state changes to prevent layout shift
   useEffect(() => {
@@ -34,12 +254,29 @@ export const ImportNetWorth = ({ onNavigate, onLogout }) => {
     handleMenuAction(actionId, onNavigate, () => setMenuOpen(false));
   };
 
+  // CSV Upload state
   const [importType, setImportType] = useState('transactions'); // transactions, prices
   const [selectedFile, setSelectedFile] = useState(null);
   const [parsedData, setParsedData] = useState([]);
   const [validationErrors, setValidationErrors] = useState([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [importResults, setImportResults] = useState(null);
+
+  // Manual entry state
+  const [manualTransactions, setManualTransactions] = useState([{
+    id: Date.now(),
+    account_name: '',
+    account_type: '',
+    account_category: '',
+    holding_name: '',
+    ticker_symbol: '',
+    asset_type: 'stock',
+    type: '',
+    date: new Date().toISOString().split('T')[0],
+    quantity: '',
+    price_per_unit: ''
+  }]);
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
 
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
@@ -166,6 +403,112 @@ export const ImportNetWorth = ({ onNavigate, onLogout }) => {
     }
 
     setValidationErrors(errors);
+  };
+
+  const handleAddNewForm = () => {
+    setManualTransactions(prev => [...prev, {
+      id: Date.now(),
+      account_name: '',
+      account_type: '',
+      account_category: '',
+      holding_name: '',
+      ticker_symbol: '',
+      asset_type: 'stock',
+      type: '',
+      date: new Date().toISOString().split('T')[0],
+      quantity: '',
+      price_per_unit: ''
+    }]);
+  };
+
+  const handleUpdateManualTransaction = (index, formData) => {
+    setManualTransactions(prev => prev.map((item, i) =>
+      i === index ? formData : item
+    ));
+  };
+
+  const handleImportManualTransactions = async () => {
+    setIsProcessing(true);
+    const results = { success: 0, failed: 0, errors: [] };
+
+    try {
+      for (const formData of manualTransactions) {
+        // Skip empty forms
+        if (!formData.account_name || !formData.holding_name || !formData.quantity || !formData.price_per_unit) {
+          continue;
+        }
+
+        try {
+          // Find or create account
+          let account = accounts.find(a => a.name === formData.account_name);
+
+          if (!account) {
+            account = await apiService.createNetworthAccount({
+              name: formData.account_name,
+              type: formData.account_type.toLowerCase(),
+              category: formData.account_category,
+              tracking_method: 'quantity_based',
+              notes: 'Created via manual entry'
+            });
+            accounts.push(account);
+          }
+
+          // Get or create holding
+          let holdings = await apiService.getAccountHoldings(account.id);
+          let holding = holdings.find(h => h.name === formData.holding_name);
+
+          if (!holding) {
+            holding = await apiService.createHolding({
+              account_id: account.id,
+              name: formData.holding_name,
+              ticker_symbol: formData.ticker_symbol || null,
+              asset_type: formData.asset_type || 'other'
+            });
+          }
+
+          // Create transaction
+          await apiService.createHoldingTransaction({
+            holding_id: holding.id,
+            type: formData.type.toLowerCase(),
+            date: formData.date,
+            quantity: parseFloat(formData.quantity),
+            price_per_unit: parseFloat(formData.price_per_unit)
+          });
+          results.success++;
+        } catch (error) {
+          results.failed++;
+          results.errors.push(`${formData.holding_name}: ${error.message}`);
+        }
+      }
+
+      // Reload accounts
+      await loadAccounts();
+
+      // Show success message
+      setShowSuccessMessage(true);
+      setTimeout(() => {
+        setShowSuccessMessage(false);
+        setActiveView('upload');
+        setManualTransactions([{
+          id: Date.now(),
+          account_name: '',
+          account_type: '',
+          account_category: '',
+          holding_name: '',
+          ticker_symbol: '',
+          asset_type: 'stock',
+          type: '',
+          date: new Date().toISOString().split('T')[0],
+          quantity: '',
+          price_per_unit: ''
+        }]);
+      }, 2000);
+    } catch (error) {
+      console.error('Manual import error:', error);
+      alert('Import failed: ' + error.message);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const handleImport = async () => {
@@ -323,19 +666,56 @@ export const ImportNetWorth = ({ onNavigate, onLogout }) => {
         {/* Main Content */}
         <div className="max-w-6xl mx-auto px-6 py-12">
           {/* Header */}
-          <div className="mb-16 ml-16">
-            <h1 className={`text-6xl font-light leading-tight mb-4 ${
+          <div className="mb-12 ml-16">
+            <h1 className={`text-5xl font-light leading-tight mb-4 ${
               isDarkMode ? 'text-white' : 'text-black'
             }`}>
               Import Net Worth Data
             </h1>
-            <p className={`text-2xl font-light ${
+            <p className={`text-xl font-light ${
               isDarkMode ? 'text-gray-400' : 'text-gray-600'
             }`}>
-              Import historical data from CSV files to populate your net worth tracking
+              {activeView === 'manual'
+                ? 'Manually enter net worth transactions one at a time'
+                : 'Upload a CSV file or manually enter transactions to track your net worth'}
             </p>
           </div>
 
+          {/* View Toggle */}
+          <div className="flex space-x-8 mb-12 ml-16">
+            <button
+              onClick={() => setActiveView('upload')}
+              className={`text-xl font-light border-b-2 pb-2 transition-all ${
+                activeView === 'upload'
+                  ? isDarkMode
+                    ? 'text-white border-white'
+                    : 'text-black border-black'
+                  : isDarkMode
+                    ? 'text-gray-400 border-transparent hover:border-gray-400'
+                    : 'text-gray-600 border-transparent hover:border-gray-600'
+              }`}
+            >
+              CSV Upload
+            </button>
+            <button
+              onClick={() => setActiveView('manual')}
+              className={`text-xl font-light border-b-2 pb-2 transition-all ${
+                activeView === 'manual'
+                  ? isDarkMode
+                    ? 'text-white border-white'
+                    : 'text-black border-black'
+                  : isDarkMode
+                    ? 'text-gray-400 border-transparent hover:border-gray-400'
+                    : 'text-gray-600 border-transparent hover:border-gray-600'
+              }`}
+            >
+              Manual Entry
+            </button>
+          </div>
+
+        {/* CSV Upload View */}
+        {activeView === 'upload' && (
+          <>
         {/* Import Type Selection */}
         <div className={`p-6 rounded-lg border mb-6 ${
           isDarkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'
@@ -538,6 +918,75 @@ export const ImportNetWorth = ({ onNavigate, onLogout }) => {
             {isProcessing ? 'Importing...' : `Import ${parsedData.length} Records`}
           </button>
         </div>
+          </>
+        )}
+
+        {/* Manual Entry View */}
+        {activeView === 'manual' && (
+          <>
+            {/* Success message */}
+            {showSuccessMessage && (
+              <div className="fixed top-8 right-8 z-50">
+                <div className={`p-4 rounded-lg border-2 shadow-lg ${
+                  isDarkMode
+                    ? 'bg-green-900 border-green-700 text-green-300'
+                    : 'bg-green-50 border-green-200 text-green-700'
+                }`}>
+                  <div className="flex items-center">
+                    <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    <span className="font-light">
+                      {manualTransactions.filter(t => t.account_name && t.holding_name && t.quantity && t.price_per_unit).length} transaction{manualTransactions.filter(t => t.account_name && t.holding_name && t.quantity && t.price_per_unit).length !== 1 ? 's' : ''} imported successfully!
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Manual Transaction Forms */}
+            <div className="space-y-8">
+              {manualTransactions.map((formData, index) => (
+                <div key={formData.id}>
+                  <ManualTransactionForm
+                    formData={formData}
+                    onUpdate={(updatedData) => handleUpdateManualTransaction(index, updatedData)}
+                    onAdd={handleAddNewForm}
+                    showAddButton={index === manualTransactions.length - 1}
+                  />
+                </div>
+              ))}
+            </div>
+
+            {/* Navigation buttons */}
+            <div className="flex justify-between items-center mt-16">
+              <button
+                onClick={() => setActiveView('upload')}
+                className={`text-lg font-light transition-colors ${
+                  isDarkMode
+                    ? 'text-gray-400 hover:text-white border-b border-gray-700 hover:border-white pb-1'
+                    : 'text-gray-600 hover:text-black border-b border-gray-300 hover:border-black pb-1'
+                }`}
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={handleImportManualTransactions}
+                disabled={!manualTransactions.some(t => t.account_name && t.holding_name && t.quantity && t.price_per_unit) || isProcessing}
+                className={`text-xl font-light transition-all ${
+                  manualTransactions.some(t => t.account_name && t.holding_name && t.quantity && t.price_per_unit) && !isProcessing
+                    ? isDarkMode
+                      ? 'text-white border-b-2 border-white hover:border-gray-400 pb-2'
+                      : 'text-black border-b-2 border-black hover:border-gray-600 pb-2'
+                    : 'text-gray-400 border-b-2 border-gray-400 cursor-not-allowed pb-2'
+                }`}
+              >
+                {isProcessing ? 'Importing...' : 'Import Transactions'}
+              </button>
+            </div>
+          </>
+        )}
 
         <div className="h-24"></div>
       </div>

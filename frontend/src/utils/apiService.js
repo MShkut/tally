@@ -758,6 +758,18 @@ class APIService {
     return this.request('/api/networth/summary', { method: 'GET', cache: true });
   }
 
+  /**
+   * Get net worth chart data
+   */
+  async getNetworthChartData(startDate = null, endDate = null) {
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+
+    const url = `/api/networth/chart${params.toString() ? '?' + params.toString() : ''}`;
+    return this.request(url, { method: 'GET', cache: true });
+  }
+
 }
 
 

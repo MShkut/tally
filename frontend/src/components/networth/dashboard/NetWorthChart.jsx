@@ -1,5 +1,5 @@
 // NetWorthChart.jsx - Chart visualization for net worth over time
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useTheme } from 'contexts/ThemeContext';
 import { generateNetworthChartData, getDefaultDateRange } from 'utils/networthChartUtils';
@@ -10,11 +10,7 @@ export const NetWorthChart = ({ chartView, dateRange }) => {
   const [chartData, setChartData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    loadChartData();
-  }, [chartView, dateRange]);
-
-  const loadChartData = async () => {
+  const loadChartData = useCallback(async () => {
     setIsLoading(true);
     try {
       // Calculate date range
@@ -29,7 +25,11 @@ export const NetWorthChart = ({ chartView, dateRange }) => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [chartView, dateRange]);
+
+  useEffect(() => {
+    loadChartData();
+  }, [loadChartData]);
 
   const calculateDateRange = (range) => {
     const end = new Date();

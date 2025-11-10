@@ -41,84 +41,15 @@ export function getDefaultDateRange() {
 }
 
 /**
- * Generate net worth chart data
+ * Generate net worth chart data (fetch from backend)
  */
 export async function generateNetworthChartData(startDate, endDate, chartView = 'currency') {
   try {
-    const accounts = await apiService.getNetworthAccounts();
-
-    if (!accounts.data || accounts.data.length === 0) {
-      return [];
-    }
-
-    // Generate date range
-    const dates = generateDateRange(startDate, endDate, 'day');
-    const chartData = [];
-
-    for (const date of dates) {
-      const dataPoint = {
-        date,
-        value: 0
-      };
-
-      // Calculate net worth for this date
-      let totalAssets = 0;
-      let totalLiabilities = 0;
-
-      for (const account of accounts.data) {
-        let accountValue = 0;
-
-        if (account.tracking_method === 'simple') {
-          // Get most recent snapshot before/on this date
-          const snapshots = await apiService.getAccountSnapshots(account.id, null, date);
-          if (snapshots.data && snapshots.data.length > 0) {
-            accountValue = snapshots.data[0].balance / 100; // Convert cents to base unit
-          }
-        } else {
-          // Sum holdings (simplified - in real app, would calculate based on transactions and prices)
-          const holdings = await apiService.getAccountHoldings(account.id);
-          if (holdings.data) {
-            for (const holding of holdings.data) {
-              accountValue += (holding.current_value || 0) / 100;
-            }
-          }
-        }
-
-        if (account.type === 'asset') {
-          totalAssets += accountValue;
-        } else {
-          totalLiabilities += accountValue;
-        }
-      }
-
-      const netWorth = totalAssets - totalLiabilities;
-
-      // Apply chart view
-      switch (chartView) {
-        case 'currency':
-          dataPoint.value = netWorth;
-          dataPoint.assets = totalAssets;
-          dataPoint.liabilities = totalLiabilities;
-          break;
-
-        case 'btc':
-        case 'gold':
-          // For BTC/Gold view, we'd convert the net worth
-          // This requires getting the price from holdings
-          // Simplified for now
-          dataPoint.value = netWorth;
-          break;
-
-        default:
-          dataPoint.value = netWorth;
-      }
-
-      chartData.push(dataPoint);
-    }
-
-    return chartData;
+    // Fetch pre-calculated chart data from backend
+    const result = await apiService.getNetworthChartData(startDate, endDate);
+    return result.data || [];
   } catch (error) {
-    console.error('Error generating chart data:', error);
+    console.error('Error fetching chart data:', error);
     return [];
   }
 }
