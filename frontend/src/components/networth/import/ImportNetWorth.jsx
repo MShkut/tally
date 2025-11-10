@@ -1,13 +1,38 @@
 // ImportNetWorth.jsx - Import historical net worth data from CSV
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { ThemeToggle } from 'components/shared/ThemeToggle';
 import { useTheme } from 'contexts/ThemeContext';
 import { useNetworth } from 'hooks/useNetworth';
+import { BurgerMenu } from 'components/shared/BurgerMenu';
+import { handleMenuAction } from 'utils/navigationHandler';
 import { apiService } from 'utils/apiService';
 import { Currency } from 'utils/currency';
 
-export const ImportNetWorth = () => {
+export const ImportNetWorth = ({ onNavigate, onLogout }) => {
   const { isDarkMode } = useTheme();
   const { accounts, loadAccounts } = useNetworth();
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  // Handle menu state changes to prevent layout shift
+  useEffect(() => {
+    if (menuOpen) {
+      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+      document.body.style.paddingRight = `${scrollbarWidth}px`;
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.paddingRight = '';
+      document.body.style.overflow = '';
+    }
+
+    return () => {
+      document.body.style.paddingRight = '';
+      document.body.style.overflow = '';
+    };
+  }, [menuOpen]);
+
+  const handleMenuActionWrapper = (actionId) => {
+    handleMenuAction(actionId, onNavigate, () => setMenuOpen(false));
+  };
 
   const [importType, setImportType] = useState('snapshots'); // snapshots, transactions, prices
   const [selectedFile, setSelectedFile] = useState(null);
@@ -291,17 +316,48 @@ export const ImportNetWorth = () => {
   };
 
   return (
-    <div className={`min-h-screen transition-colors duration-300 ${
-      isDarkMode ? 'bg-black text-white' : 'bg-gray-50 text-gray-900'
-    }`}>
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-light mb-2">Import Net Worth Data</h1>
-          <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-            Import historical data from CSV files to populate your net worth tracking
-          </p>
-        </div>
+    <>
+      <BurgerMenu
+        isOpen={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        onAction={handleMenuActionWrapper}
+        currentPage="networth-import"
+        onLogout={onLogout}
+      />
+
+      <div className={`min-h-screen transition-colors duration-300 ${
+        isDarkMode ? 'bg-black text-white' : 'bg-gray-50 text-gray-900'
+      }`}>
+
+        {/* Fixed Controls */}
+        <button
+          onClick={() => setMenuOpen(true)}
+          className={`
+            fixed top-8 left-8 z-40 p-2 transition-colors duration-200
+            ${isDarkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-black'}
+          `}
+          aria-label="Open menu"
+        >
+          <BurgerIcon />
+        </button>
+
+        <ThemeToggle />
+
+        {/* Main Content */}
+        <div className="max-w-6xl mx-auto px-6 py-12">
+          {/* Header */}
+          <div className="mb-16 ml-16">
+            <h1 className={`text-6xl font-light leading-tight mb-4 ${
+              isDarkMode ? 'text-white' : 'text-black'
+            }`}>
+              Import Net Worth Data
+            </h1>
+            <p className={`text-2xl font-light ${
+              isDarkMode ? 'text-gray-400' : 'text-gray-600'
+            }`}>
+              Import historical data from CSV files to populate your net worth tracking
+            </p>
+          </div>
 
         {/* Import Type Selection */}
         <div className={`p-6 rounded-lg border mb-6 ${
@@ -520,16 +576,28 @@ export const ImportNetWorth = () => {
           <button
             onClick={handleImport}
             disabled={!selectedFile || validationErrors.length > 0 || isProcessing}
-            className={`px-6 py-3 rounded font-medium transition-colors ${
+            className={`px-6 py-3 rounded font-light transition-colors ${
               isDarkMode
-                ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                : 'bg-blue-500 hover:bg-blue-600 text-white'
+                ? 'bg-white text-black hover:bg-gray-100'
+                : 'bg-black text-white hover:bg-gray-900'
             } disabled:opacity-50 disabled:cursor-not-allowed`}
           >
             {isProcessing ? 'Importing...' : `Import ${parsedData.length} Records`}
           </button>
         </div>
+
+        <div className="h-24"></div>
       </div>
     </div>
+    </>
   );
 };
+
+// Helper components
+const BurgerIcon = () => (
+  <div className="w-5 h-5 flex flex-col justify-between">
+    <div className="w-full h-0.5 bg-current transition-all duration-300" />
+    <div className="w-full h-0.5 bg-current transition-all duration-300" />
+    <div className="w-full h-0.5 bg-current transition-all duration-300" />
+  </div>
+);
