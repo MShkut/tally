@@ -19,16 +19,6 @@ export const PersonCard = ({ person, onEdit, onDelete, spent = 0 }) => {
   // Get applicable holidays
   const holidays = person.applicableHolidays || [];
 
-  // Format birthday
-  const formatBirthday = (birthday) => {
-    if (!birthday) return null;
-    const date = new Date(birthday);
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric'
-    });
-  };
-
   // Get occasion name - check standard holidays first, then custom
   const getOccasionName = (id) => {
     const standardHoliday = HOLIDAYS.find(h => h.id === id);
@@ -72,15 +62,6 @@ export const PersonCard = ({ person, onEdit, onDelete, spent = 0 }) => {
           )}
         </div>
       </div>
-
-      {/* Birthday */}
-      {person.birthday && (
-        <div className={`text-sm font-light mb-4 ${
-          isDarkMode ? 'text-gray-400' : 'text-gray-600'
-        }`}>
-          Birthday: {formatBirthday(person.birthday)}
-        </div>
-      )}
 
       {/* Gift Occasions */}
       {holidays.length > 0 && (

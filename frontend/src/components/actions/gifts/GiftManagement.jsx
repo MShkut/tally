@@ -570,29 +570,20 @@ export const GiftManagement = ({ onNavigate }) => {
             ) : (
               <>
                 <FormSection>
-                  <div className={`
-                    text-center py-8 border-2 border-dashed
-                    ${isDarkMode ? 'border-gray-700' : 'border-gray-300'}
-                  `}>
-                    <h3 className={`text-lg font-light mb-4 ${
-                      isDarkMode ? 'text-white' : 'text-black'
-                    }`}>
+                  <button
+                    onClick={() => setView('add-person')}
+                    className={`
+                      w-full py-6 border-2 border-dashed transition-colors text-center
+                      ${isDarkMode
+                        ? 'border-gray-600 text-gray-400 hover:border-gray-500 hover:text-gray-300'
+                        : 'border-gray-300 text-gray-600 hover:border-gray-400 hover:text-gray-700'
+                      }
+                    `}
+                  >
+                    <span className="text-xl font-light">
                       Add a Contact
-                    </h3>
-                    <button
-                      onClick={() => setView('add-person')}
-                      className={`
-                        text-2xl font-light transition-colors
-                        ${isDarkMode
-                          ? 'text-white hover:text-gray-400'
-                          : 'text-black hover:text-gray-600'
-                        }
-                      `}
-                      title="Add a new contact"
-                    >
-                      +
-                    </button>
-                  </div>
+                    </span>
+                  </button>
                 </FormSection>
 
                 {/* List of existing contacts */}
@@ -618,11 +609,6 @@ export const GiftManagement = ({ onNavigate }) => {
                               {person.relationship && (
                                 <div className={`text-sm font-light mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                                   {person.relationship}
-                                </div>
-                              )}
-                              {person.birthday && (
-                                <div className={`text-sm font-light mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                                  Birthday: {new Date(person.birthday).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                                 </div>
                               )}
                             </div>
