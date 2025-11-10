@@ -107,7 +107,11 @@ export const DatePicker = ({
 
     // Check if date is within budget period
     if (selectedDate >= budgetPeriod.startDate && selectedDate <= budgetPeriod.endDate) {
-      const isoDate = selectedDate.toISOString().split('T')[0];
+      // Format date as YYYY-MM-DD without timezone conversion
+      const year = viewYear;
+      const month = String(viewMonth + 1).padStart(2, '0');
+      const dayStr = String(day).padStart(2, '0');
+      const isoDate = `${year}-${month}-${dayStr}`;
       onChange(isoDate);
       setShowCalendar(false);
     }
