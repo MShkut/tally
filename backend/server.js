@@ -31,6 +31,11 @@ const UserData = require('./models/UserData');
 const Settings = require('./models/Settings');
 const Transaction = require('./models/Transaction');
 const CategoryMapping = require('./models/CategoryMapping');
+const NetWorthAccount = require('./models/NetWorthAccount');
+const NetWorthHolding = require('./models/NetWorthHolding');
+const NetWorthTransaction = require('./models/NetWorthTransaction');
+const NetWorthPriceUpdate = require('./models/NetWorthPriceUpdate');
+const NetWorthSnapshot = require('./models/NetWorthSnapshot');
 
 // Import middleware
 const { generateToken, authenticateToken, optionalAuth } = require('./middleware/auth');
@@ -854,6 +859,11 @@ app.post('/api/data/import', authenticateToken, async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 });
+
+// ============================================
+// NET WORTH ROUTES
+// ============================================
+require('./routes/networth')(app, authenticateToken);
 
 /**
  * POST /api/data/reset

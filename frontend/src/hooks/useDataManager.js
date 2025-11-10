@@ -14,7 +14,6 @@ export const useDataManager = () => {
   // Data state
   const [userData, setUserData] = useState(null);
   const [transactions, setTransactions] = useState([]);
-  const [netWorthItems, setNetWorthItems] = useState([]);
 
   // UI state
   const [isLoading, setIsLoading] = useState(false);
@@ -50,22 +49,6 @@ export const useDataManager = () => {
     } catch (err) {
       console.error('Error loading transactions:', err);
       setError(`Failed to load transactions: ${err.message}`);
-      return [];
-    }
-  }, []);
-
-
-  /**
-   * Load net worth items
-   */
-  const loadNetWorthItems = useCallback(async () => {
-    try {
-      const data = await apiService.loadNetWorthItems();
-      setNetWorthItems(data);
-      return data;
-    } catch (err) {
-      console.error('Error loading net worth items:', err);
-      setError(`Failed to load net worth items: ${err.message}`);
       return [];
     }
   }, []);
@@ -108,32 +91,6 @@ export const useDataManager = () => {
     }
   }, []);
 
-
-  /**
-   * Save net worth items and update state
-   * @param {Array} items - Net worth items to save
-   * @returns {boolean} Success status
-   */
-  const saveNetWorthItemsFn = useCallback(async (items) => {
-    try {
-      // Note: apiService doesn't have saveNetWorthItems (uses individual save/update)
-      // For bulk save, iterate through items
-      for (const item of items) {
-        if (item.id) {
-          await apiService.updateNetWorthItem(item.id, item);
-        } else {
-          await apiService.saveNetWorthItem(item);
-        }
-      }
-      setNetWorthItems(items);
-      return true;
-    } catch (err) {
-      console.error('Error saving net worth items:', err);
-      setError(`Failed to save net worth items: ${err.message}`);
-      return false;
-    }
-  }, []);
-
   // ============================================
   // UPDATE FUNCTIONS (with optimistic updates)
   // ============================================
@@ -165,32 +122,6 @@ export const useDataManager = () => {
     }
   }, [transactions]);
 
-  /**
-   * Update net worth item value
-   * @param {string} itemId - Item ID
-   * @param {number} newValue - New value
-   * @param {string} note - Optional note
-   * @returns {boolean} Success status
-   */
-  const updateNetWorthItemValueFn = useCallback(async (itemId, newValue, note = '') => {
-    // Optimistic update
-    const previousItems = [...netWorthItems];
-    const updatedItems = netWorthItems.map(item =>
-      item.id === itemId ? { ...item, amount: newValue } : item
-    );
-    setNetWorthItems(updatedItems);
-
-    try {
-      await apiService.updateNetWorthItem(itemId, { amount: newValue, note });
-      return true;
-    } catch (err) {
-      console.error('Error updating net worth item:', err);
-      setError(`Failed to update net worth item: ${err.message}`);
-      // Rollback on error
-      setNetWorthItems(previousItems);
-      return false;
-    }
-  }, [netWorthItems]);
 
   // ============================================
   // DELETE FUNCTIONS (with optimistic updates)
@@ -219,28 +150,6 @@ export const useDataManager = () => {
     }
   }, [transactions]);
 
-  /**
-   * Delete a net worth item
-   * @param {string} itemId - Item ID
-   * @returns {boolean} Success status
-   */
-  const deleteNetWorthItemFn = useCallback(async (itemId) => {
-    // Optimistic delete
-    const previousItems = [...netWorthItems];
-    const updatedItems = netWorthItems.filter(item => item.id !== itemId);
-    setNetWorthItems(updatedItems);
-
-    try {
-      await apiService.deleteNetWorthItem(itemId);
-      return true;
-    } catch (err) {
-      console.error('Error deleting net worth item:', err);
-      setError(`Failed to delete net worth item: ${err.message}`);
-      // Rollback on error
-      setNetWorthItems(previousItems);
-      return false;
-    }
-  }, [netWorthItems]);
 
   // ============================================
   // ERROR HANDLING
@@ -268,7 +177,6 @@ export const useDataManager = () => {
     // Data state
     userData,
     transactions,
-    netWorthItems,
 
     // UI state
     isLoading,
@@ -278,19 +186,15 @@ export const useDataManager = () => {
     // Save functions
     saveUserData: saveUserDataFn,
     saveTransactions: saveTransactionsFn,
-    saveNetWorthItems: saveNetWorthItemsFn,
 
     // Update functions
     updateTransaction: updateTransactionFn,
-    updateNetWorthItemValue: updateNetWorthItemValueFn,
 
     // Delete functions
     deleteTransaction: deleteTransactionFn,
-    deleteNetWorthItem: deleteNetWorthItemFn,
 
     // Reload functions (for manual refresh)
     reloadUserData: loadUserData,
-    reloadTransactions: loadTransactions,
-    reloadNetWorthItems: loadNetWorthItems
+    reloadTransactions: loadTransactions
   };
 };

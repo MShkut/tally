@@ -45,13 +45,13 @@ class Settings {
       // Update existing settings
       execute(
         "UPDATE settings SET currency = ?, theme = ?, data = ?, updated_at = ? WHERE user_id = ?",
-        [currency || 'USD', theme || 'dark', JSON.stringify(otherSettings), now, userId]
+        [currency || 'CAD', theme || 'dark', JSON.stringify(otherSettings), now, userId]
       );
     } else {
       // Insert new settings with defaults
       execute(
         'INSERT INTO settings (user_id, currency, theme, data) VALUES (?, ?, ?, ?)',
-        [userId, currency || 'USD', theme || 'dark', JSON.stringify(otherSettings)]
+        [userId, currency || 'CAD', theme || 'dark', JSON.stringify(otherSettings)]
       );
     }
 
@@ -78,7 +78,7 @@ class Settings {
 
     // Return defaults if no settings exist
     if (!result) {
-      return { currency: 'USD', theme: 'dark' };
+      return { currency: 'CAD', theme: 'dark' };
     }
 
     // Parse additional settings from JSON

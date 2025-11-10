@@ -6,8 +6,6 @@ const User = require('../models/User');
 const UserData = require('../models/UserData');
 const Settings = require('../models/Settings');
 const Transaction = require('../models/Transaction');
-const NetWorth = require('../models/NetWorth');
-const PriceHistory = require('../models/PriceHistory');
 const GiftData = require('../models/GiftData');
 const CategoryMapping = require('../models/CategoryMapping');
 
@@ -55,48 +53,14 @@ async function importFromLocalStorage(jsonData, password) {
       console.log(`✅ ${data.transactions.length} transactions imported\n`);
     }
 
-    // Step 5: Import net worth items
-    if (data.netWorthData?.assets || data.netWorthData?.liabilities) {
-      const assets = data.netWorthData.assets || [];
-      const liabilities = data.netWorthData.liabilities || [];
-      const items = [...assets, ...liabilities];
-
-      console.log(`💰 Importing ${items.length} net worth items...`);
-      items.forEach(item => {
-        NetWorth.save(user.id, item);
-      });
-      console.log(`✅ ${items.length} net worth items imported\n`);
-
-      // Update net worth history
-      NetWorth.updateHistory(user.id);
-      console.log('✅ Net worth history created\n');
-    }
-
-    // Step 6: Import price history
-    if (data.priceHistory || data.netWorthData?.priceHistory) {
-      const priceHistory = data.priceHistory || data.netWorthData?.priceHistory || {};
-      const tickers = Object.keys(priceHistory);
-
-      if (tickers.length > 0) {
-        console.log(`📈 Importing price history for ${tickers.length} tickers...`);
-        tickers.forEach(ticker => {
-          const prices = priceHistory[ticker];
-          if (prices && typeof prices === 'object') {
-            PriceHistory.saveBulk(ticker, prices);
-          }
-        });
-        console.log(`✅ Price history imported for ${tickers.length} tickers\n`);
-      }
-    }
-
-    // Step 7: Import gift data
+    // Step 5: Import gift data
     if (data.giftData) {
       console.log('🎁 Importing gift data...');
       GiftData.save(user.id, data.giftData);
       console.log('✅ Gift data imported\n');
     }
 
-    // Step 8: Import category mappings
+    // Step 6: Import category mappings
     if (data.categoryMappings || data.merchantMappings) {
       const mappings = data.categoryMappings || data.merchantMappings || {};
       const entries = Object.entries(mappings);
@@ -114,8 +78,6 @@ async function importFromLocalStorage(jsonData, password) {
     console.log(`\n📊 Summary:`);
     console.log(`   - User: ${householdName}`);
     console.log(`   - Transactions: ${data.transactions?.length || 0}`);
-    console.log(`   - Net worth items: ${(data.netWorthData?.assets?.length || 0) + (data.netWorthData?.liabilities?.length || 0)}`);
-    console.log(`   - Price history tickers: ${Object.keys(data.priceHistory || {}).length}`);
     console.log(`\n🔐 Login credentials:`);
     console.log(`   - Password: [the password you provided]`);
     console.log(`\n⚠️  IMPORTANT: Save these credentials - you'll need them to log in!`);
@@ -135,28 +97,13 @@ function exportToLocalStorage(userId) {
 
   const userData = UserData.load(userId);
   const transactions = Transaction.findByUser(userId, 10000);
-  const netWorthItems = NetWorth.findByUser(userId);
-  const netWorthHistory = NetWorth.getHistory(userId);
   const giftData = GiftData.load(userId);
   const settings = Settings.load(userId);
   const categoryMappings = CategoryMapping.loadAll(userId);
 
-  // Get price history for all tickers
-  const tickers = PriceHistory.getAllTickers();
-  const priceHistory = {};
-  tickers.forEach(ticker => {
-    priceHistory[ticker] = PriceHistory.findByTicker(ticker);
-  });
-
   const exportData = {
     userData,
     transactions,
-    netWorthData: {
-      assets: netWorthItems.filter(i => i.type === 'asset'),
-      liabilities: netWorthItems.filter(i => i.type === 'liability'),
-      history: netWorthHistory
-    },
-    priceHistory,
     giftData,
     settings,
     categoryMappings,
