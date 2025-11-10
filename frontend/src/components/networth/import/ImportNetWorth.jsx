@@ -23,20 +23,12 @@ const ManualTransactionForm = ({ formData, onUpdate, onAdd, showAddButton = true
       setErrors({ account_name: 'Account name is required' });
       return;
     }
-    if (!formData.account_type) {
-      setErrors({ account_type: 'Account type is required' });
-      return;
-    }
-    if (!formData.account_category.trim()) {
-      setErrors({ account_category: 'Account category is required' });
-      return;
-    }
     if (!formData.holding_name.trim()) {
       setErrors({ holding_name: 'Holding name is required' });
       return;
     }
     if (!formData.type) {
-      setErrors({ type: 'Transaction type is required' });
+      setErrors({ type: 'Type is required' });
       return;
     }
     if (!formData.quantity || isNaN(parseFloat(formData.quantity))) {
@@ -51,94 +43,40 @@ const ManualTransactionForm = ({ formData, onUpdate, onAdd, showAddButton = true
     onAdd();
   };
 
-  const accountTypeOptions = [
-    { value: 'asset', label: 'Asset' },
-    { value: 'liability', label: 'Liability' }
-  ];
-
   const transactionTypeOptions = [
     { value: 'buy', label: 'Buy' },
     { value: 'sell', label: 'Sell' }
   ];
 
-  const assetTypeOptions = [
-    { value: 'stock', label: 'Stock' },
-    { value: 'crypto', label: 'Crypto' },
-    { value: 'bond', label: 'Bond' },
-    { value: 'etf', label: 'ETF' },
-    { value: 'mutual_fund', label: 'Mutual Fund' },
-    { value: 'other', label: 'Other' }
-  ];
-
   return (
-    <div className="space-y-6">
-      {/* Row 1: Account Info */}
-      <div className="grid grid-cols-12 gap-4">
-        <div className="col-span-4">
+    <div className={`p-8 rounded-xl border-2 transition-all ${
+      isDarkMode
+        ? 'bg-gray-900/50 border-gray-800 hover:border-gray-700'
+        : 'bg-white border-gray-200 hover:border-gray-300'
+    }`}>
+      <div className="space-y-6">
+        {/* Row 1: Account & Holding */}
+        <div className="grid grid-cols-2 gap-6">
           <StandardInput
             label="Account Name"
             value={formData.account_name}
             onChange={(value) => onUpdate({ ...formData, account_name: value })}
-            placeholder="My TFSA"
+            placeholder="e.g., My TFSA, 401k"
             error={errors.account_name}
-            className="[&_label]:text-base [&_label]:font-light [&_input]:text-base [&_input]:font-light"
+            className="[&_label]:text-lg [&_label]:font-light [&_input]:text-lg [&_input]:font-light [&_input]:py-3"
           />
-        </div>
-        <div className="col-span-3">
-          <StandardSelect
-            label="Account Type"
-            value={formData.account_type}
-            onChange={(value) => onUpdate({ ...formData, account_type: value })}
-            options={accountTypeOptions}
-            error={errors.account_type}
-            placeholder="Select type"
-            className="[&_label]:text-base [&_label]:font-light [&_button]:text-base [&_button]:font-light"
-          />
-        </div>
-        <div className="col-span-5">
-          <StandardInput
-            label="Account Category"
-            value={formData.account_category}
-            onChange={(value) => onUpdate({ ...formData, account_category: value })}
-            placeholder="Investments, Crypto, etc."
-            error={errors.account_category}
-            className="[&_label]:text-base [&_label]:font-light [&_input]:text-base [&_input]:font-light"
-          />
-        </div>
-      </div>
-
-      {/* Row 2: Holding Info */}
-      <div className="grid grid-cols-12 gap-4">
-        <div className="col-span-4">
           <StandardInput
             label="Holding Name"
             value={formData.holding_name}
             onChange={(value) => onUpdate({ ...formData, holding_name: value })}
-            placeholder="Apple Inc."
+            placeholder="e.g., Apple, Bitcoin, VTSAX"
             error={errors.holding_name}
-            className="[&_label]:text-base [&_label]:font-light [&_input]:text-base [&_input]:font-light"
+            className="[&_label]:text-lg [&_label]:font-light [&_input]:text-lg [&_input]:font-light [&_input]:py-3"
           />
         </div>
-        <div className="col-span-3">
-          <StandardInput
-            label="Ticker Symbol"
-            value={formData.ticker_symbol}
-            onChange={(value) => onUpdate({ ...formData, ticker_symbol: value })}
-            placeholder="AAPL (optional)"
-            className="[&_label]:text-base [&_label]:font-light [&_input]:text-base [&_input]:font-light"
-          />
-        </div>
-        <div className="col-span-3">
-          <StandardSelect
-            label="Asset Type"
-            value={formData.asset_type}
-            onChange={(value) => onUpdate({ ...formData, asset_type: value })}
-            options={assetTypeOptions}
-            placeholder="Select type"
-            className="[&_label]:text-base [&_label]:font-light [&_button]:text-base [&_button]:font-light"
-          />
-        </div>
-        <div className="col-span-2">
+
+        {/* Row 2: Transaction Details */}
+        <div className="grid grid-cols-4 gap-6">
           <StandardSelect
             label="Type"
             value={formData.type}
@@ -146,27 +84,19 @@ const ManualTransactionForm = ({ formData, onUpdate, onAdd, showAddButton = true
             options={transactionTypeOptions}
             error={errors.type}
             placeholder="Buy/Sell"
-            className="[&_label]:text-base [&_label]:font-light [&_button]:text-base [&_button]:font-light"
+            className="[&_label]:text-lg [&_label]:font-light [&_button]:text-lg [&_button]:font-light [&_button]:py-3"
           />
-        </div>
-      </div>
-
-      {/* Row 3: Transaction Details */}
-      <div className="grid grid-cols-12 gap-4">
-        <div className="col-span-3">
           <div>
-            <label className={`block text-base font-light mb-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+            <label className={`block text-lg font-light mb-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
               Date
             </label>
             <DatePicker
               value={formData.date}
               onChange={(isoDate) => onUpdate({ ...formData, date: isoDate })}
               placeholder="Select date"
-              className="w-full [&>button]:py-3 [&>button]:pb-4 [&>button]:text-base [&>button]:font-light"
+              className="w-full [&>button]:py-3 [&>button]:text-lg [&>button]:font-light"
             />
           </div>
-        </div>
-        <div className="col-span-3">
           <StandardInput
             label="Quantity"
             type="number"
@@ -174,10 +104,8 @@ const ManualTransactionForm = ({ formData, onUpdate, onAdd, showAddButton = true
             onChange={(value) => onUpdate({ ...formData, quantity: value })}
             placeholder="10"
             error={errors.quantity}
-            className="[&_label]:text-base [&_label]:font-light [&_input]:text-base [&_input]:font-light"
+            className="[&_label]:text-lg [&_label]:font-light [&_input]:text-lg [&_input]:font-light [&_input]:py-3"
           />
-        </div>
-        <div className="col-span-3">
           <StandardInput
             label="Price Per Unit"
             type="currency"
@@ -186,18 +114,22 @@ const ManualTransactionForm = ({ formData, onUpdate, onAdd, showAddButton = true
             prefix="$"
             placeholder="150.00"
             error={errors.price_per_unit}
-            className="[&_label]:text-base [&_label]:font-light [&_input]:text-base [&_input]:font-light"
+            className="[&_label]:text-lg [&_label]:font-light [&_input]:text-lg [&_input]:font-light [&_input]:py-3"
           />
         </div>
-        <div className="col-span-3">
-          <div className={`text-base font-light mb-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+
+        {/* Total Value Display */}
+        <div className={`flex items-center justify-between pt-4 border-t ${
+          isDarkMode ? 'border-gray-800' : 'border-gray-200'
+        }`}>
+          <span className={`text-lg font-light ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
             Total Value
-          </div>
-          <div className={`text-2xl font-light ${isDarkMode ? 'text-white' : 'text-black'} mt-3`}>
+          </span>
+          <span className={`text-3xl font-light ${isDarkMode ? 'text-white' : 'text-black'}`}>
             {formData.quantity && formData.price_per_unit
               ? Currency.format(parseFloat(formData.quantity) * parseFloat(formData.price_per_unit))
               : '$0.00'}
-          </div>
+          </span>
         </div>
       </div>
 
@@ -205,21 +137,21 @@ const ManualTransactionForm = ({ formData, onUpdate, onAdd, showAddButton = true
       {showAddButton && (
         <button
           onClick={handleSubmit}
-          disabled={!formData.account_name || !formData.holding_name || !formData.quantity || !formData.price_per_unit}
+          disabled={!formData.account_name || !formData.holding_name || !formData.type || !formData.quantity || !formData.price_per_unit}
           className={`
-            w-full py-6 border-2 border-dashed transition-colors text-center
-            ${formData.account_name && formData.holding_name && formData.quantity && formData.price_per_unit
+            w-full mt-6 py-4 rounded-lg border-2 border-dashed transition-all text-center
+            ${formData.account_name && formData.holding_name && formData.type && formData.quantity && formData.price_per_unit
               ? isDarkMode
-                ? 'border-gray-600 text-gray-400 hover:border-gray-500 hover:text-gray-300'
-                : 'border-gray-300 text-gray-600 hover:border-gray-400 hover:text-gray-700'
+                ? 'border-gray-600 text-gray-300 hover:border-gray-500 hover:bg-gray-800/50'
+                : 'border-gray-300 text-gray-700 hover:border-gray-400 hover:bg-gray-50'
               : isDarkMode
-                ? 'border-gray-700 text-gray-500 cursor-not-allowed'
+                ? 'border-gray-800 text-gray-600 cursor-not-allowed'
                 : 'border-gray-200 text-gray-400 cursor-not-allowed'
             }
           `}
         >
-          <span className="text-xl font-light">
-            Add Transaction
+          <span className="text-lg font-light">
+            + Add Another Transaction
           </span>
         </button>
       )}
@@ -266,11 +198,11 @@ export const ImportNetWorth = ({ onNavigate, onLogout }) => {
   const [manualTransactions, setManualTransactions] = useState([{
     id: Date.now(),
     account_name: '',
-    account_type: '',
-    account_category: '',
+    account_type: 'asset', // Default to asset
+    account_category: 'Investments', // Default to Investments
     holding_name: '',
     ticker_symbol: '',
-    asset_type: 'stock',
+    asset_type: 'stock', // Default to stock
     type: '',
     date: new Date().toISOString().split('T')[0],
     quantity: '',
@@ -328,7 +260,8 @@ export const ImportNetWorth = ({ onNavigate, onLogout }) => {
     }
 
     if (importType === 'transactions') {
-      // Validate transactions format: account_name, account_type, account_category, holding_name, type, date, quantity, price_per_unit
+      // Validate transactions format: account_name, holding_name, type, date, quantity, price_per_unit
+      // Optional: account_type, account_category, ticker_symbol, asset_type
       // Note: Account will be auto-created if it doesn't exist
       data.forEach((row, index) => {
         const rowNum = index + 2;
@@ -337,19 +270,20 @@ export const ImportNetWorth = ({ onNavigate, onLogout }) => {
           errors.push(`Row ${rowNum}: account_name is required`);
         }
 
-        if (!row.account_type) {
-          errors.push(`Row ${rowNum}: account_type is required (asset or liability)`);
-        } else if (!['asset', 'liability'].includes(row.account_type.toLowerCase())) {
-          errors.push(`Row ${rowNum}: account_type must be "asset" or "liability"`);
+        // account_type is optional, defaults to "asset"
+        if (row.account_type && !['asset', 'liability'].includes(row.account_type.toLowerCase())) {
+          errors.push(`Row ${rowNum}: account_type must be "asset" or "liability" (or omit for default "asset")`);
         }
 
-        if (!row.account_category) {
-          errors.push(`Row ${rowNum}: account_category is required (e.g., Investments, Crypto, etc.)`);
-        }
+        // account_category is optional, defaults to "Investments"
+        // No validation needed
 
         if (!row.holding_name) {
           errors.push(`Row ${rowNum}: holding_name is required`);
         }
+
+        // ticker_symbol is optional
+        // asset_type is optional, defaults to "stock"
 
         if (!row.type) {
           errors.push(`Row ${rowNum}: type is required`);
@@ -409,11 +343,11 @@ export const ImportNetWorth = ({ onNavigate, onLogout }) => {
     setManualTransactions(prev => [...prev, {
       id: Date.now(),
       account_name: '',
-      account_type: '',
-      account_category: '',
+      account_type: 'asset', // Default to asset
+      account_category: 'Investments', // Default to Investments
       holding_name: '',
       ticker_symbol: '',
-      asset_type: 'stock',
+      asset_type: 'stock', // Default to stock
       type: '',
       date: new Date().toISOString().split('T')[0],
       quantity: '',
@@ -458,8 +392,7 @@ export const ImportNetWorth = ({ onNavigate, onLogout }) => {
           let holding = holdings.find(h => h.name === formData.holding_name);
 
           if (!holding) {
-            holding = await apiService.createHolding({
-              account_id: account.id,
+            holding = await apiService.createHolding(account.id, {
               name: formData.holding_name,
               ticker_symbol: formData.ticker_symbol || null,
               asset_type: formData.asset_type || 'other'
@@ -467,8 +400,7 @@ export const ImportNetWorth = ({ onNavigate, onLogout }) => {
           }
 
           // Create transaction
-          await apiService.createHoldingTransaction({
-            holding_id: holding.id,
+          await apiService.createHoldingTransaction(holding.id, {
             type: formData.type.toLowerCase(),
             date: formData.date,
             quantity: parseFloat(formData.quantity),
@@ -492,11 +424,11 @@ export const ImportNetWorth = ({ onNavigate, onLogout }) => {
         setManualTransactions([{
           id: Date.now(),
           account_name: '',
-          account_type: '',
-          account_category: '',
+          account_type: 'asset', // Default to asset
+          account_category: 'Investments', // Default to Investments
           holding_name: '',
           ticker_symbol: '',
-          asset_type: 'stock',
+          asset_type: 'stock', // Default to stock
           type: '',
           date: new Date().toISOString().split('T')[0],
           quantity: '',
@@ -524,6 +456,12 @@ export const ImportNetWorth = ({ onNavigate, onLogout }) => {
       if (importType === 'transactions') {
         for (const row of parsedData) {
           try {
+            // Apply defaults for optional fields
+            const accountType = row.account_type?.toLowerCase() || 'asset';
+            const accountCategory = row.account_category || 'Investments';
+            const assetType = row.asset_type || 'stock';
+            const tickerSymbol = row.ticker_symbol || null;
+
             // Find or create account
             let account = accounts.find(a => a.name === row.account_name);
 
@@ -531,8 +469,8 @@ export const ImportNetWorth = ({ onNavigate, onLogout }) => {
               // Auto-create account if it doesn't exist
               account = await apiService.createNetworthAccount({
                 name: row.account_name,
-                type: row.account_type.toLowerCase(),
-                category: row.account_category,
+                type: accountType,
+                category: accountCategory,
                 tracking_method: 'quantity_based',
                 notes: 'Auto-created during import'
               });
@@ -545,17 +483,15 @@ export const ImportNetWorth = ({ onNavigate, onLogout }) => {
             let holding = holdings.find(h => h.name === row.holding_name);
 
             if (!holding) {
-              holding = await apiService.createHolding({
-                account_id: account.id,
+              holding = await apiService.createHolding(account.id, {
                 name: row.holding_name,
-                ticker_symbol: row.ticker_symbol || null,
-                asset_type: row.asset_type || 'other'
+                ticker_symbol: tickerSymbol,
+                asset_type: assetType
               });
             }
 
             // Create transaction
-            await apiService.createHoldingTransaction({
-              holding_id: holding.id,
+            await apiService.createHoldingTransaction(holding.id, {
               type: row.type.toLowerCase(),
               date: row.date,
               quantity: parseFloat(row.quantity),
@@ -618,7 +554,7 @@ export const ImportNetWorth = ({ onNavigate, onLogout }) => {
 
   const getTemplateCSV = () => {
     if (importType === 'transactions') {
-      return 'account_name,account_type,account_category,holding_name,ticker_symbol,asset_type,type,date,quantity,price_per_unit\nMy TFSA,asset,Investments,Apple Inc.,AAPL,stock,buy,2025-01-01,10,150.00\nMy TFSA,asset,Investments,Apple Inc.,AAPL,stock,buy,2025-02-01,5,155.00\nCrypto Wallet,asset,Crypto,Bitcoin,BTC,crypto,buy,2025-01-15,0.5,45000.00';
+      return 'account_name,holding_name,type,date,quantity,price_per_unit\nMy TFSA,Apple Inc.,buy,2025-01-01,10,150.00\nMy TFSA,Apple Inc.,buy,2025-02-01,5,155.00\nCrypto Wallet,Bitcoin,buy,2025-01-15,0.5,45000.00';
     } else if (importType === 'prices') {
       return 'account_name,holding_name,date,price\nMy TFSA,Apple Inc.,2025-03-01,160.00\nMy TFSA,Apple Inc.,2025-04-01,165.00\nCrypto Wallet,Bitcoin,2025-03-01,48000.00';
     }
@@ -831,16 +767,23 @@ export const ImportNetWorth = ({ onNavigate, onLogout }) => {
             <div className={`text-sm font-mono ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
               {importType === 'transactions' && (
                 <>
-                  <div className="mb-2">account_name,account_type,account_category,holding_name,ticker_symbol,asset_type,type,date,quantity,price_per_unit</div>
-                  <div className="mt-1 opacity-75">Example: My TFSA,asset,Investments,Apple Inc.,AAPL,stock,buy,2025-01-01,10,150.00</div>
+                  <div className="mb-2">
+                    <strong>Required:</strong> account_name, holding_name, type, date, quantity, price_per_unit
+                  </div>
+                  <div className="mt-1 opacity-75">
+                    Example: My TFSA,Apple Inc.,buy,2025-01-01,10,150.00
+                  </div>
                   <div className="mt-3 text-xs opacity-90">
-                    <strong>Note:</strong> If the account doesn't exist, it will be auto-created using the account_type and account_category fields.
+                    <strong>Note:</strong> Accounts will be auto-created as "asset" type in "Investments" category.
+                    Optional fields: account_type, account_category, ticker_symbol, asset_type (defaults: asset, Investments, blank, stock)
                   </div>
                 </>
               )}
               {importType === 'prices' && (
                 <>
-                  <div>account_name,holding_name,date,price</div>
+                  <div>
+                    <strong>Required:</strong> account_name, holding_name, date, price
+                  </div>
                   <div className="mt-1 opacity-75">Example: My TFSA,Apple Inc.,2025-03-01,160.00</div>
                   <div className="mt-3 text-xs opacity-90">
                     <strong>Note:</strong> Import transactions first to create accounts and holdings before importing price updates.

@@ -576,18 +576,18 @@ class APIService {
    * Get all net worth accounts
    */
   async getNetworthAccounts() {
-    return this.request('/api/networth/accounts', { method: 'GET' });
+    return this.request('/networth/accounts', { method: 'GET' });
   }
 
   /**
    * Create net worth account
    */
   async createNetworthAccount(accountData) {
-    const result = await this.request('/api/networth/accounts', {
+    const result = await this.request('/networth/accounts', {
       method: 'POST',
       body: JSON.stringify(accountData)
     });
-    this.clearCache('/api/networth');
+    this.clearCache('/networth');
     return result;
   }
 
@@ -595,18 +595,18 @@ class APIService {
    * Get net worth account by ID
    */
   async getNetworthAccount(accountId) {
-    return this.request(`/api/networth/accounts/${accountId}`, { method: 'GET' });
+    return this.request(`/networth/accounts/${accountId}`, { method: 'GET' });
   }
 
   /**
    * Update net worth account
    */
   async updateNetworthAccount(accountId, updates) {
-    const result = await this.request(`/api/networth/accounts/${accountId}`, {
+    const result = await this.request(`/networth/accounts/${accountId}`, {
       method: 'PUT',
       body: JSON.stringify(updates)
     });
-    this.clearCache('/api/networth');
+    this.clearCache('/networth');
     return result;
   }
 
@@ -614,8 +614,8 @@ class APIService {
    * Delete net worth account
    */
   async deleteNetworthAccount(accountId) {
-    const result = await this.request(`/api/networth/accounts/${accountId}`, { method: 'DELETE' });
-    this.clearCache('/api/networth');
+    const result = await this.request(`/networth/accounts/${accountId}`, { method: 'DELETE' });
+    this.clearCache('/networth');
     return result;
   }
 
@@ -623,18 +623,18 @@ class APIService {
    * Get holdings for an account
    */
   async getAccountHoldings(accountId) {
-    return this.request(`/api/networth/accounts/${accountId}/holdings`, { method: 'GET' });
+    return this.request(`/networth/accounts/${accountId}/holdings`, { method: 'GET' });
   }
 
   /**
    * Create holding
    */
   async createHolding(accountId, holdingData) {
-    const result = await this.request(`/api/networth/accounts/${accountId}/holdings`, {
+    const result = await this.request(`/networth/accounts/${accountId}/holdings`, {
       method: 'POST',
       body: JSON.stringify(holdingData)
     });
-    this.clearCache('/api/networth');
+    this.clearCache('/networth');
     return result;
   }
 
@@ -642,11 +642,11 @@ class APIService {
    * Update holding
    */
   async updateHolding(holdingId, updates) {
-    const result = await this.request(`/api/networth/holdings/${holdingId}`, {
+    const result = await this.request(`/networth/holdings/${holdingId}`, {
       method: 'PUT',
       body: JSON.stringify(updates)
     });
-    this.clearCache('/api/networth');
+    this.clearCache('/networth');
     return result;
   }
 
@@ -654,8 +654,8 @@ class APIService {
    * Delete holding
    */
   async deleteHolding(holdingId) {
-    const result = await this.request(`/api/networth/holdings/${holdingId}`, { method: 'DELETE' });
-    this.clearCache('/api/networth');
+    const result = await this.request(`/networth/holdings/${holdingId}`, { method: 'DELETE' });
+    this.clearCache('/networth');
     return result;
   }
 
@@ -663,18 +663,18 @@ class APIService {
    * Get transactions for a holding
    */
   async getHoldingTransactions(holdingId) {
-    return this.request(`/api/networth/holdings/${holdingId}/transactions`, { method: 'GET' });
+    return this.request(`/networth/holdings/${holdingId}/transactions`, { method: 'GET' });
   }
 
   /**
    * Create holding transaction (buy/sell)
    */
   async createHoldingTransaction(holdingId, transactionData) {
-    const result = await this.request(`/api/networth/holdings/${holdingId}/transactions`, {
+    const result = await this.request(`/networth/holdings/${holdingId}/transactions`, {
       method: 'POST',
       body: JSON.stringify(transactionData)
     });
-    this.clearCache('/api/networth');
+    this.clearCache('/networth');
     return result;
   }
 
@@ -682,11 +682,11 @@ class APIService {
    * Update holding transaction
    */
   async updateHoldingTransaction(transactionId, updates) {
-    const result = await this.request(`/api/networth/transactions/${transactionId}`, {
+    const result = await this.request(`/networth/transactions/${transactionId}`, {
       method: 'PUT',
       body: JSON.stringify(updates)
     });
-    this.clearCache('/api/networth');
+    this.clearCache('/networth');
     return result;
   }
 
@@ -694,8 +694,8 @@ class APIService {
    * Delete holding transaction
    */
   async deleteHoldingTransaction(transactionId) {
-    const result = await this.request(`/api/networth/transactions/${transactionId}`, { method: 'DELETE' });
-    this.clearCache('/api/networth');
+    const result = await this.request(`/networth/transactions/${transactionId}`, { method: 'DELETE' });
+    this.clearCache('/networth');
     return result;
   }
 
@@ -703,11 +703,11 @@ class APIService {
    * Batch update prices
    */
   async batchUpdatePrices(updates) {
-    const result = await this.request('/api/networth/prices/batch', {
+    const result = await this.request('/networth/prices/batch', {
       method: 'POST',
       body: JSON.stringify({ updates })
     });
-    this.clearCache('/api/networth');
+    this.clearCache('/networth');
     return result;
   }
 
@@ -715,18 +715,18 @@ class APIService {
    * Get price history for holding
    */
   async getHoldingPrices(holdingId) {
-    return this.request(`/api/networth/holdings/${holdingId}/prices`, { method: 'GET' });
+    return this.request(`/networth/holdings/${holdingId}/prices`, { method: 'GET' });
   }
 
   /**
    * Create/update account snapshot
    */
   async createSnapshot(accountId, snapshotData) {
-    const result = await this.request(`/api/networth/accounts/${accountId}/snapshots`, {
+    const result = await this.request(`/networth/accounts/${accountId}/snapshots`, {
       method: 'POST',
       body: JSON.stringify(snapshotData)
     });
-    this.clearCache('/api/networth');
+    this.clearCache('/networth');
     return result;
   }
 
@@ -738,7 +738,7 @@ class APIService {
     if (startDate) params.append('startDate', startDate);
     if (endDate) params.append('endDate', endDate);
 
-    const url = `/api/networth/accounts/${accountId}/snapshots${params.toString() ? '?' + params.toString() : ''}`;
+    const url = `/networth/accounts/${accountId}/snapshots${params.toString() ? '?' + params.toString() : ''}`;
     return this.request(url, { method: 'GET' });
   }
 
@@ -746,8 +746,8 @@ class APIService {
    * Delete snapshot
    */
   async deleteSnapshot(snapshotId) {
-    const result = await this.request(`/api/networth/snapshots/${snapshotId}`, { method: 'DELETE' });
-    this.clearCache('/api/networth');
+    const result = await this.request(`/networth/snapshots/${snapshotId}`, { method: 'DELETE' });
+    this.clearCache('/networth');
     return result;
   }
 
@@ -755,7 +755,7 @@ class APIService {
    * Get net worth summary
    */
   async getNetworthSummary() {
-    return this.request('/api/networth/summary', { method: 'GET' });
+    return this.request('/networth/summary', { method: 'GET' });
   }
 
   /**
@@ -766,7 +766,7 @@ class APIService {
     if (startDate) params.append('startDate', startDate);
     if (endDate) params.append('endDate', endDate);
 
-    const url = `/api/networth/chart${params.toString() ? '?' + params.toString() : ''}`;
+    const url = `/networth/chart${params.toString() ? '?' + params.toString() : ''}`;
     return this.request(url, { method: 'GET' });
   }
 
