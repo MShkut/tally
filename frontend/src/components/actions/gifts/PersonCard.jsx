@@ -5,7 +5,7 @@ import { useTheme } from 'contexts/ThemeContext';
 import { Currency } from 'utils/currency';
 import { HOLIDAYS } from 'constants/holidays';
 
-export const PersonCard = ({ person, onEdit, onDelete, spent = 0 }) => {
+export const PersonCard = ({ person, onViewDetails, spent = 0 }) => {
   const { isDarkMode } = useTheme();
 
   // Calculate total budget for this person
@@ -32,7 +32,7 @@ export const PersonCard = ({ person, onEdit, onDelete, spent = 0 }) => {
 
   return (
     <div
-      onClick={() => onEdit(person)}
+      onClick={() => onViewDetails(person)}
       className={`
         p-8 border transition-all cursor-pointer
         ${isDarkMode
@@ -41,28 +41,49 @@ export const PersonCard = ({ person, onEdit, onDelete, spent = 0 }) => {
         }
       `}
     >
-      {/* Header with name and budget */}
-      <div className="flex justify-between items-start mb-6">
-        <div className="flex-1">
-          <div className="flex items-baseline justify-between mb-2">
-            <h3 className={`text-2xl font-light ${
-              isDarkMode ? 'text-white' : 'text-black'
-            }`}>
-              {person.name}
-            </h3>
-            <div className={`text-xl font-light ${
-              isDarkMode ? 'text-white' : 'text-black'
-            }`}>
-              {Currency.format(totalBudget, { showCents: false })}
-            </div>
+      {/* Header with name and relationship */}
+      <div className="mb-6">
+        <h3 className={`text-2xl font-light mb-2 ${
+          isDarkMode ? 'text-white' : 'text-black'
+        }`}>
+          {person.name}
+        </h3>
+        {person.relationship && (
+          <p className={`text-sm font-light ${
+            isDarkMode ? 'text-gray-500' : 'text-gray-400'
+          }`}>
+            {person.relationship}
+          </p>
+        )}
+      </div>
+
+      {/* Budget vs Actual */}
+      <div className={`flex justify-between items-center py-4 mb-6 border-y ${
+        isDarkMode ? 'border-gray-800' : 'border-gray-200'
+      }`}>
+        <div>
+          <div className={`text-xs font-light mb-1 ${
+            isDarkMode ? 'text-gray-500' : 'text-gray-400'
+          }`}>
+            Budgeted
           </div>
-          {person.relationship && (
-            <p className={`text-sm font-light ${
-              isDarkMode ? 'text-gray-500' : 'text-gray-400'
-            }`}>
-              {person.relationship}
-            </p>
-          )}
+          <div className={`text-xl font-light ${
+            isDarkMode ? 'text-white' : 'text-black'
+          }`}>
+            {Currency.format(totalBudget, { showCents: false })}
+          </div>
+        </div>
+        <div className="text-right">
+          <div className={`text-xs font-light mb-1 ${
+            isDarkMode ? 'text-gray-500' : 'text-gray-400'
+          }`}>
+            Actual Spent
+          </div>
+          <div className={`text-xl font-light ${
+            isDarkMode ? 'text-white' : 'text-black'
+          }`}>
+            {Currency.format(spent)}
+          </div>
         </div>
       </div>
 
@@ -93,23 +114,6 @@ export const PersonCard = ({ person, onEdit, onDelete, spent = 0 }) => {
         </div>
       )}
 
-      {/* Spending info */}
-      {spent > 0 && (
-        <div className={`pt-4 border-t ${
-          isDarkMode ? 'border-gray-800' : 'border-gray-200'
-        }`}>
-          <div className={`text-sm font-light ${
-            isDarkMode ? 'text-gray-400' : 'text-gray-600'
-          }`}>
-            Spent: {Currency.format(spent)} • Remaining: {Currency.format(Math.max(0, remaining))}
-            {isOverBudget && (
-              <span className={`ml-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                (Over by {Currency.format(Math.abs(remaining))})
-              </span>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 };

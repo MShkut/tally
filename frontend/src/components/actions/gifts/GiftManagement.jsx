@@ -15,6 +15,7 @@ import {
 import { apiService } from 'utils/apiService';
 import { BurgerMenu } from 'components/shared/BurgerMenu';
 import { PersonCard } from './PersonCard';
+import { ContactDetailModal } from './ContactDetailModal';
 import { GiftBudgetOverview } from './GiftBudgetOverview';
 import { PersonEdit } from './PersonEdit';
 import { AddPersonManually } from './AddPersonManually';
@@ -30,6 +31,7 @@ export const GiftManagement = ({ onNavigate }) => {
   const [selectedPerson, setSelectedPerson] = useState(null);
   const [selectedGift, setSelectedGift] = useState(null);
   const [onboardingData, setOnboardingData] = useState(null);
+  const [viewingPersonDetails, setViewingPersonDetails] = useState(null);
 
   // Use gifts hook for data management
   const {
@@ -478,8 +480,7 @@ export const GiftManagement = ({ onNavigate }) => {
                           key={person.id}
                           person={person}
                           spent={spent}
-                          onEdit={() => handleEditPerson(person)}
-                          onDelete={() => handleDeletePerson(person.id)}
+                          onViewDetails={(person) => setViewingPersonDetails(person)}
                         />
                       );
                     })}
@@ -654,6 +655,15 @@ export const GiftManagement = ({ onNavigate }) => {
         )}
 
       </StandardFormLayout>
+
+      {/* Contact Detail Modal */}
+      {viewingPersonDetails && (
+        <ContactDetailModal
+          person={viewingPersonDetails}
+          gifts={gifts}
+          onClose={() => setViewingPersonDetails(null)}
+        />
+      )}
     </>
   );
 };
