@@ -6,7 +6,7 @@ import { useNetworth } from 'hooks/useNetworth';
 import { BurgerMenu } from 'components/shared/BurgerMenu';
 import { handleMenuAction } from 'utils/navigationHandler';
 import { apiService } from 'utils/apiService';
-import { currency } from 'utils/currency';
+import { Currency } from 'utils/currency';
 
 export const ImportNetWorth = ({ onNavigate, onLogout }) => {
   const { isDarkMode } = useTheme();

@@ -1,14 +1,50 @@
 // AddAccountModal.jsx - Modal for creating new net worth accounts
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTheme } from 'contexts/ThemeContext';
 import { useNetworth } from 'hooks/useNetworth';
-import { useBudget } from 'hooks/useBudget';
-import { currency } from 'utils/currency';
+import { apiService } from 'utils/apiService';
+import { Currency } from 'utils/currency';
 
 export const AddAccountModal = ({ onClose }) => {
   const { isDarkMode } = useTheme();
   const { createAccount } = useNetworth();
-  const { categories } = useBudget();
+  const [categories, setCategories] = useState([]);
+
+  // Load categories from user data
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const userData = await apiService.loadUserData();
+        const cats = [];
+
+        // Add savings categories
+        if (userData?.savingsAllocation?.savingsGoals) {
+          userData.savingsAllocation.savingsGoals.forEach(goal => {
+            cats.push({
+              category: goal.name,
+              context: 'savings'
+            });
+          });
+        }
+
+        // Add expense categories
+        if (userData?.expenses?.expenseCategories) {
+          userData.expenses.expenseCategories.forEach(cat => {
+            cats.push({
+              category: cat.name,
+              context: 'expenses'
+            });
+          });
+        }
+
+        setCategories(cats);
+      } catch (error) {
+        console.error('Error loading categories:', error);
+      }
+    };
+
+    loadCategories();
+  }, []);
 
   const [formData, setFormData] = useState({
     name: '',

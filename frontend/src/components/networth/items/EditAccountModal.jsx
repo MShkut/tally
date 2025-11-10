@@ -2,14 +2,49 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from 'contexts/ThemeContext';
 import { useNetworth } from 'hooks/useNetworth';
-import { useBudget } from 'hooks/useBudget';
 import { apiService } from 'utils/apiService';
-import { currency } from 'utils/currency';
+import { Currency } from 'utils/currency';
 
 export const EditAccountModal = ({ account, onClose }) => {
   const { isDarkMode } = useTheme();
   const { updateAccount, createSnapshot } = useNetworth();
-  const { categories } = useBudget();
+  const [categories, setCategories] = useState([]);
+
+  // Load categories from user data
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const userData = await apiService.loadUserData();
+        const cats = [];
+
+        // Add savings categories
+        if (userData?.savingsAllocation?.savingsGoals) {
+          userData.savingsAllocation.savingsGoals.forEach(goal => {
+            cats.push({
+              category: goal.name,
+              context: 'savings'
+            });
+          });
+        }
+
+        // Add expense categories
+        if (userData?.expenses?.expenseCategories) {
+          userData.expenses.expenseCategories.forEach(cat => {
+            cats.push({
+              category: cat.name,
+              context: 'expenses'
+            });
+          });
+        }
+
+        setCategories(cats);
+      } catch (error) {
+        console.error('Error loading categories:', error);
+      }
+    };
+
+    loadCategories();
+  }, []);
 
   const [activeTab, setActiveTab] = useState('details'); // details, holdings, balance
   const [formData, setFormData] = useState({
@@ -538,9 +573,9 @@ export const EditAccountModal = ({ account, onClose }) => {
                                 )}
                               </div>
                               <div className="text-right">
-                                <div className="font-medium">{currency.format(holding.current_value || 0)}</div>
+                                <div className="font-medium">{Currency.format(holding.current_value || 0)}</div>
                                 <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                                  {holding.current_quantity || 0} @ {currency.format(holding.current_price || 0)}
+                                  {holding.current_quantity || 0} @ {Currency.format(holding.current_price || 0)}
                                 </div>
                               </div>
                             </div>

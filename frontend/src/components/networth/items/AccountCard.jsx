@@ -1,7 +1,7 @@
 // AccountCard.jsx - Display card for individual net worth account
 import React, { useState, useEffect } from 'react';
 import { useTheme } from 'contexts/ThemeContext';
-import { currency } from 'utils/currency';
+import { Currency } from 'utils/currency';
 import { apiService } from 'utils/apiService';
 
 export const AccountCard = ({ account, onEdit, onDelete }) => {
@@ -100,7 +100,7 @@ export const AccountCard = ({ account, onEdit, onDelete }) => {
               account.type === 'asset' ? 'text-green-500' : 'text-red-500'
             }`}>
               {account.type === 'liability' && '-'}
-              {currency.format(currentValue)}
+              {Currency.format(currentValue)}
             </div>
 
             <div className="flex gap-2 mt-2">
@@ -169,10 +169,10 @@ export const AccountCard = ({ account, onEdit, onDelete }) => {
                         </div>
                         <div className="text-right">
                           <div className="font-medium">
-                            {currency.format(holding.current_value || 0)}
+                            {Currency.format(holding.current_value || 0)}
                           </div>
                           <div className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                            {holding.current_quantity} @ {currency.format(holding.current_price || 0)}
+                            {holding.current_quantity} @ {Currency.format(holding.current_price || 0)}
                           </div>
                         </div>
                       </div>

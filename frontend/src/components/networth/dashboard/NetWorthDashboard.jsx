@@ -10,7 +10,7 @@ import { NetWorthChart } from './NetWorthChart';
 import { AssetsSummary } from './AssetsSummary';
 import { LiabilitiesSummary } from './LiabilitiesSummary';
 import { UpdatePricesModal } from './UpdatePricesModal';
-import { currency } from 'utils/currency';
+import { Currency } from 'utils/currency';
 
 export const NetWorthDashboard = ({ onNavigate, onLogout }) => {
   const { isDarkMode } = useTheme();
@@ -124,7 +124,7 @@ export const NetWorthDashboard = ({ onNavigate, onLogout }) => {
               <div className={`text-4xl font-light ${
                 isDarkMode ? 'text-gray-400' : 'text-gray-600'
               }`}>
-                {currency.format(summary.netWorth)}
+                {Currency.format(summary.netWorth)}
               </div>
             </div>
           </div>

@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useTheme } from 'contexts/ThemeContext';
 import { generateNetworthChartData, getDefaultDateRange } from 'utils/networthChartUtils';
-import { currency } from 'utils/currency';
+import { Currency } from 'utils/currency';
 
 export const NetWorthChart = ({ chartView, dateRange }) => {
   const { isDarkMode } = useTheme();
@@ -68,7 +68,7 @@ export const NetWorthChart = ({ chartView, dateRange }) => {
     } else if (chartView === 'gold' || chartView === 'gold_holdings') {
       return `${value.toFixed(2)} oz`;
     } else {
-      return currency.format(value * 100); // Convert back to cents
+      return Currency.format(value * 100); // Convert back to cents
     }
   };
 
@@ -78,7 +78,7 @@ export const NetWorthChart = ({ chartView, dateRange }) => {
     } else if (chartView === 'gold' || chartView === 'gold_holdings') {
       return `${value.toFixed(4)} oz`;
     } else {
-      return currency.format(value * 100);
+      return Currency.format(value * 100);
     }
   };
 

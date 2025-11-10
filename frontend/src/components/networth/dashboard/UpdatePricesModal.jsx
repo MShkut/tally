@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from 'contexts/ThemeContext';
 import { apiService } from 'utils/apiService';
-import { currency } from 'utils/currency';
+import { Currency } from 'utils/currency';
 
 export const UpdatePricesModal = ({ accounts, onClose }) => {
   const { isDarkMode } = useTheme();
@@ -183,7 +183,7 @@ export const UpdatePricesModal = ({ accounts, onClose }) => {
                         Total value
                       </div>
                       <div className="font-medium">
-                        {currency.format((priceUpdates[holding.id] || 0) * (holding.current_quantity || 0) * 100)}
+                        {Currency.format((priceUpdates[holding.id] || 0) * (holding.current_quantity || 0) * 100)}
                       </div>
                     </div>
                   </div>
