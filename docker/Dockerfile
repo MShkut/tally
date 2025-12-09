@@ -9,7 +9,7 @@ WORKDIR /app/frontend
 COPY frontend/package*.json ./
 
 # Use npm ci for faster builds
-RUN npm ci --only=production
+RUN npm ci
 
 # Copy source files and build
 COPY frontend/ ./
