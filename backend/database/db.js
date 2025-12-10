@@ -64,39 +64,6 @@ function initializeSchema() {
     });
 
     console.log('✅ Database schema initialized');
-  } else {
-    // Check for specific missing tables and create them if needed
-    const requiredTables = [
-      'networth_accounts',
-      'networth_holdings',
-      'networth_transactions',
-      'networth_price_updates',
-      'networth_snapshots'
-    ];
-
-    const missingTables = requiredTables.filter(table => !tableNames.includes(table));
-
-    if (missingTables.length > 0) {
-      console.log(`📦 Creating missing tables: ${missingTables.join(', ')}`);
-      const schema = fs.readFileSync(SCHEMA_PATH, 'utf8');
-
-      // Execute full schema - CREATE TABLE IF NOT EXISTS will skip existing tables
-      const statements = schema.split(';').filter(s => s.trim());
-      statements.forEach(statement => {
-        if (statement.trim()) {
-          try {
-            db.exec(statement);
-          } catch (error) {
-            // Ignore errors for already existing tables/indexes
-            if (!error.message.includes('already exists')) {
-              console.error('Schema execution error:', error.message);
-            }
-          }
-        }
-      });
-
-      console.log('✅ Missing tables created');
-    }
   }
 }
 

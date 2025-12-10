@@ -11,9 +11,6 @@ const EditWrapper = lazy(() => import('components/actions/edit/EditWrapper').the
 const PlanNextPeriod = lazy(() => import('components/actions/plan/PlanNextPeriod').then(m => ({ default: m.PlanNextPeriod })));
 const GiftManagement = lazy(() => import('components/actions/gifts/GiftManagement').then(m => ({ default: m.GiftManagement })));
 const SettingsDashboard = lazy(() => import('components/settings/SettingsDashboard').then(m => ({ default: m.SettingsDashboard })));
-const NetWorthDashboard = lazy(() => import('components/networth/dashboard/NetWorthDashboard').then(m => ({ default: m.NetWorthDashboard })));
-const NetWorthItems = lazy(() => import('components/networth/items/NetWorthItems').then(m => ({ default: m.NetWorthItems })));
-const ImportNetWorth = lazy(() => import('components/networth/import/ImportNetWorth').then(m => ({ default: m.ImportNetWorth })));
 
 // Loading component for suspense
 const LoadingFallback = () => (
@@ -156,9 +153,6 @@ const HouseholdRoutes = ({ onLogout }) => {
         <Route path="alltransactions" element={<AllTransactions onNavigate={handleNavigate} onLogout={onLogout} />} />
         <Route path="gifts" element={<GiftManagement onNavigate={handleNavigate} onLogout={onLogout} />} />
         <Route path="settings" element={<SettingsDashboard onNavigate={handleNavigate} onLogout={onLogout} />} />
-        <Route path="networth" element={<NetWorthDashboard onNavigate={handleNavigate} onLogout={onLogout} />} />
-        <Route path="networth/items" element={<NetWorthItems onNavigate={handleNavigate} onLogout={onLogout} />} />
-        <Route path="networth/import" element={<ImportNetWorth onNavigate={handleNavigate} onLogout={onLogout} />} />
         <Route path="edit-income" element={
           <EditWrapper
             editType="income"
