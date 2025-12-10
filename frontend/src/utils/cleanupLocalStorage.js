@@ -15,17 +15,12 @@ const OLD_STORAGE_KEYS = [
   'customCategories_income',
   // CSV mapping preferences (these can stay but let's clean old ones)
   'csvColumnMappings',
-  'defaultColumnMapping',
-  // Price caches (these are fine to keep for performance)
-  // 'yahooFinancePriceCache',
-  // 'currencyExchangeRateCache'
+  'defaultColumnMapping'
 ];
 
 // Keys that should be KEPT (don't remove these)
 const KEEP_KEYS = [
   'theme-mode',                    // User theme preference
-  'yahooFinancePriceCache',        // Price cache for performance
-  'currencyExchangeRateCache',     // Currency cache for performance
   'tally_returnPath'               // Navigation state
 ];
 
