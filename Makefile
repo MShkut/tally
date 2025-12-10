@@ -78,12 +78,12 @@ dev-logs:
 build:
 	@echo "Building Docker image locally..."
 	docker build -t ghcr.io/mshkut/tally:local -f docker/Dockerfile .
-	@echo "Image built: ghcr.io/mshkut/tally:local"
+	@echo "Image built: ghcr.io/carb-frog/tally:local"
 
 push:
 	@echo "Pushing image to GitHub Container Registry..."
 	@echo "Make sure you've run 'make login' first"
-	docker push ghcr.io/mshkut/tally:latest
+	docker push ghcr.io/carb-frog/tally:latest
 
 # Utility commands
 login:
