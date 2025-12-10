@@ -77,7 +77,7 @@ dev-logs:
 # Local build commands
 build:
 	@echo "Building Docker image locally..."
-	docker build -t ghcr.io/mshkut/tally:local -f docker/Dockerfile .
+	docker build -t ghcr.io/carb-frog/tally:local -f docker/Dockerfile .
 	@echo "Image built: ghcr.io/carb-frog/tally:local"
 
 push:
