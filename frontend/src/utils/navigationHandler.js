@@ -23,10 +23,6 @@ export const handleMenuAction = (actionId, onNavigate, onClose, setShowResetConf
       onNavigate('dashboard');
       return true;
 
-    case 'networth':
-      onNavigate('networth');
-      return true;
-
     // Main Actions
     case 'import':
       onNavigate('import');
@@ -38,14 +34,6 @@ export const handleMenuAction = (actionId, onNavigate, onClose, setShowResetConf
 
     case 'gifts':
       onNavigate('gifts');
-      return true;
-
-    case 'networth-import':
-      onNavigate('networth/import');
-      return true;
-
-    case 'networth-items':
-      onNavigate('networth/items');
       return true;
 
     // Edit Actions
@@ -211,8 +199,7 @@ const handleDataReset = async (onNavigate) => {
 export const getMenuItems = async () => {
   try {
     const dashboardItems = [
-      { id: 'dashboard', label: 'Overview' },
-      { id: 'networth', label: 'Net Worth' }
+      { id: 'dashboard', label: 'Overview' }
     ];
 
     const yourPlanItems = [
@@ -225,9 +212,7 @@ export const getMenuItems = async () => {
     const actionsItems = [
       { id: 'import', label: 'Import Transactions' },
       { id: 'alltransactions', label: 'View and Edit Transactions' },
-      { id: 'gifts', label: 'Gift Management' },
-      { id: 'networth-import', label: 'Import Net Worth Data' },
-      { id: 'networth-items', label: 'View and Edit Net Worth Items' }
+      { id: 'gifts', label: 'Gift Management' }
     ];
 
     const settingsItems = [
@@ -246,8 +231,7 @@ export const getMenuItems = async () => {
     // Return default menu if loading fails
     return {
       dashboard: [
-        { id: 'dashboard', label: 'Overview' },
-        { id: 'networth', label: 'Net Worth' }
+        { id: 'dashboard', label: 'Overview' }
       ],
       yourPlan: [
         { id: 'plan-next-period', label: 'Plan Next Period' },
@@ -258,9 +242,7 @@ export const getMenuItems = async () => {
       actions: [
         { id: 'import', label: 'Import Transactions' },
         { id: 'alltransactions', label: 'View and Edit Transactions' },
-        { id: 'gifts', label: 'Gift Management' },
-        { id: 'networth-import', label: 'Import Net Worth Data' },
-        { id: 'networth-items', label: 'View and Edit Net Worth Items' }
+        { id: 'gifts', label: 'Gift Management' }
       ],
       settings: [
         { id: 'settings', label: 'Settings' },
