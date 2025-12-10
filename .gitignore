@@ -2,7 +2,6 @@
 frontend/node_modules/
 frontend/dist/
 frontend/dist-ssr/
-frontend/package-lock.json
 frontend/scripts
 frontend/backups
 
@@ -50,9 +49,6 @@ backend/node_modules/
 backend/local-data/
 *.db
 
-# Electron desktop app
+# Node modules (root level only, not frontend/backend)
 node_modules/
 dist-electron/
-package-lock.json
-electron/icons/*.icns
-electron/icons/*.ico
