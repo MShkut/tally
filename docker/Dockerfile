@@ -51,14 +51,11 @@ COPY backend/database/ /app/api/database/
 COPY backend/models/ /app/api/models/
 COPY backend/middleware/ /app/api/middleware/
 COPY backend/utils/ /app/api/utils/
+COPY backend/routes/ /app/api/routes/
 
 # Copy startup script
 COPY docker/start.sh /start.sh
 RUN chmod +x /start.sh
-
-# Copy Start9 scripts (backup, restore)
-COPY startos/scripts/ /scripts/
-RUN find /scripts -type f -name "*.sh" -exec chmod +x {} \;
 
 # Create data directory for budget files
 RUN mkdir -p /data

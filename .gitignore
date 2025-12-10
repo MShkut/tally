@@ -47,6 +47,7 @@ examples/
 # Test data (contains passwords and test files)
 test-data/
 backend/node_modules/
+backend/local-data/
 *.db
 
 # Electron desktop app

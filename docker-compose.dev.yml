@@ -1,0 +1,23 @@
+version: '3.8'
+
+# Development override for docker-compose.yml
+# Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+
+services:
+  tally:
+    image: ghcr.io/mshkut/tally:dev
+    container_name: tally-budget-dev
+
+    ports:
+      - "${TALLY_DEV_PORT:-8086}:8080"
+
+    volumes:
+      - tally-data-dev:/data
+
+    environment:
+      - DB_PATH=/data/tally.db
+      - NODE_ENV=development
+
+volumes:
+  tally-data-dev:
+    name: tally-data-dev

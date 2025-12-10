@@ -1,87 +1,105 @@
-# Tally Docker Container Management
+# Tally Budget - Docker Deployment Makefile
 
-.PHONY: build run stop test clean logs help
+.PHONY: help prod-up prod-down prod-pull prod-logs dev-up dev-down dev-pull dev-logs login build push clean
 
 # Default target
 help:
-	@echo "Tally Budget App - Docker Commands"
-	@echo "=================================="
-	@echo "build      - Build the Docker image"
-	@echo "run        - Run the container (detached)"
-	@echo "stop       - Stop the running container"
-	@echo "test       - Run container and test endpoints"
-	@echo "logs       - Show container logs"
-	@echo "shell      - Open shell in running container"
-	@echo "clean      - Remove container and image"
-	@echo "rebuild    - Clean and rebuild everything"
+	@echo "Tally Budget - Docker Deployment Commands"
+	@echo "=========================================="
 	@echo ""
-	@echo "Usage: make <command>"
-	@echo "Access: http://localhost:8080"
-	@echo "Default password: changeme"
+	@echo "Production Commands:"
+	@echo "  prod-pull    - Pull latest production image from GitHub Container Registry"
+	@echo "  prod-up      - Start production container"
+	@echo "  prod-down    - Stop production container"
+	@echo "  prod-restart - Pull latest and restart production"
+	@echo "  prod-logs    - Show production container logs"
+	@echo ""
+	@echo "Development Commands:"
+	@echo "  dev-pull     - Pull latest development image from GitHub Container Registry"
+	@echo "  dev-up       - Start development container"
+	@echo "  dev-down     - Stop development container"
+	@echo "  dev-restart  - Pull latest and restart development"
+	@echo "  dev-logs     - Show development container logs"
+	@echo ""
+	@echo "Local Build Commands:"
+	@echo "  build        - Build Docker image locally"
+	@echo "  push         - Push local image to GitHub Container Registry"
+	@echo ""
+	@echo "Utility Commands:"
+	@echo "  login        - Login to GitHub Container Registry"
+	@echo "  status       - Show status of all Tally containers"
+	@echo "  clean        - Remove containers and volumes (DESTRUCTIVE)"
+	@echo ""
+	@echo "Access:"
+	@echo "  Production:  http://localhost:8085"
+	@echo "  Development: http://localhost:8086"
 
-# Build the Docker image
+# Production commands
+prod-pull:
+	@echo "Pulling latest production image..."
+	docker compose pull
+
+prod-up:
+	@echo "Starting production container..."
+	docker compose up -d
+	@echo "Production running at http://localhost:8085"
+
+prod-down:
+	@echo "Stopping production container..."
+	docker compose down
+
+prod-restart: prod-pull prod-down prod-up
+	@echo "Production restarted with latest image"
+
+prod-logs:
+	docker compose logs -f
+
+# Development commands
+dev-pull:
+	@echo "Pulling latest development image..."
+	docker compose -f docker-compose.yml -f docker-compose.dev.yml pull
+
+dev-up:
+	@echo "Starting development container..."
+	docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+	@echo "Development running at http://localhost:8086"
+
+dev-down:
+	@echo "Stopping development container..."
+	docker compose -f docker-compose.yml -f docker-compose.dev.yml down
+
+dev-restart: dev-pull dev-down dev-up
+	@echo "Development restarted with latest image"
+
+dev-logs:
+	docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f
+
+# Local build commands
 build:
-	@echo "Building Tally Docker image..."
-	docker build -t tally-budget:latest -f docker/Dockerfile . --load
+	@echo "Building Docker image locally..."
+	docker build -t ghcr.io/mshkut/tally:local -f docker/Dockerfile .
+	@echo "Image built: ghcr.io/mshkut/tally:local"
 
-# Run the container
-run:
-	@echo "Starting Tally container..."
-	docker run -d \
-		--name tally-budget \
-		-p 8080:8080 \
-		-v tally-data:/data \
-		--restart unless-stopped \
-		tally-budget:latest
-	@echo "Container started. Access at http://localhost:8080"
-	@echo "Default password: changeme"
+push:
+	@echo "Pushing image to GitHub Container Registry..."
+	@echo "Make sure you've run 'make login' first"
+	docker push ghcr.io/mshkut/tally:latest
 
-# Stop the container
-stop:
-	@echo "Stopping Tally container..."
-	-docker stop tally-budget
-	-docker rm tally-budget
+# Utility commands
+login:
+	@echo "Logging into GitHub Container Registry..."
+	@echo "Username: your GitHub username"
+	@echo "Password: GitHub Personal Access Token (PAT) with 'read:packages' scope"
+	docker login ghcr.io
 
-# Test the container
-test: stop run
-	@echo "Testing Tally container..."
-	@sleep 5
-	@echo "Testing health endpoint..."
-	@curl -f http://localhost:8080/api/health || (echo "Health check failed" && exit 1)
-	@echo "Testing login endpoint..."
-	@curl -f -X POST http://localhost:8080/api/auth/login \
-		-H "Content-Type: application/json" \
-		-d '{"password":"changeme"}' || (echo "Login test failed" && exit 1)
-	@echo "All tests passed!"
-
-# Show logs
-logs:
-	docker logs -f tally-budget
-
-# Open shell in container
-shell:
-	docker exec -it tally-budget sh
-
-# Clean up everything
-clean: stop
-	@echo "Cleaning up Tally resources..."
-	-docker rmi tally-budget:latest
-	-docker volume rm tally-data
-
-# Rebuild everything
-rebuild: clean build
-
-# Development mode (run with live reload)
-dev-run: stop
-	@echo "Starting Tally in development mode..."
-	docker run -d \
-		--name tally-budget \
-		-p 8080:8080 \
-		-v $(PWD)/data:/data \
-		-v $(PWD)/frontend/dist:/usr/share/nginx/html \
-		tally-budget:latest
-
-# Quick status check
 status:
 	@echo "Tally Container Status:"
-	@docker ps -f name=tally-budget --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+	@docker ps -a -f name=tally-budget --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+
+clean:
+	@echo "WARNING: This will remove all Tally containers and volumes!"
+	@read -p "Are you sure? (yes/no): " confirm && [ "$$confirm" = "yes" ] || exit 1
+	@echo "Stopping and removing containers..."
+	-docker compose down -v
+	-docker compose -f docker-compose.yml -f docker-compose.dev.yml down -v
+	@echo "Cleanup complete"

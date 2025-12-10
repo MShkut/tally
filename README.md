@@ -1,31 +1,17 @@
 # Tally
 
-> **Beta Software**: This is a privacy-first household budget tracker I'm building to actually use. It's beta 0.0.11 - it runs on Start9 OS and Docker, but the math is still wonky and there's a ton of polish work ahead. Don't trust it with your financial decisions yet.
+> **Beta Software**: This is a privacy-first household budget tracker I'm building to actually use. It's beta - it runs on Docker via self-hosting, but the math is still wonky and there's a ton of polish work ahead. Don't trust it with your financial decisions yet.
 
 A household budget app that runs entirely on your own hardware. No cloud, no tracking, no subscriptions.
 
 ## What This Is
 
-Simple: track your household budget without sending your financial data to some random company's servers. Everything stays local - either in your browser or on your Start9 server.
-
-## 📥 Desktop App (New!)
-
-**Windows & macOS native apps now available!**
-
-Download installers from [GitHub Releases](https://github.com/YOUR_USERNAME/tally/releases)
-
-**Two modes:**
-- **Local Mode**: Run entirely on your computer (standalone app with built-in backend)
-- **Remote Mode**: Connect to your Start9 server or self-hosted instance
-
-See [DESKTOP-APP.md](DESKTOP-APP.md) for details.
+Simple: track your household budget without sending your financial data to some random company's servers. Everything stays local on your self-hosted Docker server.
 
 ---
 
-**What's actually working (beta 0.0.11):**
-- **Desktop apps for Windows & macOS** (local or remote mode)
-- Runs on Start9 OS (tested on real hardware!)
-- Docker container deployment (nginx + Node.js API)
+**What's actually working:**
+- Docker container deployment (nginx + Node.js API + SQLite)
 - Password authentication (shared household password)
 - Data persistence via Docker volumes
 - CSV import with auto-categorization
@@ -37,7 +23,6 @@ See [DESKTOP-APP.md](DESKTOP-APP.md) for details.
   - Historical date entry (back to 1900)
   - Year selector in calendars for fast navigation
 - Gift budget management
-- LAN and Tor access
 
 **What's broken/incomplete:**
 - **Budget math is wrong** - calculations need serious work
@@ -50,31 +35,81 @@ See [DESKTOP-APP.md](DESKTOP-APP.md) for details.
 
 ## Running This Thing
 
-### Start9 OS (Recommended)
+### Docker Deployment (Recommended)
 
-If you have a Start9 server:
+**Prerequisites:**
+- Docker and Docker Compose installed
+- GitHub account with Personal Access Token (for pulling images)
 
+**Quick Start:**
+
+1. **Authenticate with GitHub Container Registry:**
 ```bash
-# Quick build (one command)
-./build-start9.sh
-
-# Package will be at: startos/tally-budget.s9pk
-# Then sideload through your Start9 web UI
+docker login ghcr.io
+# Username: your-github-username
+# Password: GitHub Personal Access Token with 'read:packages' scope
+# Create token at: https://github.com/settings/tokens/new
 ```
 
-The build script automatically:
-1. Builds frontend production bundle
-2. Builds Docker image with clean cache
-3. Exports to tar file
-4. Creates Start9 package
+2. **Clone repository:**
+```bash
+git clone https://github.com/MShkut/tally.git
+cd tally
+```
 
-See `startos/INSTALL-GUIDE.md` for detailed installation instructions.
+3. **Start production version:**
+```bash
+make prod-up
+# Or: docker compose up -d
+```
 
-### Development Notes
+4. **Access Tally:**
+- Production: `http://your-server-ip:8085`
+- Default password: `changeme` (change after first login)
 
-**IMPORTANT**: Do not use local dev mode (`npm run dev`). The Start9 container environment uses backend storage while dev mode uses browser localStorage. Bugs will appear in production that don't show up in dev.
+**Update to latest version:**
+```bash
+make prod-restart
+# Or: docker compose pull && docker compose up -d
+```
 
-**Always test on Start9**, not in development mode.
+### Development Version
+
+Run production and development simultaneously on the same server:
+
+```bash
+# Start development version (port 8086)
+make dev-up
+
+# Access at: http://your-server-ip:8086
+```
+
+**Available Commands:**
+```bash
+make              # Show all commands
+make prod-restart # Pull latest and restart production
+make dev-restart  # Pull latest and restart development
+make prod-logs    # View production logs
+make dev-logs     # View development logs
+make status       # Show container status
+```
+
+### Local Development & Testing
+
+**IMPORTANT**: Do not rely on `npm run dev` for testing. The Docker environment behaves differently:
+- Docker uses SQLite database in `/data` volume
+- Dev mode uses browser localStorage
+- nginx reverse proxy in front of API
+- Different filesystem paths and permissions
+
+**Always test in Docker container:**
+```bash
+# Build locally
+make build
+
+# Test local build
+docker run -p 8085:8080 -v tally-test:/data ghcr.io/mshkut/tally:local
+```
 
 ## Design Philosophy
 
@@ -94,19 +129,20 @@ Trying to make budget tracking feel less like a chore and more like reading some
 - Browser localStorage (fallback mode)
 
 **Backend:**
-- Node.js API (Docker/Start9 container mode)
+- Node.js + Express API
+- SQLite database
 - Docker + nginx (production deployment)
-- No backend in local dev mode (localStorage only)
 
 **Deployment:**
-- Start9 OS package (.s9pk)
 - Docker containerization
-- Data persistence via volumes
+- GitHub Container Registry (ghcr.io)
+- Automatic builds via GitHub Actions
+- Data persistence via Docker volumes
 
 ## Project Structure
 
 ```
-├── frontend/          # React app (all application logic)
+├── frontend/              # React app (all application logic)
 │   ├── src/components/
 │   │   ├── setup/              # Onboarding flow
 │   │   ├── overview/           # Dashboard & net worth pages
@@ -114,21 +150,25 @@ Trying to make budget tracking feel less like a chore and more like reading some
 │   │   ├── shared/             # Reusable components
 │   │   └── routing/            # Router config
 │   └── src/utils/              # All the helper functions
-├── docker/            # Docker containerization
-│   ├── Dockerfile
-│   ├── server.js      # Node.js API for container mode
-│   ├── nginx.conf
-│   └── start.sh       # Container startup
-├── startos/           # Start9 OS package
-│   ├── manifest.yaml
-│   ├── Makefile
-│   └── (scripts and docs)
-└── Makefile           # Root-level Docker commands
+├── backend/               # Node.js API server
+│   ├── server.js           # Express API
+│   ├── database/           # SQLite database layer
+│   ├── models/             # Data models
+│   └── routes/             # API endpoints
+├── docker/                # Docker configuration
+│   ├── Dockerfile          # Multi-stage build
+│   ├── nginx.conf          # Reverse proxy config
+│   └── start.sh            # Container startup script
+├── .github/workflows/     # CI/CD automation
+│   └── docker-build.yml    # Auto-build on push
+├── docker-compose.yml     # Production deployment
+├── docker-compose.dev.yml # Development override
+└── Makefile               # Deployment commands
 ```
 
-## Current Status (Beta 0.0.11)
+## Current Status (Beta)
 
-**Deployment:** Working on Start9 OS and Docker
+**Deployment:** Working on Docker with automatic CI/CD
 
 **What Actually Works:**
 - Complete onboarding flow
@@ -164,17 +204,26 @@ Trying to make budget tracking feel less like a chore and more like reading some
 
 **What I'm Ignoring (Low Priority):**
 - Tests (yeah, I know...)
-- Better icon for Start9 (currently just a blue square with "T")
 - Documentation beyond README files
+- Comprehensive error logging
 
 ## Disclaimers
 
 - **Beta software** - it runs, but the math is wrong
 - **Household budget** - designed for shared use, not individual accounts
-- **Start9 or Docker only** - browser localStorage mode is just for development
+- **Docker deployment only** - no cloud version available
 - **No cloud sync** - data lives on your hardware, nowhere else
 - **Shared password** - everyone in your household uses the same password
-- **Clear data = game over** - no password recovery, no data recovery (use Start9 backups!)
+- **Data persistence** - uses Docker volumes, backup regularly!
+- **No password recovery** - lose it and you're starting over
+
+## CI/CD & Updates
+
+Images are automatically built and pushed to GitHub Container Registry when you push to:
+- `main` branch → `ghcr.io/mshkut/tally:latest`
+- `dev` branch → `ghcr.io/mshkut/tally:dev`
+
+Update your deployment with `make prod-restart` or `make dev-restart`.
 
 ## License
 
@@ -182,10 +231,10 @@ MIT License - do whatever you want. See [LICENSE](LICENSE).
 
 ---
 
-**Current status:** Running on Start9 OS, but needs math fixes before I trust it with actual budgeting.
+**Current status:** Running on Docker with CI/CD, but needs math fixes before I trust it with actual budgeting.
 
 **Next phase:** Code cleanup and fixing all the broken calculations.
 
 ---
 
-*Running this on Start9? Let me know what breaks. Github issues welcome.*
+*Self-hosting this? Let me know what breaks. GitHub issues welcome.*

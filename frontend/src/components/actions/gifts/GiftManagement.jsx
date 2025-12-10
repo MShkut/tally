@@ -78,18 +78,17 @@ export const GiftManagement = ({ onNavigate }) => {
 
   const handleImportGiftsFromExpenses = async () => {
     try {
-      // Load expenses categorized as "Gifts"
-      const userData = await apiService.loadUserData();
+      // Load expenses categorized as "Gifts" using the transactions API
+      const response = await apiService.loadTransactions({
+        category: 'Gifts',
+        limit: 10000 // Get all gift transactions
+      });
 
       // Debug logging
-      console.log('[GiftManagement] All transactions:', userData?.expenses?.transactions);
-      console.log('[GiftManagement] Filtering for gift category...');
+      console.log('[GiftManagement] API response:', response);
 
-      const giftExpenses = userData?.expenses?.transactions?.filter(tx => {
-        const category = tx.category?.toLowerCase().trim();
-        console.log('[GiftManagement] Transaction:', tx.description, 'Category:', category);
-        return category === 'gifts' || category === 'gift';
-      }) || [];
+      // Response is already the transactions array (apiService returns data.data)
+      const giftExpenses = response || [];
 
       console.log('[GiftManagement] Found gift expenses:', giftExpenses);
 
