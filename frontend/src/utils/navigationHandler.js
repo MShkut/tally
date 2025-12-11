@@ -53,10 +53,6 @@ export const handleMenuAction = (actionId, onNavigate, onClose, setShowResetConf
     case 'plan-next-period':
       onNavigate('plan-next-period');
       return true;
-      
-    case 'start-next-period':
-      onNavigate('onboarding');
-      return true;
 
     // Settings & Data Management
     case 'settings':

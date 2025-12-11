@@ -192,6 +192,69 @@ app.post('/api/auth/logout', (req, res) => {
 });
 
 /**
+ * POST /api/auth/change-password
+ * Change password for authenticated user
+ *
+ * @route POST /api/auth/change-password
+ * @access Private (requires authentication)
+ *
+ * @param {string} currentPassword - User's current password
+ * @param {string} newPassword - New password to set
+ * @returns {Object} success: true on successful change
+ * @returns {Object} error message if validation fails
+ */
+app.post('/api/auth/change-password', authenticateToken, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const userId = req.user.id;
+
+    // Validation
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        error: 'Current password and new password are required'
+      });
+    }
+
+    if (newPassword.length < 8) {
+      return res.status(400).json({
+        success: false,
+        error: 'New password must be at least 8 characters'
+      });
+    }
+
+    if (currentPassword === newPassword) {
+      return res.status(400).json({
+        success: false,
+        error: 'New password must be different from current password'
+      });
+    }
+
+    // Verify current password
+    const valid = await User.verifyPassword(userId, currentPassword);
+    if (!valid) {
+      return res.status(401).json({
+        success: false,
+        error: 'Current password is incorrect'
+      });
+    }
+
+    // Update to new password
+    await User.updatePassword(userId, newPassword);
+
+    console.log(`[AUTH] Password changed successfully for user ${userId}`);
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('[AUTH] Change password error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to change password'
+    });
+  }
+});
+
+/**
  * GET /api/auth/me
  * Get currently authenticated user information
  *

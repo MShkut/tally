@@ -325,6 +325,16 @@ class APIService {
   }
 
   /**
+   * Change password for authenticated user
+   */
+  async changePassword(currentPassword, newPassword) {
+    return await this.request('/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify({ currentPassword, newPassword })
+    });
+  }
+
+  /**
    * Get current user
    */
   async getCurrentUser() {
