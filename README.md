@@ -18,10 +18,6 @@ Simple: track your household budget without sending your financial data to some 
 - Transaction review and editing
 - Onboarding flow for household setup
 - Dark/light themes
-- Net worth tracking with API integration
-  - Automatic price updates (Finnhub for US stocks/crypto, Alpha Vantage for international)
-  - Historical date entry (back to 1900)
-  - Year selector in calendars for fast navigation
 - Gift budget management
 
 **What's broken/incomplete:**
@@ -53,7 +49,7 @@ docker login ghcr.io
 
 2. **Clone repository:**
 ```bash
-git clone https://github.com/MShkut/tally.git
+git clone https://github.com/carb-frog/tally.git
 cd tally
 ```
 
@@ -108,7 +104,7 @@ make status       # Show container status
 make build
 
 # Test local build
-docker run -p 8085:8080 -v tally-test:/data ghcr.io/mshkut/tally:local
+docker run -p 8085:8080 -v tally-test:/data ghcr.io/carb-frog/tally:local
 ```
 
 ## Design Philosophy
@@ -153,8 +149,7 @@ Trying to make budget tracking feel less like a chore and more like reading some
 ├── backend/               # Node.js API server
 │   ├── server.js           # Express API
 │   ├── database/           # SQLite database layer
-│   ├── models/             # Data models
-│   └── routes/             # API endpoints
+│   └── models/             # Data models
 ├── docker/                # Docker configuration
 │   ├── Dockerfile          # Multi-stage build
 │   ├── nginx.conf          # Reverse proxy config
@@ -174,13 +169,6 @@ Trying to make budget tracking feel less like a chore and more like reading some
 - Complete onboarding flow
 - CSV transaction import
 - Transaction categorization (needs improvement)
-- Net worth tracking (assets + liabilities)
-  - API integration for automatic price updates
-  - Finnhub support (US stocks, cryptocurrency)
-  - Alpha Vantage support (international stocks)
-  - Proper currency conversion (native exchange currencies)
-  - Historical date entry (back to 1900)
-  - Calendar year selector for fast navigation
 - Gift budget management
 - Theme switching (dark/light)
 - Password authentication
@@ -199,7 +187,6 @@ Trying to make budget tracking feel less like a chore and more like reading some
 - Proper error messages
 - Mobile responsiveness (works but needs polish)
 - Data validation on CSV import
-- Better health check reporting for Start9
 - Password change mechanism in UI
 
 **What I'm Ignoring (Low Priority):**
@@ -220,8 +207,8 @@ Trying to make budget tracking feel less like a chore and more like reading some
 ## CI/CD & Updates
 
 Images are automatically built and pushed to GitHub Container Registry when you push to:
-- `main` branch → `ghcr.io/mshkut/tally:latest`
-- `dev` branch → `ghcr.io/mshkut/tally:dev`
+- `main` branch → `ghcr.io/carb-frog/tally:latest`
+- `dev` branch → `ghcr.io/carb-frog/tally:dev`
 
 Update your deployment with `make prod-restart` or `make dev-restart`.
 
