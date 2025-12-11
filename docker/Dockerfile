@@ -51,7 +51,6 @@ COPY backend/database/ /app/api/database/
 COPY backend/models/ /app/api/models/
 COPY backend/middleware/ /app/api/middleware/
 COPY backend/utils/ /app/api/utils/
-COPY backend/routes/ /app/api/routes/
 
 # Copy startup script
 COPY docker/start.sh /start.sh
