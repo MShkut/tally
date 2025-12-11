@@ -1,5 +1,6 @@
 // frontend/src/components/shared/SmartInput.jsx
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
+
 import { useTheme } from 'contexts/ThemeContext';
 
 export const SmartInput = ({

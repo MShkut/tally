@@ -1,5 +1,5 @@
 // frontend/src/components/shared/FloatingModal.jsx
-import React from 'react';
+
 import { useTheme } from 'contexts/ThemeContext';
 
 export const FloatingModal = ({ 

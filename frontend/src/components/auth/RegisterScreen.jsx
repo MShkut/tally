@@ -1,5 +1,6 @@
 // RegisterScreen - First-time setup with password
 import { useState } from 'react';
+
 import { useAuth } from 'contexts/AuthContext';
 
 export const RegisterScreen = () => {

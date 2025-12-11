@@ -1,5 +1,5 @@
 // frontend/src/components/dashboard/DashboardViewSelector.jsx
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 
 import { useTheme } from 'contexts/ThemeContext';
 

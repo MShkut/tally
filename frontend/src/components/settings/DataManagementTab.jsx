@@ -1,5 +1,6 @@
 // frontend/src/components/settings/DataManagementTab.jsx
-import React, { useState } from 'react';
+import { useState } from 'react';
+
 import { useTheme } from 'contexts/ThemeContext';
 import { apiService } from 'utils/apiService';
 import { ConfirmationModal } from 'components/shared/FormComponents';

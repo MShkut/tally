@@ -1,5 +1,5 @@
 // frontend/src/components/gifts/PersonEdit.jsx
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 import { useTheme } from 'contexts/ThemeContext';
 import { ThemeToggle } from 'components/shared/ThemeToggle';

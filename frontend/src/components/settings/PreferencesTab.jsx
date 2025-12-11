@@ -1,5 +1,6 @@
 // frontend/src/components/settings/PreferencesTab.jsx
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+
 import { useTheme } from 'contexts/ThemeContext';
 import { apiService } from 'utils/apiService';
 

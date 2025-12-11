@@ -1,6 +1,5 @@
 // frontend/src/components/dashboard/BudgetPerformanceSection.jsx - Enhanced Version
 // Note: Calculation functions removed - now using useBudgetMath() hook in parent components
-import React from 'react';
 
 import { useTheme } from 'contexts/ThemeContext';
 import { Currency } from 'utils/currency';

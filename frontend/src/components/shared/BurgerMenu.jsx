@@ -1,5 +1,6 @@
+import React from 'react';
 // frontend/src/components/dashboard/BurgerMenu.jsx
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { useTheme } from 'contexts/ThemeContext';
 import { ConfirmationModal } from 'components/shared/FormComponents';

@@ -1,5 +1,5 @@
 // frontend/src/components/shared/DateRangeCalendar.jsx
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 
 import { useTheme } from 'contexts/ThemeContext';
 

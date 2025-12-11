@@ -1,5 +1,5 @@
 // frontend/src/components/overviews/EditWrapper.jsx
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 
 import { apiService } from 'utils/apiService';
 import { IncomeStep } from 'components/setup/IncomeStep';

@@ -1,5 +1,6 @@
 // frontend/src/components/actions/import/ViewTransactions.jsx
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
+
 import { useTheme } from 'contexts/ThemeContext';
 import { Currency } from 'utils/currency';
 

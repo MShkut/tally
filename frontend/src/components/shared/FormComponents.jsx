@@ -1,7 +1,7 @@
+import React from 'react';
 // frontend/src/components/shared/FormComponents.jsx
 // Complete Form Standardization System with 12-Column Grid
 
-import React from 'react';
 
 import { useTheme } from 'contexts/ThemeContext';
 import { Currency } from 'utils/currency';

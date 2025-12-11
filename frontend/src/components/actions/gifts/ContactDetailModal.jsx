@@ -1,5 +1,4 @@
 // frontend/src/components/gifts/ContactDetailModal.jsx
-import React from 'react';
 
 import { useTheme } from 'contexts/ThemeContext';
 import { Currency } from 'utils/currency';

@@ -1,5 +1,6 @@
 // frontend/src/App.jsx
-import React, { useEffect } from 'react';
+import { useEffect, Component } from 'react';
+
 import { ThemeProvider } from 'contexts/ThemeContext';
 import { AuthProvider, useAuth } from 'contexts/AuthContext';
 import { AppRouter } from 'components/routing/AppRouter';
@@ -11,7 +12,7 @@ import { loadUserCurrencyFromAPI } from 'utils/currency';
 import { apiService } from 'utils/apiService';
 
 // Error Boundary Component
-class ErrorBoundary extends React.Component {
+class ErrorBoundary extends Component {
   constructor(props) {
     super(props);
     this.state = { hasError: false, error: null, errorInfo: null };

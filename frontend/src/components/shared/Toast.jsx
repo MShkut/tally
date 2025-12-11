@@ -1,4 +1,6 @@
-import React, { useEffect } from 'react';
+import React from 'react';
+import { useEffect } from 'react';
+
 import { useTheme } from 'contexts/ThemeContext';
 
 export const Toast = ({ message, type = 'info', duration = 3000, onClose }) => {

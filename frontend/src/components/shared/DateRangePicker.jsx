@@ -1,7 +1,8 @@
 // frontend/src/components/shared/DateRangePicker.jsx
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 import { useTheme } from 'contexts/ThemeContext';
+
 import { 
   FormGrid,
   FormField

@@ -1,13 +1,12 @@
 // frontend/src/components/styled/StyledComponents.jsx (matching IncomeStep.jsx import path)
-import React from 'react';
 
 import { useTheme } from 'contexts/ThemeContext';
+import { Currency } from 'utils/currency';
 import { 
   buildClasses, 
   getAccentStyles, 
   createAccentHover
-} from '../../utils/themeUtils';
-import { Currency } from 'utils/currency';
+} from 'utils/themeUtils';
 
 // Page wrapper with consistent gradient background
 export const Page = ({ children, className = '' }) => {

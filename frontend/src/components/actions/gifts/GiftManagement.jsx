@@ -1,5 +1,5 @@
 // frontend/src/components/gifts/GiftManagement.jsx
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 
 import { useTheme } from 'contexts/ThemeContext';
 import { useGifts } from 'hooks/useGifts';
@@ -14,13 +14,14 @@ import {
 } from 'components/shared/FormComponents';
 import { apiService } from 'utils/apiService';
 import { BurgerMenu } from 'components/shared/BurgerMenu';
+import { handleMenuAction } from 'utils/navigationHandler';
+
 import { PersonCard } from './PersonCard';
 import { ContactDetailModal } from './ContactDetailModal';
 import { GiftBudgetOverview } from './GiftBudgetOverview';
 import { PersonEdit } from './PersonEdit';
 import { AddPersonManually } from './AddPersonManually';
 import { GiftAssignment } from './GiftAssignment';
-import { handleMenuAction } from 'utils/navigationHandler';
 
 export const GiftManagement = ({ onNavigate }) => {
   const { isDarkMode } = useTheme();

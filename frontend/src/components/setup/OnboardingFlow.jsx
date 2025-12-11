@@ -1,6 +1,8 @@
 // frontend/src/components/onboarding/OnboardingFlow.jsx
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+
 import { apiService } from 'utils/apiService';
+
 import { WelcomeStep } from './WelcomeStep';
 import { IncomeStep } from './IncomeStep';
 import { SavingsAllocationStep } from './SavingsAllocationStep';

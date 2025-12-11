@@ -1,5 +1,5 @@
-// frontend/src/components/dashboard/BudgetHealthSection.jsx
 import React from 'react';
+// frontend/src/components/dashboard/BudgetHealthSection.jsx
 
 import { useTheme } from 'contexts/ThemeContext';
 

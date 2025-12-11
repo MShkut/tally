@@ -1,5 +1,6 @@
-import React, { useState, useEffect, lazy, Suspense } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams } from 'react-router-dom';
+
 import { apiService } from 'utils/apiService';
 
 // Lazy load all route components for better performance

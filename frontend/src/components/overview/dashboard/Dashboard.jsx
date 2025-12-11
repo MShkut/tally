@@ -1,5 +1,6 @@
+import React from 'react';
 // frontend/src/components/dashboard/Dashboard.jsx
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 
 import { ThemeToggle } from 'components/shared/ThemeToggle';
 import { useTheme } from 'contexts/ThemeContext';

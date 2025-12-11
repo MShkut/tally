@@ -1,5 +1,5 @@
 // frontend/src/components/onboarding/WelcomeStep.jsx
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 
 import { useTheme } from 'contexts/ThemeContext';
 import { ThemeToggle } from 'components/shared/ThemeToggle';

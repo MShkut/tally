@@ -1,13 +1,11 @@
 // frontend/src/components/dashboard/TransactionImport.jsx
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 import { useTheme } from 'contexts/ThemeContext';
 import { useTransactions } from 'hooks/useTransactions';
 import { ThemeToggle } from 'components/shared/ThemeToggle';
 import { Currency } from 'utils/currency';
 import { BurgerMenu } from 'components/shared/BurgerMenu';
-import { EnhancedCSVUpload } from './EnhancedCSVUpload';
-import { ReviewTransactions } from './ReviewTransactions';
 import { normalizeMerchantName, suggestCategory } from 'utils/transactionHelpers';
 import { enhanceCategories, shouldAutoIgnore, learnMerchantMapping } from 'utils/categoryEnhancer';
 import { apiService } from 'utils/apiService';
@@ -22,6 +20,9 @@ import {
 } from 'components/shared/FormComponents';
 import { DatePicker } from 'components/shared/DatePicker';
 import { handleMenuAction } from 'utils/navigationHandler';
+
+import { ReviewTransactions } from './ReviewTransactions';
+import { EnhancedCSVUpload } from './EnhancedCSVUpload';
 
 const ManualTransactionForm = ({ categories, formData, onUpdate, onAdd, showAddButton = true }) => {
   const { isDarkMode } = useTheme();

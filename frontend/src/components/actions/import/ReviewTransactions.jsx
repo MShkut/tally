@@ -1,5 +1,5 @@
 // frontend/src/components/dashboard/ReviewTransactions.jsx
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 
 import { useTheme } from 'contexts/ThemeContext';
 import { ThemeToggle } from 'components/shared/ThemeToggle';
@@ -9,6 +9,7 @@ import {
 } from 'components/shared/FormComponents';
 import { TransactionHelpers } from 'utils/transactionHelpers';
 import { Currency } from 'utils/currency';
+
 import { TransactionReviewItem } from './TransactionReviewItem';
 import { TransactionModal } from './TransactionModal';
 

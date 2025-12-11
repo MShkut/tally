@@ -1,7 +1,8 @@
 // frontend/src/components/shared/DatePicker.jsx
 // Simple single date picker component based on DateRangePicker calendar logic
 
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
+
 import { useTheme } from 'contexts/ThemeContext';
 import { apiService } from 'utils/apiService';
 

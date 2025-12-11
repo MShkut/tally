@@ -1,5 +1,6 @@
 // AuthContext - Manages authentication state across the app
 import { createContext, useContext, useState, useEffect } from 'react';
+
 import { apiService } from 'utils/apiService';
 
 const AuthContext = createContext(null);

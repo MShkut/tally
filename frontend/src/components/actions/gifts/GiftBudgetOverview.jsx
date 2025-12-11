@@ -1,5 +1,4 @@
 // frontend/src/components/gifts/GiftBudgetOverview.jsx
-import React from 'react';
 
 import { 
   FormSection,

@@ -1,10 +1,12 @@
 // frontend/src/components/settings/SettingsDashboard.jsx
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
+
 import { useTheme } from 'contexts/ThemeContext';
 import { ThemeToggle } from 'components/shared/ThemeToggle';
 import { BurgerMenu } from 'components/shared/BurgerMenu';
 import { handleMenuAction } from 'utils/navigationHandler';
+
 import { PreferencesTab } from './PreferencesTab';
 import { DataManagementTab } from './DataManagementTab';
 import { AccountTab } from './AccountTab';

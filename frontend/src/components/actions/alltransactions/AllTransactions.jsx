@@ -1,5 +1,6 @@
+import React from 'react';
 // frontend/src/components/actions/alltransactions/AllTransactions.jsx
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 
 import { useTheme } from 'contexts/ThemeContext';
 import { ThemeToggle } from 'components/shared/ThemeToggle';
