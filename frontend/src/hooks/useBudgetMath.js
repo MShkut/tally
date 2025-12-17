@@ -78,6 +78,7 @@ import {
   checkBudgetBalance,
   calculateAvailableForExpenses
 } from 'utils/budgetCalculations';
+import { parseDate, isInMonth } from 'utils/dateUtils';
 
 export const useBudgetMath = () => {
   // ============================================
@@ -316,10 +317,15 @@ export const useBudgetMath = () => {
     onboardingData = {}
   ) => {
     if (viewMode === 'period') {
-      const periodStart = new Date(onboardingData?.period?.start_date || new Date());
+      const periodStartDate = onboardingData?.period?.start_date;
+      if (!periodStartDate) return transactions;
+
+      const periodStart = parseDate(periodStartDate);
+      if (!periodStart) return transactions;
+
       return transactions.filter(t => {
-        const transactionDate = new Date(t.date);
-        return transactionDate >= periodStart;
+        const transactionDate = parseDate(t.date);
+        return transactionDate && transactionDate >= periodStart;
       });
     } else {
       let targetMonth, targetYear;
@@ -335,9 +341,7 @@ export const useBudgetMath = () => {
       }
 
       return transactions.filter(t => {
-        const transactionDate = new Date(t.date);
-        return transactionDate.getMonth() === targetMonth &&
-               transactionDate.getFullYear() === targetYear;
+        return isInMonth(t.date, targetMonth, targetYear);
       });
     }
   };

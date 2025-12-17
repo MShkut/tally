@@ -4,6 +4,7 @@
 import { useState, useEffect, useCallback } from 'react';
 
 import { apiService } from 'utils/apiService';
+import { parseDate } from 'utils/dateUtils';
 import { Currency } from 'utils/currency';
 
 /**
@@ -190,12 +191,14 @@ export const useTransactions = () => {
    * @returns {Array} Filtered transactions
    */
   const filterByDateRange = useCallback((startDate, endDate) => {
-    const start = new Date(startDate);
-    const end = new Date(endDate);
+    const start = parseDate(startDate);
+    const end = parseDate(endDate);
+
+    if (!start || !end) return transactions;
 
     return transactions.filter(txn => {
-      const txnDate = new Date(txn.date);
-      return txnDate >= start && txnDate <= end;
+      const txnDate = parseDate(txn.date);
+      return txnDate && txnDate >= start && txnDate <= end;
     });
   }, [transactions]);
 
