@@ -88,28 +88,49 @@ export const getTodayISO = () => {
 };
 
 /**
- * Parse YYYY-MM-DD date string to Date object in local timezone
+ * Parse date string to Date object in local timezone
+ * Handles YYYY-MM-DD, ISO timestamps, and other formats
  * Avoids UTC interpretation that causes off-by-one day errors
- * @param {string} dateString - Date in YYYY-MM-DD format
+ * @param {string} dateString - Date string in various formats
  * @returns {Date|null} - Date object or null if invalid
  */
 export const parseDate = (dateString) => {
   if (!dateString) return null;
 
-  // Remove time component if present
-  const dateOnly = String(dateString).split('T')[0];
+  let date;
 
-  // Parse YYYY-MM-DD manually
-  const parts = dateOnly.split('-');
-  if (parts.length === 3) {
-    const [year, month, day] = parts.map(Number);
-    if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
-      // Create date at noon to avoid any timezone boundary issues
-      return new Date(year, month - 1, day, 12, 0, 0);
+  // Try to parse YYYY-MM-DD format manually (avoids UTC interpretation)
+  if (typeof dateString === 'string') {
+    // Remove time component if present
+    const dateOnly = dateString.split('T')[0];
+
+    // Parse YYYY-MM-DD manually
+    const parts = dateOnly.split('-');
+    if (parts.length === 3) {
+      const [year, month, day] = parts.map(Number);
+      if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
+        // Create date at noon to avoid any timezone boundary issues
+        date = new Date(year, month - 1, day, 12, 0, 0);
+      }
     }
   }
 
-  return null;
+  // Fallback: if manual parsing failed, try standard Date constructor
+  if (!date || isNaN(date.getTime())) {
+    date = new Date(dateString);
+    // If it parsed but might have timezone shift, adjust to noon local time
+    if (!isNaN(date.getTime())) {
+      date = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 12, 0, 0);
+    }
+  }
+
+  // Return null only if completely invalid
+  if (isNaN(date.getTime())) {
+    console.warn('[dateUtils] Could not parse date:', dateString);
+    return null;
+  }
+
+  return date;
 };
 
 /**
