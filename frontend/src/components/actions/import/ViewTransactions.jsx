@@ -3,6 +3,7 @@ import { useState, useMemo } from 'react';
 
 import { useTheme } from 'contexts/ThemeContext';
 import { Currency } from 'utils/currency';
+import { formatDate } from 'utils/dateUtils';
 
 export const ViewTransactions = ({ transactions, categories }) => {
   const { isDarkMode } = useTheme();
@@ -260,7 +261,7 @@ export const ViewTransactions = ({ transactions, categories }) => {
                       } transition-colors`}
                     >
                       <td className={`px-6 py-4 text-sm font-light ${isDarkMode ? 'text-white' : 'text-black'}`}>
-                        {new Date(transaction.date).toLocaleDateString()}
+                        {formatDate(transaction.date)}
                       </td>
                       <td className={`px-6 py-4 text-sm font-light ${isDarkMode ? 'text-white' : 'text-black'}`}>
                         {transaction.description}

@@ -5,6 +5,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useTheme } from 'contexts/ThemeContext';
 import { ThemeToggle } from 'components/shared/ThemeToggle';
 import { Currency } from 'utils/currency';
+import { formatDate } from 'utils/dateUtils';
 import { BurgerMenu } from 'components/shared/BurgerMenu';
 import { apiService } from 'utils/apiService';
 import { useDebounce } from 'utils/debounce';
@@ -534,7 +535,7 @@ export const AllTransactions = ({ onNavigate }) => {
         title="Delete Transaction?"
         description="Are you sure you want to delete this transaction?"
         details={transactionToDelete ? [
-          `Date: ${new Date(transactionToDelete.date).toLocaleDateString()}`,
+          `Date: ${formatDate(transactionToDelete.date)}`,
           `Description: ${transactionToDelete.description}`,
           `Amount: ${Currency.format(transactionToDelete.amount)}`
         ] : []}
@@ -713,7 +714,7 @@ const TransactionRow = React.memo(({
         </button>
       </div>
       <div className="col-span-2 text-sm font-mono">
-        {new Date(transaction.date).toLocaleDateString()}
+        {formatDate(transaction.date)}
       </div>
       <div className="col-span-4 text-sm">
         {transaction.description}

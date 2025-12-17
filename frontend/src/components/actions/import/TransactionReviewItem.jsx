@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 
 import { useTheme } from 'contexts/ThemeContext';
 import { Currency } from 'utils/currency';
+import { formatDateShort } from 'utils/dateUtils';
 
 // Individual transaction review item - horizontal table-like layout
 export const TransactionReviewItem = ({ 
@@ -31,12 +32,6 @@ export const TransactionReviewItem = ({
   
   // Category types (match actual data casing)
   const categoryTypes = ['Income', 'Expense', 'Savings', 'Ignore'];
-
-  // Format date to be more compact
-  const formatDate = (dateStr) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  };
 
   const handleTypeClick = (e) => {
     e.preventDefault();
@@ -116,7 +111,7 @@ export const TransactionReviewItem = ({
       <div className={`col-span-1 text-base font-light ${
         isDarkMode ? 'text-gray-400' : 'text-gray-600'
       }`}>
-        {formatDate(transaction.date)}
+        {formatDateShort(transaction.date)}
       </div>
 
       {/* Description - 5 columns, full text */}

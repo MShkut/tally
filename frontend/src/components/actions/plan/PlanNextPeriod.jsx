@@ -4,13 +4,14 @@ import { useState, useEffect } from 'react';
 import { useTheme } from 'contexts/ThemeContext';
 import { ThemeToggle } from 'components/shared/ThemeToggle';
 import { PeriodSelector } from 'components/shared/PeriodSelector';
-import { 
+import {
   FormSection,
   StandardFormLayout,
   SummaryCard
 } from 'components/shared/FormComponents';
 import { apiService } from 'utils/apiService';
 import { convertToYearly } from 'utils/incomeHelpers';
+import { formatDate } from 'utils/dateUtils';
 
 export const PlanNextPeriod = ({ onComplete, onCancel }) => {
   const { isDarkMode } = useTheme();
@@ -246,16 +247,12 @@ export const PlanNextPeriod = ({ onComplete, onCancel }) => {
 // Helper functions
 function formatPeriodDates(period) {
   if (!period) return '';
-  
-  const start = new Date(period.start_date);
-  const end = new Date(period.end_date || period.start_date);
-  
-  const formatDate = (date) => date.toLocaleDateString('en-US', { 
-    month: 'short', 
-    year: 'numeric' 
-  });
-  
-  return `${formatDate(start)} - ${formatDate(end)}`;
+
+  // Format dates with month and year only
+  const start = formatDate(period.start_date, { month: 'short', year: 'numeric' });
+  const end = formatDate(period.end_date || period.start_date, { month: 'short', year: 'numeric' });
+
+  return `${start} - ${end}`;
 }
 
 function calculateMonthlyBudget(userData) {

@@ -1,9 +1,9 @@
 import { useState } from 'react';
 
 import { useTheme } from 'contexts/ThemeContext';
-import { 
-  FormGrid, 
-  FormField, 
+import {
+  FormGrid,
+  FormField,
   StandardInput,
   StandardSelect,
   FormSection,
@@ -11,6 +11,7 @@ import {
 } from 'components/shared/FormComponents';
 import { DatePicker } from 'components/shared/DatePicker';
 import { Currency } from 'utils/currency';
+import { formatDateShort } from 'utils/dateUtils';
 
 // Transaction actions component (floating modal style) - handles split, combine, and edit
 export const TransactionModal = ({ transaction, transactions, categories, actionType, onComplete, onCancel }) => {
@@ -478,12 +479,7 @@ const CombineContent = ({ transaction, transactions, selectedTransactions, setSe
       setSelectedTransactions([...selectedTransactions, t]);
     }
   };
-  
-  const formatDate = (dateStr) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  };
-  
+
   return (
     <>
       {/* Main Transaction */}
@@ -500,7 +496,7 @@ const CombineContent = ({ transaction, transactions, selectedTransactions, setSe
             <div className={`col-span-1 text-sm ${
               isDarkMode ? 'text-gray-400' : 'text-gray-600'
             }`}>
-              {formatDate(transaction.date)}
+              {formatDateShort(transaction.date)}
             </div>
             <div className={`col-span-8 ${
               isDarkMode ? 'text-white' : 'text-black'
@@ -579,7 +575,7 @@ const CombineContent = ({ transaction, transactions, selectedTransactions, setSe
                     <div className={`col-span-1 text-sm ${
                       isDarkMode ? 'text-gray-400' : 'text-gray-600'
                     }`}>
-                      {formatDate(t.date)}
+                      {formatDateShort(t.date)}
                     </div>
                     <div className={`col-span-7 ${
                       isDarkMode ? 'text-white' : 'text-black'
@@ -617,7 +613,7 @@ const CombineContent = ({ transaction, transactions, selectedTransactions, setSe
                   <div className={`col-span-1 text-sm ${
                     isDarkMode ? 'text-gray-400' : 'text-gray-600'
                   }`}>
-                    {formatDate(t.date)}
+                    {formatDateShort(t.date)}
                   </div>
                   <div className={`col-span-8 ${
                     isDarkMode ? 'text-white' : 'text-black'
