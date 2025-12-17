@@ -62,9 +62,11 @@ export const useTransactions = () => {
         importedAt: transaction.importedAt || new Date().toISOString()
       };
 
-      const updatedTransactions = [...transactions, newTransaction];
-      await apiService.saveTransactions(updatedTransactions);
-      setTransactions(updatedTransactions);
+      // Only send the NEW transaction to backend, not all transactions
+      await apiService.saveTransactions([newTransaction]);
+
+      // Update local state optimistically after successful save
+      setTransactions(prev => [...prev, newTransaction]);
 
       return true;
     } catch (err) {
@@ -87,9 +89,11 @@ export const useTransactions = () => {
         importedAt: txn.importedAt || new Date().toISOString()
       }));
 
-      const updatedTransactions = [...transactions, ...timestampedTransactions];
-      await apiService.saveTransactions(updatedTransactions);
-      setTransactions(updatedTransactions);
+      // Only send the NEW transactions to backend, not all transactions
+      await apiService.saveTransactions(timestampedTransactions);
+
+      // Update local state optimistically after successful save
+      setTransactions(prev => [...prev, ...timestampedTransactions]);
       return true;
     } catch (err) {
       console.error('Error adding transactions:', err);

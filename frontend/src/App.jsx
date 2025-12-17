@@ -69,6 +69,45 @@ function AppContent() {
     }
   }, [isAuthenticated]);
 
+  // Auto-logout when browser closes/exits
+  useEffect(() => {
+    if (!isAuthenticated) return; // Only add listener when logged in
+
+    const performLogout = () => {
+      console.log('[APP] Browser closing - logging out');
+      try {
+        // Use navigator.sendBeacon for reliable request on page unload
+        // This works even as the page is unloading, unlike fetch()
+        const logoutUrl = `${window.location.origin}/api/auth/logout`;
+        const success = navigator.sendBeacon(logoutUrl);
+        console.log('[APP] Logout beacon sent:', success);
+      } catch (error) {
+        console.error('[APP] Logout on close failed:', error);
+      }
+      // Clear local cache immediately for security
+      apiService.clearCache();
+    };
+
+    // Handle multiple browser close events for reliability
+    const handleBeforeUnload = () => {
+      performLogout();
+    };
+
+    const handlePageHide = () => {
+      performLogout();
+    };
+
+    // beforeunload: Fires when navigating away or closing browser
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    // pagehide: More reliable on mobile browsers
+    window.addEventListener('pagehide', handlePageHide);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('pagehide', handlePageHide);
+    };
+  }, [isAuthenticated]);
+
   // Show loading state while checking authentication
   if (loading) {
     console.log('[APP] Showing loading screen');

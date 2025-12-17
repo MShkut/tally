@@ -235,12 +235,18 @@ export const DatePicker = ({
   };
 
   // Format display value
-  const displayValue = value 
-    ? new Date(value).toLocaleDateString('en-US', { 
-        month: 'short', 
-        day: 'numeric', 
-        year: 'numeric' 
-      })
+  // Parse date manually to avoid timezone conversion issues
+  // "2024-09-01" should display as "Sep 1, 2024", not "Aug 31, 2024"
+  const displayValue = value
+    ? (() => {
+        const [year, month, day] = value.split('-').map(Number);
+        // Create date in local timezone (not UTC)
+        return new Date(year, month - 1, day).toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric'
+        });
+      })()
     : '';
 
   return (
