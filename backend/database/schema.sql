@@ -33,32 +33,34 @@ CREATE TABLE IF NOT EXISTS user_data (
 );
 
 -- Transactions table (imported CSV data)
+-- New schema: simplified column names for clarity
+-- - description: Transaction description (replaces merchant)
+-- - main_category: 'income', 'expense', or 'savings'
+-- - sub_category: Subcategory name from user_data
 CREATE TABLE IF NOT EXISTS transactions (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id INTEGER NOT NULL,
   date TEXT NOT NULL,
-  merchant TEXT,
-  category TEXT,
-  amount REAL NOT NULL,
-  type TEXT, -- 'income', 'expense', 'savings'
   description TEXT,
+  amount REAL NOT NULL,
+  main_category TEXT, -- 'income', 'expense', 'savings'
+  sub_category TEXT, -- Subcategory name
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 -- Performance indexes for common queries
 CREATE INDEX IF NOT EXISTS idx_transactions_user_date ON transactions(user_id, date DESC);
-CREATE INDEX IF NOT EXISTS idx_transactions_category ON transactions(category);
-CREATE INDEX IF NOT EXISTS idx_transactions_user_date_category ON transactions(user_id, date DESC, category);
-CREATE INDEX IF NOT EXISTS idx_transactions_user_type_date ON transactions(user_id, type, date DESC);
-CREATE INDEX IF NOT EXISTS idx_transactions_merchant ON transactions(merchant);
+CREATE INDEX IF NOT EXISTS idx_transactions_sub_category ON transactions(sub_category);
+CREATE INDEX IF NOT EXISTS idx_transactions_user_date_sub_category ON transactions(user_id, date DESC, sub_category);
+CREATE INDEX IF NOT EXISTS idx_transactions_user_main_category_date ON transactions(user_id, main_category, date DESC);
 CREATE INDEX IF NOT EXISTS idx_transactions_description ON transactions(description);
 
 -- Covering index for the most common query (all filters + sort by date)
 -- This allows SQLite to satisfy queries entirely from the index without reading table rows
 CREATE INDEX IF NOT EXISTS idx_transactions_covering ON transactions(
-  user_id, type, category, date DESC,
-  id, merchant, amount, description
+  user_id, main_category, sub_category, date DESC,
+  id, description, amount
 );
 
 -- Gift data table (gift budget tracking)

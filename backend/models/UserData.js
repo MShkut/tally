@@ -22,10 +22,13 @@ class UserData {
    *
    * Typical data structure:
    * - household: { name, members, ... }
-   * - income: [{ source, amount, frequency }, ...]
-   * - expenses: { category: amount, ... }
-   * - savings: { goal, target, ... }
+   * - income: [{ name, amount, frequency }, ...]
+   * - expenses: [{ name, amount, frequency }, ...]
+   * - savings: [{ name, amount, frequency }, ...]
    * - onboardingComplete: boolean
+   *
+   * All category types (income, expenses, savings) use consistent array format
+   * with name, amount, and frequency properties.
    *
    * @param {number} userId - User ID
    * @param {Object} data - Household configuration object (will be JSON stringified)
@@ -34,8 +37,9 @@ class UserData {
    * @example
    * UserData.save(1, {
    *   household: { name: "Smith Family" },
-   *   income: [{ source: "Salary", amount: 5000, frequency: "monthly" }],
-   *   expenses: { "Rent": 1500, "Groceries": 500 },
+   *   income: [{ name: "Salary", amount: 5000, frequency: "monthly" }],
+   *   expenses: [{ name: "Rent", amount: 1500, frequency: "monthly" }],
+   *   savings: [{ name: "Emergency Fund", amount: 500, frequency: "monthly" }],
    *   onboardingComplete: true
    * });
    */

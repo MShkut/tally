@@ -23,11 +23,10 @@ class Transaction {
    *
    * Transaction format:
    * - date: ISO date string (YYYY-MM-DD)
-   * - merchant: Merchant/vendor name
-   * - category: Budget category
+   * - description: Transaction description
    * - amount: Numeric amount (positive or negative)
-   * - type: "Income", "Expense", or "Savings"
-   * - description: Optional transaction notes
+   * - main_category: "income", "expense", or "savings"
+   * - sub_category: Subcategory name from user_data
    *
    * @param {number} userId - User ID who owns these transactions
    * @param {Array<Object>} transactions - Array of transaction objects
@@ -35,14 +34,14 @@ class Transaction {
    *
    * @example
    * Transaction.bulkCreate(1, [
-   *   { date: "2024-01-15", merchant: "Starbucks", category: "Coffee",
-   *     amount: 5.50, type: "Expense", description: "Morning coffee" }
+   *   { date: "2024-01-15", description: "Starbucks", sub_category: "Coffee",
+   *     amount: 5.50, main_category: "expense" }
    * ]);
    */
   static bulkCreate(userId, transactions) {
     const db = require('../database/db').getDatabase();
     const stmt = db.prepare(
-      'INSERT INTO transactions (user_id, date, merchant, category, amount, type, description) VALUES (?, ?, ?, ?, ?, ?, ?)'
+      'INSERT INTO transactions (user_id, date, description, amount, main_category, sub_category) VALUES (?, ?, ?, ?, ?, ?)'
     );
 
     /**
@@ -112,11 +111,10 @@ class Transaction {
           stmt.run([
             userId,
             tx.date || new Date().toISOString().split('T')[0],
-            toPrimitive(tx.merchant) || 'Unknown',
-            toPrimitive(tx.category) || 'Uncategorized',
+            toPrimitive(tx.description) || 'Unknown',
             toNumber(tx.amount),
-            toPrimitive(tx.type) || 'Expense',
-            toPrimitive(tx.description) || ''
+            toPrimitive(tx.main_category) || 'expense',
+            toPrimitive(tx.sub_category) || 'Uncategorized'
           ]);
         } catch (error) {
           console.error('[Transaction] Error inserting transaction:', error, tx);
@@ -133,8 +131,8 @@ class Transaction {
    * Get transactions with advanced filtering and sorting
    *
    * Retrieves paginated transaction list with support for:
-   * - Text search across merchant names and descriptions
-   * - Filtering by type, category, and date range
+   * - Text search across transaction descriptions
+   * - Filtering by main_category, sub_category, and date range
    * - Sorting by any field in ascending or descending order
    * - Pagination with limit/offset
    *
@@ -145,11 +143,11 @@ class Transaction {
    * @param {Object} [options={}] - Filter and pagination options
    * @param {number} [options.limit=1000] - Maximum results to return
    * @param {number} [options.offset=0] - Number of results to skip (for pagination)
-   * @param {string} [options.search=''] - Search term for merchant/description (case-insensitive partial match)
-   * @param {string} [options.type=''] - Filter by type ("Income", "Expense", "Savings")
-   * @param {string} [options.category=''] - Filter by category name (exact match)
+   * @param {string} [options.search=''] - Search term for description (case-insensitive partial match)
+   * @param {string} [options.type=''] - Filter by main_category ("income", "expense", "savings")
+   * @param {string} [options.category=''] - Filter by sub_category name (exact match)
    * @param {string} [options.dateFilter=''] - Date filter preset ("current-month")
-   * @param {string} [options.sortBy='date'] - Sort field (date, amount, description, category)
+   * @param {string} [options.sortBy='date'] - Sort field (date, amount, description, sub_category)
    * @param {string} [options.sortOrder='desc'] - Sort order ("asc" or "desc")
    * @returns {Array<Object>} Array of transaction objects
    *
@@ -178,22 +176,22 @@ class Transaction {
     const conditions = ['user_id = ?'];
     const params = [userId];
 
-    // Search filter (description or merchant)
+    // Search filter (description only)
     if (search) {
-      conditions.push('(description LIKE ? OR merchant LIKE ?)');
+      conditions.push('description LIKE ?');
       const searchPattern = `%${search}%`;
-      params.push(searchPattern, searchPattern);
+      params.push(searchPattern);
     }
 
-    // Type filter
+    // Main category filter (type parameter for backwards compatibility)
     if (type) {
-      conditions.push('type = ?');
+      conditions.push('main_category = ?');
       params.push(type);
     }
 
-    // Category filter
+    // Sub category filter (category parameter for backwards compatibility)
     if (category) {
-      conditions.push('category = ?');
+      conditions.push('sub_category = ?');
       params.push(category);
     }
 
@@ -216,7 +214,8 @@ class Transaction {
       'date': 'date',
       'amount': 'amount',
       'description': 'description',
-      'category': 'category'
+      'category': 'sub_category', // Map old 'category' sort to new 'sub_category'
+      'sub_category': 'sub_category'
     };
     const sortField = validSortFields[sortBy] || 'date';
     const sortDirection = sortOrder.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
@@ -236,11 +235,10 @@ class Transaction {
     return transactions.map(tx => ({
       id: tx.id.toString(),
       date: tx.date,
-      merchant: tx.merchant,
-      category: tx.category,
-      amount: tx.amount,
-      type: tx.type,
       description: tx.description,
+      amount: tx.amount,
+      main_category: tx.main_category,
+      sub_category: tx.sub_category,
       createdAt: tx.created_at
     }));
   }
@@ -256,8 +254,8 @@ class Transaction {
    * @param {number} userId - User ID to count transactions for
    * @param {Object} [options={}] - Same filter options as findByUser()
    * @param {string} [options.search=''] - Search term filter
-   * @param {string} [options.type=''] - Type filter
-   * @param {string} [options.category=''] - Category filter
+   * @param {string} [options.type=''] - Main category filter
+   * @param {string} [options.category=''] - Sub category filter
    * @param {string} [options.dateFilter=''] - Date filter
    * @returns {number} Total count of transactions matching filters
    */
@@ -274,18 +272,18 @@ class Transaction {
     const params = [userId];
 
     if (search) {
-      conditions.push('(description LIKE ? OR merchant LIKE ?)');
+      conditions.push('description LIKE ?');
       const searchPattern = `%${search}%`;
-      params.push(searchPattern, searchPattern);
+      params.push(searchPattern);
     }
 
     if (type) {
-      conditions.push('type = ?');
+      conditions.push('main_category = ?');
       params.push(type);
     }
 
     if (category) {
-      conditions.push('category = ?');
+      conditions.push('sub_category = ?');
       params.push(category);
     }
 
@@ -365,26 +363,25 @@ class Transaction {
   /**
    * Update an existing transaction
    *
-   * Modifies transaction details such as category, merchant, amount, etc.
+   * Modifies transaction details such as category, description, amount, etc.
    * Used for manual corrections to imported data.
    *
    * @param {number} userId - User ID (ownership check)
    * @param {number|string} transactionId - Transaction ID to update
    * @param {Object} updates - Fields to update
    * @param {string} [updates.date] - Transaction date (ISO format)
-   * @param {string} [updates.merchant] - Merchant name
-   * @param {string} [updates.category] - Category name
+   * @param {string} [updates.description] - Transaction description
    * @param {number} [updates.amount] - Transaction amount
-   * @param {string} [updates.type] - Transaction type
-   * @param {string} [updates.description] - Description/notes
+   * @param {string} [updates.main_category] - Main category ("income", "expense", "savings")
+   * @param {string} [updates.sub_category] - Sub category name
    * @returns {Object|null} Updated transaction object, or null if not found
    */
   static update(userId, transactionId, updates) {
-    const { date, merchant, category, amount, type, description } = updates;
+    const { date, description, amount, main_category, sub_category } = updates;
 
     execute(
-      'UPDATE transactions SET date = ?, merchant = ?, category = ?, amount = ?, type = ?, description = ? WHERE id = ? AND user_id = ?',
-      [date, merchant, category, amount, type, description, transactionId, userId]
+      'UPDATE transactions SET date = ?, description = ?, amount = ?, main_category = ?, sub_category = ? WHERE id = ? AND user_id = ?',
+      [date, description, amount, main_category, sub_category, transactionId, userId]
     );
 
     // Return updated transaction to confirm changes
@@ -402,15 +399,14 @@ class Transaction {
     const tx = queryOne('SELECT * FROM transactions WHERE id = ? AND user_id = ?', [transactionId, userId]);
     if (!tx) return null;
 
-    // Map database columns to camelCase API format
+    // Map database columns to API format
     return {
       id: tx.id.toString(),
       date: tx.date,
-      merchant: tx.merchant,
-      category: tx.category,
-      amount: tx.amount,
-      type: tx.type,
       description: tx.description,
+      amount: tx.amount,
+      main_category: tx.main_category,
+      sub_category: tx.sub_category,
       createdAt: tx.created_at
     };
   }
