@@ -49,18 +49,18 @@ const PerformanceCategory = ({ title, data, type }) => {
 
     if (type === 'income' || type === 'savings') {
       // Income & Savings: higher is better
-      // Red: < 80%, Yellow: 80-99%, Green: >= 100%
-      if (percentage < 80) return 'text-red-500';
+      // Red: < 70%, Yellow: 70-99%, Green: >= 100%
+      if (percentage < 70) return 'text-red-500';
       if (percentage < 100) return 'text-yellow-500';
-      return 'text-green-500'; // >= 100% including exactly 100%
+      return 'text-green-500'; // >= 100%
     }
 
     if (type === 'expenses') {
-      // Expenses: lower is better (opposite)
-      // Green: <= 100%, Yellow: 100-120%, Red: > 120%
-      if (percentage <= 100) return 'text-green-500';
-      if (percentage <= 120) return 'text-yellow-500';
-      return 'text-red-500';
+      // Expenses: lower is better
+      // Green: < 70%, Yellow: 70-99%, Red: >= 100%
+      if (percentage < 70) return 'text-green-500';
+      if (percentage < 100) return 'text-yellow-500';
+      return 'text-red-500'; // >= 100%
     }
 
     return isDarkMode ? 'text-gray-400' : 'text-gray-600';

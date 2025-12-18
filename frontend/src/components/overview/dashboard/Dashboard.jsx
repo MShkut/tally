@@ -86,7 +86,9 @@ export const Dashboard = ({ onNavigate, onLogout }) => {
               id: cat.name.toLowerCase().replace(/\s+/g, '-'),
               name: cat.name,
               type: 'expense',
-              amount: monthlyAmount
+              amount: monthlyAmount,
+              frequency: cat.frequency, // Preserve frequency for period calculations
+              originalAmount: cat.amount // Preserve original amount for One-time/Yearly
             };
           });
 
@@ -471,9 +473,18 @@ function processIncomeBreakdown(onboardingData, filteredTransactions, viewMode, 
     let expectedAmount = 0;
 
     if (viewMode === 'period') {
-      // Use full period duration, not months elapsed
-      const periodDuration = onboardingData?.period?.duration_months || 12;
-      expectedAmount = budgetMath.calculatePeriodIncome([source], periodDuration);
+      // Period view logic
+      if (source.frequency === 'One-time') {
+        // One-time: Show full amount once
+        expectedAmount = parseFloat(source.amount) || 0;
+      } else if (source.frequency === 'Yearly') {
+        // Yearly: Show full amount once
+        expectedAmount = parseFloat(source.amount) || 0;
+      } else {
+        // Recurring: Convert to monthly then multiply by period duration
+        const periodDuration = onboardingData?.period?.duration_months || 12;
+        expectedAmount = budgetMath.calculatePeriodIncome([source], periodDuration);
+      }
     } else {
       // Monthly view - for One-time/Yearly, use the full amount since it's in this month
       if (source.frequency === 'One-time' || source.frequency === 'Yearly') {
@@ -525,12 +536,29 @@ function processBudgetCategories(filteredTransactions, viewMode, categories, bud
         .filter(t => Currency.compare(t.amount, 0) < 0)
         .reduce((sum, t) => Currency.add(sum, Currency.abs(t.amount)), 0);
 
-      // Adjust budget based on view mode
+      // Adjust budget based on view mode and frequency
       let budget = category.amount || 0;
+      const frequency = category.frequency || 'Monthly';
+
       if (viewMode === 'period') {
-        // Use full period duration, not months elapsed
-        const periodDuration = onboardingData?.period?.duration_months || 12;
-        budget = Currency.multiply(budget, periodDuration);
+        // Period view logic
+        if (frequency === 'One-time') {
+          // One-time: Show full original amount once
+          budget = category.originalAmount || category.amount || 0;
+        } else if (frequency === 'Yearly') {
+          // Yearly: Show full original amount once
+          budget = category.originalAmount || category.amount || 0;
+        } else {
+          // Recurring: Multiply monthly by period duration
+          const periodDuration = onboardingData?.period?.duration_months || 12;
+          budget = Currency.multiply(budget, periodDuration);
+        }
+      } else {
+        // Month view: For One-time/Yearly, use original amount; for recurring, use monthly
+        if (frequency === 'One-time' || frequency === 'Yearly') {
+          budget = category.originalAmount || category.amount || 0;
+        }
+        // Else: already has monthly amount in category.amount
       }
 
       return {
