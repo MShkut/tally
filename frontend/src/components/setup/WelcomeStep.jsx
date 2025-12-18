@@ -19,8 +19,7 @@ import {
 export const WelcomeStep = ({ onNext, savedData = null }) => {
   const { isDarkMode } = useTheme();
   const [formData, setFormData] = useState({
-    householdName: '',
-    currency: 'CAD'
+    householdName: ''
   });
   const [periodData, setPeriodData] = useState(null);
   const [showImportModal, setShowImportModal] = useState(false);
@@ -29,8 +28,7 @@ export const WelcomeStep = ({ onNext, savedData = null }) => {
   useEffect(() => {
     if (savedData) {
       setFormData({
-        householdName: savedData.household?.name || '',
-        currency: savedData.settings?.currency || 'CAD'
+        householdName: savedData.household?.name || ''
       });
     }
   }, [savedData]);
@@ -64,7 +62,7 @@ export const WelcomeStep = ({ onNext, savedData = null }) => {
           period_number: 1
         },
         settings: {
-          currency: formData.currency
+          currency: 'USD'
         }
       };
 
@@ -205,27 +203,6 @@ export const WelcomeStep = ({ onNext, savedData = null }) => {
                   className={`[&_label]:text-2xl [&_label]:font-light [&_input]:text-2xl [&_input]:font-medium [&_input]:pb-4 ${
                     isDarkMode ? '[&_label]:text-white' : '[&_label]:text-black'
                   }`}
-                />
-              </FormField>
-
-              {/* Currency Selector */}
-              <FormField span={6}>
-                <StandardSelect
-                  label="Currency"
-                  value={formData.currency}
-                  onChange={(value) => handleInputChange('currency', value)}
-                  options={[
-                    { value: 'CAD', label: 'CAD - Canadian Dollar ($)' },
-                    { value: 'USD', label: 'USD - US Dollar ($)' },
-                    { value: 'EUR', label: 'EUR - Euro (€)' },
-                    { value: 'GBP', label: 'GBP - British Pound (£)' },
-                    { value: 'AUD', label: 'AUD - Australian Dollar ($)' },
-                    { value: 'JPY', label: 'JPY - Japanese Yen (¥)' },
-                    { value: 'CHF', label: 'CHF - Swiss Franc (Fr)' },
-                    { value: 'CNY', label: 'CNY - Chinese Yuan (¥)' },
-                    { value: 'INR', label: 'INR - Indian Rupee (₹)' },
-                    { value: 'MXN', label: 'MXN - Mexican Peso ($)' }
-                  ]}
                 />
               </FormField>
             </FormGrid>
