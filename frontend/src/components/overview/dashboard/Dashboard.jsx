@@ -586,10 +586,8 @@ function processSavingsGoals(onboardingData, filteredTransactions, viewMode) {
 
       // One-time/Yearly: Only show if there's a transaction
       const hasTransaction = filteredTransactions.some(t => {
-        const categoryMatches = t.category === goal.name ||
-                               t.category === `Savings: ${goal.name}` ||
-                               (typeof t.category === 'object' &&
-                                t.category?.name === goal.name);
+        const categoryMatches = t.sub_category === goal.name ||
+                               t.sub_category === `Savings: ${goal.name}`;
 
         const descriptionMatches = t.description &&
                                   t.description.toLowerCase().includes(goal.name.toLowerCase());
@@ -647,19 +645,15 @@ function processSavingsGoals(onboardingData, filteredTransactions, viewMode) {
 function calculateActualSavingsForGoal(goalName, filteredTransactions) {
   return filteredTransactions
     .filter(transaction => {
-      const categoryMatches = transaction.category === goalName ||
-                             transaction.category === `Savings: ${goalName}` ||
-                             (typeof transaction.category === 'object' && 
-                              transaction.category?.name === goalName);
-      
-      const descriptionMatches = transaction.description && 
+      const categoryMatches = transaction.sub_category === goalName ||
+                             transaction.sub_category === `Savings: ${goalName}`;
+
+      const descriptionMatches = transaction.description &&
                                 transaction.description.toLowerCase().includes(goalName.toLowerCase());
-      
-      const isPositiveOrSavingsTransfer = transaction.amount > 0 || 
-                                         (transaction.category && 
-                                          transaction.category.toLowerCase && 
-                                          transaction.category.toLowerCase().includes('savings'));
-      
+
+      const isPositiveOrSavingsTransfer = transaction.amount > 0 ||
+                                         (transaction.main_category?.toLowerCase() === 'savings');
+
       return (categoryMatches || descriptionMatches) && isPositiveOrSavingsTransfer;
     })
     .reduce((total, transaction) => total + Math.abs(transaction.amount), 0);

@@ -577,16 +577,11 @@ const TransactionRow = React.memo(({
 }) => {
   const { isDarkMode } = useTheme();
   // Get category name from transaction (handle both string and object formats)
-  const getCategoryName = (cat) => {
-    if (typeof cat === 'string') return cat;
-    return cat?.name || '';
-  };
-
   const [editData, setEditData] = useState({
     date: transaction.date,
     description: transaction.description,
     amount: transaction.amount,
-    categoryName: getCategoryName(transaction.category)
+    categoryName: transaction.sub_category || 'Uncategorized'
   });
 
   useEffect(() => {
@@ -595,21 +590,20 @@ const TransactionRow = React.memo(({
         date: transaction.date,
         description: transaction.description,
         amount: transaction.amount,
-        categoryName: getCategoryName(transaction.category)
+        categoryName: transaction.sub_category || 'Uncategorized'
       });
     }
   }, [isEditing, transaction]);
 
   const handleSave = () => {
-    // Backend expects category as a string, not an object
+    // Backend expects main_category and sub_category
+    const selectedCategory = categories.find(c => c.name === editData.categoryName);
     onSave({
       date: editData.date,
       description: editData.description,
       amount: parseFloat(editData.amount),
-      category: editData.categoryName, // Send category name as string
-      // Optional: include merchant and type if backend needs them
-      merchant: transaction.merchant || 'Unknown',
-      type: categories.find(c => c.name === editData.categoryName)?.type || 'Expense'
+      main_category: selectedCategory?.type?.toLowerCase() || 'expense',
+      sub_category: editData.categoryName
     });
   };
 
@@ -723,7 +717,7 @@ const TransactionRow = React.memo(({
         {Currency.format(transaction.amount)}
       </div>
       <div className="col-span-2 text-sm">
-        {typeof transaction.category === 'string' ? transaction.category : (transaction.category?.name || 'Uncategorized')}
+        {transaction.sub_category || 'Uncategorized'}
       </div>
       <div className="col-span-1 flex gap-2">
         <button
@@ -753,7 +747,7 @@ const TransactionRow = React.memo(({
     prevProps.transaction.date === nextProps.transaction.date &&
     prevProps.transaction.description === nextProps.transaction.description &&
     prevProps.transaction.amount === nextProps.transaction.amount &&
-    prevProps.transaction.category === nextProps.transaction.category
+    prevProps.transaction.sub_category === nextProps.transaction.sub_category
   );
 });
 

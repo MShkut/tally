@@ -256,14 +256,10 @@ export const useBudgetMath = () => {
    * @returns {boolean} True if transaction matches any category
    */
   const matchesCategory = (transaction, categories = []) => {
-    if (!transaction.category || !categories.length) return false;
-
-    const transactionCategoryName = typeof transaction.category === 'string'
-      ? transaction.category
-      : transaction.category.name;
+    if (!transaction.sub_category || !categories.length) return false;
 
     return categories.some(cat =>
-      transactionCategoryName?.toLowerCase() === cat.name.toLowerCase()
+      transaction.sub_category?.toLowerCase() === cat.name.toLowerCase()
     );
   };
 
@@ -275,13 +271,9 @@ export const useBudgetMath = () => {
    */
   const matchesIncomeSource = (transaction, incomeSources = []) => {
     return incomeSources.some(source => {
-      // Match by category
-      if (transaction.category) {
-        const categoryName = typeof transaction.category === 'string'
-          ? transaction.category
-          : transaction.category.name;
-
-        if (categoryName?.toLowerCase() === source.name.toLowerCase()) {
+      // Match by sub_category
+      if (transaction.sub_category) {
+        if (transaction.sub_category?.toLowerCase() === source.name.toLowerCase()) {
           return true;
         }
       }

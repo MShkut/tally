@@ -16,25 +16,24 @@ export const ViewTransactions = ({ transactions, categories }) => {
   const filteredTransactions = useMemo(() => {
     let filtered = [...transactions];
 
-    // Filter by type
+    // Filter by type (main_category)
     if (filterType !== 'all') {
-      filtered = filtered.filter(t => {
-        const category = categories.find(c => c.id === t.categoryId);
-        return category?.type === filterType;
-      });
+      filtered = filtered.filter(t =>
+        t.main_category && t.main_category.toLowerCase() === filterType.toLowerCase()
+      );
     }
 
-    // Filter by category
+    // Filter by category (sub_category)
     if (filterCategory !== 'all') {
-      filtered = filtered.filter(t => t.categoryId === filterCategory);
+      filtered = filtered.filter(t => t.sub_category === filterCategory);
     }
 
     // Filter by search query
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(t =>
-        t.description.toLowerCase().includes(query) ||
-        t.merchant?.toLowerCase().includes(query)
+        t.description?.toLowerCase().includes(query) ||
+        t.sub_category?.toLowerCase().includes(query)
       );
     }
 
@@ -57,34 +56,22 @@ export const ViewTransactions = ({ transactions, categories }) => {
     return filtered;
   }, [transactions, filterType, filterCategory, searchQuery, sortBy, categories]);
 
-  // Get category name helper
-  const getCategoryName = (categoryId) => {
-    const category = categories.find(c => c.id === categoryId);
-    return category?.name || 'Unknown';
-  };
-
-  // Get category type helper
-  const getCategoryType = (categoryId) => {
-    const category = categories.find(c => c.id === categoryId);
-    return category?.type || 'Unknown';
-  };
-
   // Calculate summary stats
   const summary = useMemo(() => {
     const totalIncome = filteredTransactions
-      .filter(t => getCategoryType(t.categoryId) === 'Income')
+      .filter(t => t.main_category?.toLowerCase() === 'income')
       .reduce((sum, t) => sum + t.amount, 0);
 
     const totalExpenses = filteredTransactions
-      .filter(t => getCategoryType(t.categoryId) === 'Expense')
+      .filter(t => t.main_category?.toLowerCase() === 'expense')
       .reduce((sum, t) => sum + t.amount, 0);
 
     const totalSavings = filteredTransactions
-      .filter(t => getCategoryType(t.categoryId) === 'Savings')
+      .filter(t => t.main_category?.toLowerCase() === 'savings')
       .reduce((sum, t) => sum + t.amount, 0);
 
     return { totalIncome, totalExpenses, totalSavings, count: filteredTransactions.length };
-  }, [filteredTransactions, categories]);
+  }, [filteredTransactions]);
 
   // Get unique categories for filter
   const availableCategories = useMemo(() => {
