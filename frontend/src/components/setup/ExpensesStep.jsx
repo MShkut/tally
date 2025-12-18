@@ -5,7 +5,6 @@ import { useTheme } from 'contexts/ThemeContext';
 import { ThemeToggle } from 'components/shared/ThemeToggle';
 import { FrequencySelector } from 'components/shared/FrequencySelector';
 import { SmartInput } from 'components/shared/SmartInput';
-import { DatePicker } from 'components/shared/DatePicker';
 import { Currency } from 'utils/currency';
 import {
   FormGrid,
@@ -24,12 +23,10 @@ import {
   saveCustomCategory
 } from 'utils/categorySuggestions';
 import { convertToYearly } from 'utils/incomeHelpers';
-import { getTodayISO } from 'utils/dateUtils';
 
 // Clean expense category component with fixed currency calculations
 export const ExpenseCategory = ({ category, onUpdate, onDelete, availableBudget, suggestions }) => {
   const { isDarkMode } = useTheme();
-  const needsDate = category.frequency === 'One-time' || category.frequency === 'Yearly';
 
   // Calculate monthly equivalent based on frequency using currency system
   const monthlyAmount = category.frequency ?
@@ -59,8 +56,8 @@ export const ExpenseCategory = ({ category, onUpdate, onDelete, availableBudget,
   return (
     <div className="py-8">
       <div className="grid grid-cols-12 gap-8 items-end">
-        {/* Category name: 4 columns (reduced to make room for date) */}
-        <div className={needsDate ? "col-span-4" : "col-span-6"}>
+        {/* Category name: 6 columns */}
+        <div className="col-span-6">
           <SmartInput
             label="Category Name"
             value={category.name}
@@ -71,17 +68,6 @@ export const ExpenseCategory = ({ category, onUpdate, onDelete, availableBudget,
             className="[&_label]:text-2xl [&_label]:font-medium [&_input]:text-2xl [&_input]:font-medium [&_input]:pb-4"
           />
         </div>
-
-        {/* Date picker: 2 columns - only for One-time/Yearly */}
-        {needsDate && (
-          <div className="col-span-2">
-            <DatePicker
-              label="Date"
-              value={category.date || getTodayISO()}
-              onChange={(value) => onUpdate({ ...category, date: value })}
-            />
-          </div>
-        )}
 
         {/* Amount: 3 columns */}
         <div className="col-span-3">
@@ -159,8 +145,7 @@ export const ExpensesStep = ({ onNext, onBack, incomeData, savingsData, savedDat
     addItem({
       name: '',
       amount: '',
-      frequency: 'Monthly', // Default frequency
-      date: null // Will be set when frequency changes to One-time/Yearly
+      frequency: 'Monthly' // Default frequency
     });
   };
 

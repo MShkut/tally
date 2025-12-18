@@ -3,7 +3,6 @@ import { useState, useEffect } from 'react';
 import { ThemeToggle } from 'components/shared/ThemeToggle';
 import { FrequencySelector } from 'components/shared/FrequencySelector';
 import { SmartInput } from 'components/shared/SmartInput';
-import { DatePicker } from 'components/shared/DatePicker';
 import { Currency } from 'utils/currency';
 import {
   FormGrid,
@@ -28,18 +27,15 @@ import {
   loadCategoriesWithCustom,
   saveCustomCategory
 } from 'utils/categorySuggestions';
-import { getTodayISO } from 'utils/dateUtils';
 
 
 // Income Source component using shared utilities
 export const IncomeSource = ({ source, onUpdate, onDelete, incomeSuggestions }) => {
-  const needsDate = source.frequency === 'One-time' || source.frequency === 'Yearly';
-
   return (
     <div className="py-8">
       <div className="grid grid-cols-12 gap-8 items-end">
-        {/* Income source name: 5 columns (reduced to make room for date) */}
-        <div className={needsDate ? "col-span-5" : "col-span-7"}>
+        {/* Income source name: 7 columns */}
+        <div className="col-span-7">
           <SmartInput
             label="Income Source"
             value={source.name}
@@ -50,17 +46,6 @@ export const IncomeSource = ({ source, onUpdate, onDelete, incomeSuggestions }) 
             className="[&_label]:text-2xl [&_label]:font-medium [&_input]:text-2xl [&_input]:font-medium [&_input]:pb-4"
           />
         </div>
-
-        {/* Date picker: 2 columns - only for One-time/Yearly */}
-        {needsDate && (
-          <div className="col-span-2">
-            <DatePicker
-              label="Date"
-              value={source.date || getTodayISO()}
-              onChange={(value) => onUpdate({ ...source, date: value })}
-            />
-          </div>
-        )}
 
         {/* Amount: 2 columns */}
         <div className="col-span-2">
@@ -127,8 +112,7 @@ useEffect(() => {
     addItem({
       name: '',
       amount: '',
-      frequency: 'Monthly',
-      date: null // Will be set when frequency changes to One-time/Yearly
+      frequency: 'Monthly'
     });
   };
 

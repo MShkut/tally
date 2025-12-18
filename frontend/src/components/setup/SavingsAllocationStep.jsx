@@ -38,11 +38,11 @@ export const SavingsGoal = ({ goal, onUpdate, onDelete, savingsSuggestions }) =>
             className="[&_label]:text-2xl [&_label]:font-medium [&_input]:text-2xl [&_input]:font-medium [&_input]:pb-4"
           />
         </div>
-        
-        {/* Monthly amount: 4 columns like income */}
-        <div className="col-span-4">
+
+        {/* Amount: 2 columns - matching income layout */}
+        <div className="col-span-2">
           <StandardInput
-            label="Monthly Amount"
+            label="Amount"
             type="currency"
             value={goal.amount}
             onChange={(value) => onUpdate({ ...goal, amount: value })}
@@ -50,7 +50,16 @@ export const SavingsGoal = ({ goal, onUpdate, onDelete, savingsSuggestions }) =>
             className="[&_label]:text-2xl [&_label]:font-medium [&_input]:text-2xl [&_input]:font-medium [&_input]:pb-4"
           />
         </div>
-        
+
+        {/* Frequency selector: 2 columns - matching income layout */}
+        <div className="col-span-2">
+          <FrequencySelector
+            frequency={goal.frequency || 'Monthly'}
+            onChange={(value) => onUpdate({ ...goal, frequency: value })}
+            allowOneTime={true}
+          />
+        </div>
+
         {/* Remove button: 1 column */}
         <div className="col-span-1">
           <div className="flex items-end h-full pb-4">
@@ -241,8 +250,9 @@ export const SavingsAllocationStep = ({ onNext, onBack, incomeData, savedData = 
 
   const addSavingsGoal = () => {
     addItem({
-      name: '', 
-      amount: ''
+      name: '',
+      amount: '',
+      frequency: 'Monthly'
     });
   };
 

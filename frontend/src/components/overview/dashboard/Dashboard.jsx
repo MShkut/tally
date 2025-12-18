@@ -18,7 +18,6 @@ import { BudgetPerformanceSection } from 'components/overview/dashboard/BudgetPe
 import { DashboardViewSelector, generateAvailableMonths } from 'components/overview/dashboard/DashboardViewSelector';
 import { handleMenuAction } from 'utils/navigationHandler';
 import { useBudgetMath } from 'hooks/useBudgetMath';
-import { shouldDisplayInMonth } from 'utils/dateUtils';
 
 export const Dashboard = ({ onNavigate, onLogout }) => {
   const { isDarkMode } = useTheme();
@@ -447,26 +446,24 @@ function processDashboardData(onboardingData, transactions, viewMode, selectedMo
 function processIncomeBreakdown(onboardingData, filteredTransactions, viewMode, budgetMath, selectedMonth) {
   const incomeSources = onboardingData?.income?.incomeSources || [];
 
-  // For month view, we need to filter out One-time/Yearly sources that don't match the month
-  // For period view, show all sources
+  // For month view: Only show One-time/Yearly if there's a transaction for it
+  // For period view: Show all sources
   let sourcesToDisplay = incomeSources;
 
   if (viewMode === 'month') {
-    // Extract month/year from selectedMonth or use current
-    let targetMonth, targetYear;
-    if (selectedMonth) {
-      const [year, month] = selectedMonth.split('-').map(Number);
-      targetMonth = month - 1; // Convert to 0-indexed
-      targetYear = year;
-    } else {
-      const now = new Date();
-      targetMonth = now.getMonth();
-      targetYear = now.getFullYear();
-    }
+    sourcesToDisplay = incomeSources.filter(source => {
+      // Recurring frequencies (Weekly, Bi-weekly, Monthly) always show
+      if (!['One-time', 'Yearly'].includes(source.frequency)) {
+        return true;
+      }
 
-    sourcesToDisplay = incomeSources.filter(source =>
-      shouldDisplayInMonth(source.date, targetMonth, targetYear, source.frequency)
-    );
+      // One-time/Yearly: Only show if there's a transaction in filteredTransactions
+      const hasTransaction = filteredTransactions.some(t =>
+        budgetMath.matchesIncomeSource(t, [source])
+      );
+
+      return hasTransaction;
+    });
   }
 
   return sourcesToDisplay.map(source => {
@@ -478,10 +475,14 @@ function processIncomeBreakdown(onboardingData, filteredTransactions, viewMode, 
       const periodDuration = onboardingData?.period?.duration_months || 12;
       expectedAmount = budgetMath.calculatePeriodIncome([source], periodDuration);
     } else {
-      // Monthly view - use correct conversion
-      // Pass month/year to calculateMonthlyIncome (it will filter, but we already filtered above)
-      const [year, month] = selectedMonth ? selectedMonth.split('-').map(Number) : [new Date().getFullYear(), new Date().getMonth() + 1];
-      expectedAmount = budgetMath.calculateMonthlyIncome([source], month - 1, year);
+      // Monthly view - for One-time/Yearly, use the full amount since it's in this month
+      if (source.frequency === 'One-time' || source.frequency === 'Yearly') {
+        expectedAmount = parseFloat(source.amount) || 0;
+      } else {
+        // Recurring: convert to monthly
+        const yearlyAmount = Currency.toYearly(source.amount, source.frequency);
+        expectedAmount = Currency.fromYearly(yearlyAmount, 'Monthly');
+      }
     }
 
     // Calculate actual income from transactions using budgetMath
@@ -496,25 +497,24 @@ function processIncomeBreakdown(onboardingData, filteredTransactions, viewMode, 
 }
 
 function processBudgetCategories(filteredTransactions, viewMode, categories, budgetMath, onboardingData, selectedMonth) {
-  // For month view, filter out One-time/Yearly categories that don't match the month
   let categoriesToDisplay = categories.filter(category => category.type === 'expense');
 
+  // For month view: Only show One-time/Yearly if there's a transaction for it
+  // For period view: Show all categories
   if (viewMode === 'month') {
-    // Extract month/year from selectedMonth or use current
-    let targetMonth, targetYear;
-    if (selectedMonth) {
-      const [year, month] = selectedMonth.split('-').map(Number);
-      targetMonth = month - 1; // Convert to 0-indexed
-      targetYear = year;
-    } else {
-      const now = new Date();
-      targetMonth = now.getMonth();
-      targetYear = now.getFullYear();
-    }
+    categoriesToDisplay = categoriesToDisplay.filter(category => {
+      // Recurring frequencies (Weekly, Bi-weekly, Monthly) always show
+      if (!['One-time', 'Yearly'].includes(category.frequency)) {
+        return true;
+      }
 
-    categoriesToDisplay = categoriesToDisplay.filter(category =>
-      shouldDisplayInMonth(category.date, targetMonth, targetYear, category.frequency)
-    );
+      // One-time/Yearly: Only show if there's a transaction in filteredTransactions
+      const hasTransaction = filteredTransactions.some(t =>
+        budgetMath.matchesCategory(t, [category])
+      );
+
+      return hasTransaction;
+    });
   }
 
   return categoriesToDisplay
@@ -544,18 +544,68 @@ function processBudgetCategories(filteredTransactions, viewMode, categories, bud
 function processSavingsGoals(onboardingData, filteredTransactions, viewMode) {
   const goals = onboardingData?.savingsAllocation?.savingsGoals || [];
 
-  return goals.map(goal => {
+  // For month view: Only show One-time/Yearly if there's a transaction for it
+  // For period view: Show all goals
+  let goalsToDisplay = goals;
+
+  if (viewMode === 'month') {
+    goalsToDisplay = goals.filter(goal => {
+      // Recurring frequencies (Weekly, Bi-weekly, Monthly) always show
+      const frequency = goal.frequency || 'Monthly';
+      if (!['One-time', 'Yearly'].includes(frequency)) {
+        return true;
+      }
+
+      // One-time/Yearly: Only show if there's a transaction
+      const hasTransaction = filteredTransactions.some(t => {
+        const categoryMatches = t.category === goal.name ||
+                               t.category === `Savings: ${goal.name}` ||
+                               (typeof t.category === 'object' &&
+                                t.category?.name === goal.name);
+
+        const descriptionMatches = t.description &&
+                                  t.description.toLowerCase().includes(goal.name.toLowerCase());
+
+        return categoryMatches || descriptionMatches;
+      });
+
+      return hasTransaction;
+    });
+  }
+
+  return goalsToDisplay.map(goal => {
     const actualSaved = calculateActualSavingsForGoal(goal.name, filteredTransactions);
 
-    // Adjust target based on view mode
-    let target = parseFloat(goal.amount) || 0; // Monthly target
+    // Adjust target based on view mode and frequency
+    const frequency = goal.frequency || 'Monthly';
+    let target = parseFloat(goal.amount) || 0;
 
     if (viewMode === 'period') {
-      // Use actual period duration instead of hardcoded 12
+      // Period view: Convert frequency to period total
       const periodDuration = onboardingData?.period?.duration_months || 12;
-      target = Currency.multiply(target, periodDuration);
+      if (frequency === 'One-time') {
+        // One-time: Use full amount
+        target = parseFloat(goal.amount) || 0;
+      } else if (frequency === 'Yearly') {
+        // Yearly: Use full amount (already yearly)
+        target = parseFloat(goal.amount) || 0;
+      } else {
+        // Recurring (Weekly, Bi-weekly, Monthly): Convert to monthly then multiply
+        const yearlyAmount = Currency.toYearly(goal.amount, frequency);
+        const monthlyAmount = Currency.fromYearly(yearlyAmount, 'Monthly');
+        target = Currency.multiply(monthlyAmount, periodDuration);
+      }
+    } else {
+      // Month view: Show appropriate monthly amount
+      if (frequency === 'One-time' || frequency === 'Yearly') {
+        // One-time/Yearly in month view: Use full amount (it's in this month)
+        target = parseFloat(goal.amount) || 0;
+      } else {
+        // Recurring: Convert to monthly
+        const yearlyAmount = Currency.toYearly(goal.amount, frequency);
+        target = Currency.fromYearly(yearlyAmount, 'Monthly');
+      }
     }
-    // Month view already has correct monthly amount
 
     return {
       name: goal.name,
