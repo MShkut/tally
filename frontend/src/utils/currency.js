@@ -304,13 +304,13 @@ export const convertToYearly = (amount, frequency) => {
     'Bi-weekly': 26,
     'Monthly': 12,
     'Yearly': 1,
-    'One-time': 0
+    'One-time': 1 // Treat as single occurrence (full amount)
   };
-  
+
   const cents = toCents(amount);
   const multiplier = multipliers[frequency] || 1;
   const yearlyCents = cents * multiplier;
-  
+
   return fromCents(yearlyCents);
 };
 
@@ -326,14 +326,12 @@ export const convertFromYearly = (yearlyAmount, targetFrequency) => {
     'Bi-weekly': 26,
     'Monthly': 12,
     'Yearly': 1,
-    'One-time': 0
+    'One-time': 1 // Treat as single occurrence (full amount)
   };
-  
+
   const yearlyCents = toCents(yearlyAmount);
   const multiplier = multipliers[targetFrequency] || 1;
-  
-  if (multiplier === 0) return 0;
-  
+
   const resultCents = Math.round(yearlyCents / multiplier);
   return fromCents(resultCents);
 };

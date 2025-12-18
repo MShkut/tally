@@ -3,10 +3,11 @@ import { useState, useEffect } from 'react';
 import { ThemeToggle } from 'components/shared/ThemeToggle';
 import { FrequencySelector } from 'components/shared/FrequencySelector';
 import { SmartInput } from 'components/shared/SmartInput';
+import { DatePicker } from 'components/shared/DatePicker';
 import { Currency } from 'utils/currency';
-import { 
-  FormGrid, 
-  FormField, 
+import {
+  FormGrid,
+  FormField,
   StandardInput,
   RemoveButton,
   AddItemButton,
@@ -18,24 +19,27 @@ import {
   validation,
   formatCurrency
 } from 'components/shared/FormComponents';
-import { 
+import {
   convertToYearly,
   calculateTotalYearlyIncome,
   analyzeIncomeDistribution
 } from 'utils/incomeHelpers';
-import { 
-  loadCategoriesWithCustom, 
-  saveCustomCategory 
+import {
+  loadCategoriesWithCustom,
+  saveCustomCategory
 } from 'utils/categorySuggestions';
+import { getTodayISO } from 'utils/dateUtils';
 
 
 // Income Source component using shared utilities
 export const IncomeSource = ({ source, onUpdate, onDelete, incomeSuggestions }) => {
+  const needsDate = source.frequency === 'One-time' || source.frequency === 'Yearly';
+
   return (
     <div className="py-8">
       <div className="grid grid-cols-12 gap-8 items-end">
-        {/* Income source name: 7 columns - generous space */}
-        <div className="col-span-7">
+        {/* Income source name: 5 columns (reduced to make room for date) */}
+        <div className={needsDate ? "col-span-5" : "col-span-7"}>
           <SmartInput
             label="Income Source"
             value={source.name}
@@ -46,7 +50,18 @@ export const IncomeSource = ({ source, onUpdate, onDelete, incomeSuggestions }) 
             className="[&_label]:text-2xl [&_label]:font-medium [&_input]:text-2xl [&_input]:font-medium [&_input]:pb-4"
           />
         </div>
-        
+
+        {/* Date picker: 2 columns - only for One-time/Yearly */}
+        {needsDate && (
+          <div className="col-span-2">
+            <DatePicker
+              label="Date"
+              value={source.date || getTodayISO()}
+              onChange={(value) => onUpdate({ ...source, date: value })}
+            />
+          </div>
+        )}
+
         {/* Amount: 2 columns */}
         <div className="col-span-2">
           <StandardInput
@@ -57,7 +72,7 @@ export const IncomeSource = ({ source, onUpdate, onDelete, incomeSuggestions }) 
             prefix="$"
           />
         </div>
-        
+
         {/* Frequency selector: 2 columns */}
         <div className="col-span-2">
           <FrequencySelector
@@ -66,7 +81,7 @@ export const IncomeSource = ({ source, onUpdate, onDelete, incomeSuggestions }) 
             allowOneTime={true}
           />
         </div>
-        
+
         {/* Remove button: 1 column */}
         <div className="col-span-1">
           <div className="flex items-end h-full pb-4">
@@ -110,9 +125,10 @@ useEffect(() => {
 
   const addIncomeSource = () => {
     addItem({
-      name: '', 
-      amount: '', 
-      frequency: 'Monthly'
+      name: '',
+      amount: '',
+      frequency: 'Monthly',
+      date: null // Will be set when frequency changes to One-time/Yearly
     });
   };
 

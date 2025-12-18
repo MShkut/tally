@@ -5,10 +5,11 @@ import { useTheme } from 'contexts/ThemeContext';
 import { ThemeToggle } from 'components/shared/ThemeToggle';
 import { FrequencySelector } from 'components/shared/FrequencySelector';
 import { SmartInput } from 'components/shared/SmartInput';
+import { DatePicker } from 'components/shared/DatePicker';
 import { Currency } from 'utils/currency';
-import { 
-  FormGrid, 
-  FormField, 
+import {
+  FormGrid,
+  FormField,
   StandardInput,
   AddItemButton,
   FormSection,
@@ -18,46 +19,48 @@ import {
   useItemManager,
   validation
 } from 'components/shared/FormComponents';
-import { 
-  loadCategoriesWithCustom, 
-  saveCustomCategory 
+import {
+  loadCategoriesWithCustom,
+  saveCustomCategory
 } from 'utils/categorySuggestions';
 import { convertToYearly } from 'utils/incomeHelpers';
+import { getTodayISO } from 'utils/dateUtils';
 
 // Clean expense category component with fixed currency calculations
 export const ExpenseCategory = ({ category, onUpdate, onDelete, availableBudget, suggestions }) => {
   const { isDarkMode } = useTheme();
-  
+  const needsDate = category.frequency === 'One-time' || category.frequency === 'Yearly';
+
   // Calculate monthly equivalent based on frequency using currency system
-  const monthlyAmount = category.frequency ? 
-    Currency.fromYearly(Currency.toYearly(category.amount, category.frequency), 'Monthly') : 
+  const monthlyAmount = category.frequency ?
+    Currency.fromYearly(Currency.toYearly(category.amount, category.frequency), 'Monthly') :
     parseFloat(category.amount) || 0;
-  
+
   const isOverBudget = Currency.compare(monthlyAmount, availableBudget) > 0;
-  const overBudgetAmount = isOverBudget ? 
+  const overBudgetAmount = isOverBudget ?
     Currency.subtract(monthlyAmount, availableBudget) : 0;
-  
+
   const handleSuggestionSelect = (suggestion) => {
     // If it's the gifts category, show hint
     if (suggestion.special === 'gift-management') {
       // The hint is already shown in the suggestion dropdown
     }
-    
+
     // Update with suggestion's common frequency if current is default
     if (category.frequency === 'Monthly' && suggestion.commonFrequencies) {
-      onUpdate({ 
-        ...category, 
+      onUpdate({
+        ...category,
         name: suggestion.name,
-        frequency: suggestion.commonFrequencies[0] 
+        frequency: suggestion.commonFrequencies[0]
       });
     }
   };
-  
+
   return (
     <div className="py-8">
       <div className="grid grid-cols-12 gap-8 items-end">
-        {/* Category name: 6 columns */}
-        <div className="col-span-6">
+        {/* Category name: 4 columns (reduced to make room for date) */}
+        <div className={needsDate ? "col-span-4" : "col-span-6"}>
           <SmartInput
             label="Category Name"
             value={category.name}
@@ -68,7 +71,18 @@ export const ExpenseCategory = ({ category, onUpdate, onDelete, availableBudget,
             className="[&_label]:text-2xl [&_label]:font-medium [&_input]:text-2xl [&_input]:font-medium [&_input]:pb-4"
           />
         </div>
-        
+
+        {/* Date picker: 2 columns - only for One-time/Yearly */}
+        {needsDate && (
+          <div className="col-span-2">
+            <DatePicker
+              label="Date"
+              value={category.date || getTodayISO()}
+              onChange={(value) => onUpdate({ ...category, date: value })}
+            />
+          </div>
+        )}
+
         {/* Amount: 3 columns */}
         <div className="col-span-3">
           <StandardInput
@@ -77,13 +91,13 @@ export const ExpenseCategory = ({ category, onUpdate, onDelete, availableBudget,
             value={category.amount}
             onChange={(value) => onUpdate({ ...category, amount: value })}
             prefix="$"
-            error={isOverBudget ? 
+            error={isOverBudget ?
               `Exceeds available budget by ${Currency.format(overBudgetAmount)}` : null
             }
             className="[&_label]:text-2xl [&_label]:font-medium [&_input]:text-2xl [&_input]:font-medium [&_input]:pb-4"
           />
         </div>
-        
+
         {/* Frequency: 2 columns */}
         <div className="col-span-2">
           <FrequencySelector
@@ -92,7 +106,7 @@ export const ExpenseCategory = ({ category, onUpdate, onDelete, availableBudget,
             allowOneTime={true}
           />
         </div>
-        
+
         {/* Remove button: 1 column - matching IncomeSource pattern */}
         <div className="col-span-1">
           <div className="flex items-end h-full pb-4">
@@ -143,9 +157,10 @@ export const ExpensesStep = ({ onNext, onBack, incomeData, savingsData, savedDat
 
   const addExpenseCategory = () => {
     addItem({
-      name: '', 
+      name: '',
       amount: '',
-      frequency: 'Monthly' // Default frequency
+      frequency: 'Monthly', // Default frequency
+      date: null // Will be set when frequency changes to One-time/Yearly
     });
   };
 

@@ -18,6 +18,7 @@ import { BudgetPerformanceSection } from 'components/overview/dashboard/BudgetPe
 import { DashboardViewSelector, generateAvailableMonths } from 'components/overview/dashboard/DashboardViewSelector';
 import { handleMenuAction } from 'utils/navigationHandler';
 import { useBudgetMath } from 'hooks/useBudgetMath';
+import { shouldDisplayInMonth } from 'utils/dateUtils';
 
 export const Dashboard = ({ onNavigate, onLogout }) => {
   const { isDarkMode } = useTheme();
@@ -430,9 +431,9 @@ function processDashboardData(onboardingData, transactions, viewMode, selectedMo
     onboardingData
   );
 
-  const budgetCategories = processBudgetCategories(filteredTransactions, viewMode, categories, budgetMath, onboardingData);
+  const budgetCategories = processBudgetCategories(filteredTransactions, viewMode, categories, budgetMath, onboardingData, selectedMonth);
   const savingsGoals = processSavingsGoals(onboardingData, filteredTransactions, viewMode);
-  const incomeBreakdown = processIncomeBreakdown(onboardingData, filteredTransactions, viewMode, budgetMath);
+  const incomeBreakdown = processIncomeBreakdown(onboardingData, filteredTransactions, viewMode, budgetMath, selectedMonth);
 
   return {
     household,
@@ -443,11 +444,33 @@ function processDashboardData(onboardingData, transactions, viewMode, selectedMo
   };
 }
 
-function processIncomeBreakdown(onboardingData, filteredTransactions, viewMode, budgetMath) {
+function processIncomeBreakdown(onboardingData, filteredTransactions, viewMode, budgetMath, selectedMonth) {
   const incomeSources = onboardingData?.income?.incomeSources || [];
 
-  return incomeSources.map(source => {
-    // Calculate expected income using budgetMath (fixes the 4.33/2.17 bug!)
+  // For month view, we need to filter out One-time/Yearly sources that don't match the month
+  // For period view, show all sources
+  let sourcesToDisplay = incomeSources;
+
+  if (viewMode === 'month') {
+    // Extract month/year from selectedMonth or use current
+    let targetMonth, targetYear;
+    if (selectedMonth) {
+      const [year, month] = selectedMonth.split('-').map(Number);
+      targetMonth = month - 1; // Convert to 0-indexed
+      targetYear = year;
+    } else {
+      const now = new Date();
+      targetMonth = now.getMonth();
+      targetYear = now.getFullYear();
+    }
+
+    sourcesToDisplay = incomeSources.filter(source =>
+      shouldDisplayInMonth(source.date, targetMonth, targetYear, source.frequency)
+    );
+  }
+
+  return sourcesToDisplay.map(source => {
+    // Calculate expected income using budgetMath
     let expectedAmount = 0;
 
     if (viewMode === 'period') {
@@ -456,7 +479,9 @@ function processIncomeBreakdown(onboardingData, filteredTransactions, viewMode, 
       expectedAmount = budgetMath.calculatePeriodIncome([source], periodDuration);
     } else {
       // Monthly view - use correct conversion
-      expectedAmount = budgetMath.calculateMonthlyIncome([source]);
+      // Pass month/year to calculateMonthlyIncome (it will filter, but we already filtered above)
+      const [year, month] = selectedMonth ? selectedMonth.split('-').map(Number) : [new Date().getFullYear(), new Date().getMonth() + 1];
+      expectedAmount = budgetMath.calculateMonthlyIncome([source], month - 1, year);
     }
 
     // Calculate actual income from transactions using budgetMath
@@ -470,9 +495,29 @@ function processIncomeBreakdown(onboardingData, filteredTransactions, viewMode, 
   });
 }
 
-function processBudgetCategories(filteredTransactions, viewMode, categories, budgetMath, onboardingData) {
-  return categories
-    .filter(category => category.type === 'expense')
+function processBudgetCategories(filteredTransactions, viewMode, categories, budgetMath, onboardingData, selectedMonth) {
+  // For month view, filter out One-time/Yearly categories that don't match the month
+  let categoriesToDisplay = categories.filter(category => category.type === 'expense');
+
+  if (viewMode === 'month') {
+    // Extract month/year from selectedMonth or use current
+    let targetMonth, targetYear;
+    if (selectedMonth) {
+      const [year, month] = selectedMonth.split('-').map(Number);
+      targetMonth = month - 1; // Convert to 0-indexed
+      targetYear = year;
+    } else {
+      const now = new Date();
+      targetMonth = now.getMonth();
+      targetYear = now.getFullYear();
+    }
+
+    categoriesToDisplay = categoriesToDisplay.filter(category =>
+      shouldDisplayInMonth(category.date, targetMonth, targetYear, category.frequency)
+    );
+  }
+
+  return categoriesToDisplay
     .map(category => {
       // Calculate spent amount using budgetMath
       const spent = filteredTransactions

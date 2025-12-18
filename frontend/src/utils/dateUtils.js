@@ -176,3 +176,41 @@ export const isInMonth = (dateString, month, year) => {
 
   return ym.year === year && ym.month === month;
 };
+
+/**
+ * Check if a one-time/yearly item should display in given month
+ * Used for date-based filtering of One-time and Yearly frequency items
+ * @param {string} itemDate - Item's date (YYYY-MM-DD)
+ * @param {number} targetMonth - Month to check (0-11, JavaScript month format)
+ * @param {number} targetYear - Year to check
+ * @param {string} frequency - Item frequency (Weekly, Bi-weekly, Monthly, Yearly, One-time)
+ * @returns {boolean} - True if item should display in the target month
+ */
+export const shouldDisplayInMonth = (itemDate, targetMonth, targetYear, frequency) => {
+  // Recurring frequencies (Weekly, Bi-weekly, Monthly) always display
+  if (!['One-time', 'Yearly'].includes(frequency)) {
+    return true;
+  }
+
+  // No date specified = always display (backwards compatibility)
+  if (!itemDate) {
+    return true;
+  }
+
+  const date = parseDate(itemDate);
+  if (!date) {
+    return true; // Invalid date = always display (safe fallback)
+  }
+
+  // One-time: Only display in the exact month and year
+  if (frequency === 'One-time') {
+    return date.getMonth() === targetMonth && date.getFullYear() === targetYear;
+  }
+
+  // Yearly: Display in the same month every year (ignore year)
+  if (frequency === 'Yearly') {
+    return date.getMonth() === targetMonth;
+  }
+
+  return true;
+};

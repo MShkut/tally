@@ -43,25 +43,23 @@ const PerformanceCategory = ({ title, data, type }) => {
   const { isDarkMode } = useTheme();
   
   const getVarianceColor = (variance, actual, planned, type) => {
-    if (Currency.compare(variance, 0) === 0) return isDarkMode ? 'text-gray-400' : 'text-gray-600';
-
     // Calculate percentage of actual vs planned
     const percentage = Currency.compare(planned, 0) > 0 ?
       Currency.multiply(Currency.divide(actual, planned), 100) : 0;
 
     if (type === 'income' || type === 'savings') {
       // Income & Savings: higher is better
-      // Red: < 80%, Yellow: 80-100%, Green: > 100%
+      // Red: < 80%, Yellow: 80-99%, Green: >= 100%
       if (percentage < 80) return 'text-red-500';
       if (percentage < 100) return 'text-yellow-500';
-      return 'text-green-500';
+      return 'text-green-500'; // >= 100% including exactly 100%
     }
 
     if (type === 'expenses') {
       // Expenses: lower is better (opposite)
-      // Green: < 80%, Yellow: 80-100%, Red: > 100%
-      if (percentage < 80) return 'text-green-500';
-      if (percentage < 100) return 'text-yellow-500';
+      // Green: <= 100%, Yellow: 100-120%, Red: > 120%
+      if (percentage <= 100) return 'text-green-500';
+      if (percentage <= 120) return 'text-yellow-500';
       return 'text-red-500';
     }
 

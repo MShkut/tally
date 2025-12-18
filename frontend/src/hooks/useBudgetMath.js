@@ -78,7 +78,7 @@ import {
   checkBudgetBalance,
   calculateAvailableForExpenses
 } from 'utils/budgetCalculations';
-import { parseDate, isInMonth } from 'utils/dateUtils';
+import { parseDate, isInMonth, shouldDisplayInMonth } from 'utils/dateUtils';
 
 export const useBudgetMath = () => {
   // ============================================
@@ -88,11 +88,26 @@ export const useBudgetMath = () => {
   /**
    * Calculate total monthly income from all sources
    * Uses Currency.toYearly + Currency.fromYearly for accuracy
-   * @param {Array} incomeSources - Array of {name, amount, frequency}
+   * Filters One-time/Yearly items based on target month
+   * @param {Array} incomeSources - Array of {name, amount, frequency, date}
+   * @param {number} targetMonth - Month to calculate for (0-11, null = current month)
+   * @param {number} targetYear - Year to calculate for (null = current year)
    * @returns {number} Total monthly income
    */
-  const calculateMonthlyIncome = (incomeSources = []) => {
-    const yearlyTotal = calculateTotalYearlyIncome(incomeSources);
+  const calculateMonthlyIncome = (incomeSources = [], targetMonth = null, targetYear = null) => {
+    // Get current month/year if not provided
+    if (targetMonth === null || targetYear === null) {
+      const now = new Date();
+      targetMonth = targetMonth ?? now.getMonth();
+      targetYear = targetYear ?? now.getFullYear();
+    }
+
+    // Filter sources based on frequency and date
+    const filteredSources = incomeSources.filter(source =>
+      shouldDisplayInMonth(source.date, targetMonth, targetYear, source.frequency)
+    );
+
+    const yearlyTotal = calculateTotalYearlyIncome(filteredSources);
     return Currency.fromYearly(yearlyTotal, 'Monthly');
   };
 
@@ -135,11 +150,27 @@ export const useBudgetMath = () => {
 
   /**
    * Calculate total monthly expenses from all categories
-   * Re-exports from budgetCalculations.js
+   * Filters One-time/Yearly items based on target month
    * @param {Array} expenseCategories - Array of expense category objects
+   * @param {number} targetMonth - Month to calculate for (0-11, null = current month)
+   * @param {number} targetYear - Year to calculate for (null = current year)
    * @returns {number} Total monthly expenses
    */
-  const calculateMonthlyExpenses = calculateTotalMonthlyExpenses;
+  const calculateMonthlyExpenses = (expenseCategories = [], targetMonth = null, targetYear = null) => {
+    // Get current month/year if not provided
+    if (targetMonth === null || targetYear === null) {
+      const now = new Date();
+      targetMonth = targetMonth ?? now.getMonth();
+      targetYear = targetYear ?? now.getFullYear();
+    }
+
+    // Filter categories based on frequency and date
+    const filteredCategories = expenseCategories.filter(category =>
+      shouldDisplayInMonth(category.date, targetMonth, targetYear, category.frequency)
+    );
+
+    return calculateTotalMonthlyExpenses(filteredCategories);
+  };
 
   /**
    * Calculate prorated expenses for elapsed months in period
@@ -174,11 +205,37 @@ export const useBudgetMath = () => {
 
   /**
    * Calculate total monthly savings allocation
-   * Re-exports from budgetCalculations.js
+   * Filters One-time/Yearly goals based on target month
    * @param {Object} savingsAllocation - Savings allocation object
+   * @param {number} targetMonth - Month to calculate for (0-11, null = current month)
+   * @param {number} targetYear - Year to calculate for (null = current year)
    * @returns {number} Total monthly savings
    */
-  const calculateMonthlySavings = calculateTotalMonthlySavings;
+  const calculateMonthlySavings = (savingsAllocation = {}, targetMonth = null, targetYear = null) => {
+    // Get current month/year if not provided
+    if (targetMonth === null || targetYear === null) {
+      const now = new Date();
+      targetMonth = targetMonth ?? now.getMonth();
+      targetYear = targetYear ?? now.getFullYear();
+    }
+
+    // Filter savings goals based on frequency and date (if they have those fields)
+    if (savingsAllocation.savingsGoals) {
+      const filteredGoals = savingsAllocation.savingsGoals.filter(goal =>
+        shouldDisplayInMonth(goal.date, targetMonth, targetYear, goal.frequency || 'Monthly')
+      );
+
+      // Create filtered allocation object
+      const filteredAllocation = {
+        ...savingsAllocation,
+        savingsGoals: filteredGoals
+      };
+
+      return calculateTotalMonthlySavings(filteredAllocation);
+    }
+
+    return calculateTotalMonthlySavings(savingsAllocation);
+  };
 
   /**
    * Calculate prorated savings for elapsed months in period
@@ -395,17 +452,29 @@ export const useBudgetMath = () => {
     );
 
     if (viewMode === 'month') {
+      // Extract target month and year from selectedMonth ("YYYY-M" format)
+      let targetMonth, targetYear;
+      if (selectedMonth) {
+        const [year, month] = selectedMonth.split('-').map(Number);
+        targetMonth = month - 1; // Convert to 0-indexed
+        targetYear = year;
+      } else {
+        const now = new Date();
+        targetMonth = now.getMonth();
+        targetYear = now.getFullYear();
+      }
+
       return {
         income: {
-          planned: calculateMonthlyIncome(onboardingData?.income?.incomeSources),
+          planned: calculateMonthlyIncome(onboardingData?.income?.incomeSources, targetMonth, targetYear),
           actual: calculateActualIncome(filteredTransactions, onboardingData?.income?.incomeSources)
         },
         expenses: {
-          planned: calculateMonthlyExpenses(onboardingData?.expenses?.expenseCategories),
+          planned: calculateMonthlyExpenses(onboardingData?.expenses?.expenseCategories, targetMonth, targetYear),
           actual: calculateActualExpenses(filteredTransactions, categories)
         },
         savings: {
-          planned: calculateMonthlySavings(onboardingData?.savingsAllocation),
+          planned: calculateMonthlySavings(onboardingData?.savingsAllocation, targetMonth, targetYear),
           actual: calculateActualSavings(filteredTransactions, onboardingData?.savingsAllocation)
         }
       };
