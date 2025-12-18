@@ -256,15 +256,22 @@ export const SavingsAllocationStep = ({ onNext, onBack, incomeData, savedData = 
     });
   };
 
-  // Calculate totals
+  // Calculate totals - convert all frequencies to monthly equivalent
   const totalAllocatedSavings = () => {
-    return savingsGoals.reduce((sum, goal) => 
-      Currency.add(sum, goal.amount || 0), 0
-    );
+    return savingsGoals.reduce((sum, goal) => {
+      const amount = parseFloat(goal.amount) || 0;
+      const frequency = goal.frequency || 'Monthly';
+      // Convert to monthly equivalent using Currency utility
+      const monthlyEquivalent = Currency.fromYearly(
+        Currency.toYearly(amount, frequency),
+        'Monthly'
+      );
+      return Currency.add(sum, monthlyEquivalent);
+    }, 0);
   };
 
   const monthlySavingsAmount = parseFloat(monthlySavings) || 0;
-  const remainingAmount = monthlySavingsAmount - totalAllocatedSavings();
+  const remainingAmount = Currency.subtract(monthlySavingsAmount, totalAllocatedSavings());
 
   const handleNext = () => {
     if (onNext) {
