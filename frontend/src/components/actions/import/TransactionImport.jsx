@@ -340,7 +340,8 @@ export const TransactionImport = ({ onNavigate }) => {
               date: formData.date,
               description: formData.description.trim(),
               amount: parseFloat(formData.amount),
-              category: selectedCategory,
+              main_category: selectedCategory.type?.toLowerCase() || 'expense',
+              sub_category: selectedCategory.name || 'Uncategorized',
               confirmed: true,
               isManualEntry: true
             });
@@ -372,10 +373,17 @@ export const TransactionImport = ({ onNavigate }) => {
   };
 
   const handleTransactionsSave = (finalTransactions) => {
-    // Filter out ignored transactions - they should not be saved
-    const transactionsToSave = finalTransactions.filter(t =>
-      !t.category || t.category.id !== 'system-ignore'
-    );
+    // Filter out ignored transactions and convert to new field format
+    const transactionsToSave = finalTransactions
+      .filter(t => !t.category || t.category.id !== 'system-ignore')
+      .map(t => ({
+        ...t,
+        // Convert category object to new field format
+        main_category: t.category?.type?.toLowerCase() || 'expense',
+        sub_category: t.category?.name || 'Uncategorized',
+        // Remove the category object (not needed in database)
+        category: undefined
+      }));
 
     // Save transactions using hook
     saveNewTransactions(transactionsToSave);

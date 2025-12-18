@@ -192,9 +192,7 @@ export const calculateBudgetPerformance = (budgetData, transactions = [], timefr
   // Savings calculation would depend on categorization
   // This is a simplified version
   performance.savings.actual = transactions
-    .filter(t => t.category && 
-      (t.category.type === 'savings' || 
-       (typeof t.category === 'string' && t.category.toLowerCase().includes('savings'))))
+    .filter(t => t.main_category && t.main_category.toLowerCase() === 'savings')
     .reduce((sum, t) => Currency.add(sum, Currency.abs(t.amount)), 0);
   
   return performance;

@@ -296,8 +296,7 @@ export const useTransactions = () => {
       const searchLower = filters.search.toLowerCase();
       filtered = filtered.filter(txn =>
         txn.description?.toLowerCase().includes(searchLower) ||
-        txn.category?.toLowerCase().includes(searchLower) ||
-        txn.merchant?.toLowerCase().includes(searchLower)
+        txn.sub_category?.toLowerCase().includes(searchLower)
       );
     }
 
