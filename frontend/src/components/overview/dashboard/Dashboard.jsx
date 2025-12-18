@@ -498,16 +498,20 @@ function processBudgetCategories(filteredTransactions, viewMode, categories, bud
 
 function processSavingsGoals(onboardingData, filteredTransactions, viewMode) {
   const goals = onboardingData?.savingsAllocation?.savingsGoals || [];
-  
+
   return goals.map(goal => {
     const actualSaved = calculateActualSavingsForGoal(goal.name, filteredTransactions);
-    
+
     // Adjust target based on view mode
-    let target = (parseFloat(goal.amount) || 0) * 12; // Annual target
-    if (viewMode === 'month') {
-      target = parseFloat(goal.amount) || 0; // Monthly target
+    let target = parseFloat(goal.amount) || 0; // Monthly target
+
+    if (viewMode === 'period') {
+      // Use actual period duration instead of hardcoded 12
+      const periodDuration = onboardingData?.period?.duration_months || 12;
+      target = Currency.multiply(target, periodDuration);
     }
-    
+    // Month view already has correct monthly amount
+
     return {
       name: goal.name,
       current: actualSaved,
