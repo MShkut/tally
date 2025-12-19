@@ -76,6 +76,10 @@ function AppContent() {
     const performLogout = () => {
       console.log('[APP] Browser closing - logging out');
       try {
+        // Security: Clear session flag immediately (most important)
+        sessionStorage.removeItem('tally_session_active');
+        console.log('[APP] Session flag cleared');
+
         // Use navigator.sendBeacon for reliable request on page unload
         // This works even as the page is unloading, unlike fetch()
         const logoutUrl = `${window.location.origin}/api/auth/logout`;

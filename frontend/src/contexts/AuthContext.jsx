@@ -18,6 +18,16 @@ export function AuthProvider({ children }) {
     try {
       console.log('[AUTH] Checking authentication status...');
 
+      // Security: Check if session flag exists (clears on browser close)
+      const sessionActive = sessionStorage.getItem('tally_session_active');
+      if (!sessionActive) {
+        console.log('[AUTH] No active session (browser was closed or session expired)');
+        setIsRegistered(true); // Still registered, just need to re-authenticate
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+
       // Check if any user is registered
       const registered = await apiService.checkRegistrationStatus();
       console.log('[AUTH] Registration status:', registered);
@@ -34,14 +44,17 @@ export function AuthProvider({ children }) {
           // Not logged in, that's okay
           console.log('[AUTH] Not logged in (expected):', error.message);
           setUser(null);
+          // Clear session flag if auth failed
+          sessionStorage.removeItem('tally_session_active');
         }
       }
     } catch (error) {
       console.error('[AUTH] Auth check failed:', error);
-      console.error('[AUTH] Error stack:', error.stack);
+      console.error('[AUTH] Error stack:', error);
       // Set safe defaults on error
       setIsRegistered(false);
       setUser(null);
+      sessionStorage.removeItem('tally_session_active');
     } finally {
       console.log('[AUTH] Auth check complete, loading=false');
       setLoading(false);
@@ -52,6 +65,10 @@ export function AuthProvider({ children }) {
     const user = await apiService.register(householdName, password);
     setUser(user);
     setIsRegistered(true);
+
+    // Security: Set session flag (clears on browser close)
+    sessionStorage.setItem('tally_session_active', 'true');
+    console.log('[AUTH] Session flag set');
 
     // If initialData provided, save it immediately after registration
     if (initialData) {
@@ -74,6 +91,10 @@ export function AuthProvider({ children }) {
     const user = await apiService.login(password);
     setUser(user);
 
+    // Security: Set session flag (clears on browser close)
+    sessionStorage.setItem('tally_session_active', 'true');
+    console.log('[AUTH] Session flag set');
+
     // Prefetch dashboard data in background for instant dashboard load
     prefetchDashboardData();
 
@@ -95,6 +116,9 @@ export function AuthProvider({ children }) {
   const logout = async () => {
     await apiService.logout();
     setUser(null);
+    // Security: Clear session flag
+    sessionStorage.removeItem('tally_session_active');
+    console.log('[AUTH] Session flag cleared');
     // Clear API cache on logout for security
     apiService.clearCache();
   };
