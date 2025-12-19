@@ -23,6 +23,8 @@ import { handleMenuAction } from 'utils/navigationHandler';
 
 import { ReviewTransactions } from './ReviewTransactions';
 import { EnhancedCSVUpload } from './EnhancedCSVUpload';
+import { findDuplicates, removeDuplicates } from 'utils/duplicateDetection';
+import { DuplicateWarningModal } from 'components/shared/DuplicateWarningModal';
 
 const ManualTransactionForm = ({ categories, formData, onUpdate, onAdd, showAddButton = true }) => {
   const { isDarkMode } = useTheme();
@@ -200,9 +202,14 @@ export const TransactionImport = ({ onNavigate }) => {
     type: '',
     categoryId: ''
   }]);
-  
+
   // Success feedback for manual entries
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+
+  // Duplicate detection state
+  const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+  const [duplicates, setDuplicates] = useState([]);
+  const [pendingTransactions, setPendingTransactions] = useState([]);
 
   const handleStepChange = (step, data = null) => {
     setUploadStep(step);
@@ -328,7 +335,7 @@ export const TransactionImport = ({ onNavigate }) => {
   const handleImportManualTransactions = () => {
     // Validate and convert manual transaction forms to transactions
     const validTransactions = [];
-    
+
     for (const formData of manualTransactions) {
       if (formData.description.trim() && formData.amount) {
         const validation = Currency.validate(formData.amount);
@@ -349,27 +356,43 @@ export const TransactionImport = ({ onNavigate }) => {
         }
       }
     }
-    
-    if (validTransactions.length > 0) {
-      // Save transactions using hook
-      saveNewTransactions(validTransactions);
 
-      // Show success notification and return to upload page
-      setShowSuccessMessage(true);
-      setTimeout(() => {
-        setShowSuccessMessage(false);
-        setActiveView('upload');
-        // Reset manual transactions
-        setManualTransactions([{
-          id: Date.now(),
-          date: new Date().toISOString().split('T')[0],
-          description: '',
-          amount: '',
-          type: '',
-          categoryId: ''
-        }]);
-      }, 2000);
+    if (validTransactions.length > 0) {
+      // Check for duplicates before saving
+      const existingTransactions = getAllTransactions();
+      const foundDuplicates = findDuplicates(validTransactions, existingTransactions);
+
+      if (foundDuplicates.length > 0) {
+        // Show duplicate modal
+        setDuplicates(foundDuplicates);
+        setPendingTransactions(validTransactions);
+        setShowDuplicateModal(true);
+      } else {
+        // No duplicates, save directly
+        proceedWithManualImport(validTransactions);
+      }
     }
+  };
+
+  const proceedWithManualImport = (transactionsToSave) => {
+    // Save transactions using hook
+    saveNewTransactions(transactionsToSave);
+
+    // Show success notification and return to upload page
+    setShowSuccessMessage(true);
+    setTimeout(() => {
+      setShowSuccessMessage(false);
+      setActiveView('upload');
+      // Reset manual transactions
+      setManualTransactions([{
+        id: Date.now(),
+        date: new Date().toISOString().split('T')[0],
+        description: '',
+        amount: '',
+        type: '',
+        categoryId: ''
+      }]);
+    }, 2000);
   };
 
   const handleTransactionsSave = (finalTransactions) => {
@@ -385,6 +408,22 @@ export const TransactionImport = ({ onNavigate }) => {
         category: undefined
       }));
 
+    // Check for duplicates before saving
+    const existingTransactions = getAllTransactions();
+    const foundDuplicates = findDuplicates(transactionsToSave, existingTransactions);
+
+    if (foundDuplicates.length > 0) {
+      // Show duplicate modal
+      setDuplicates(foundDuplicates);
+      setPendingTransactions(transactionsToSave);
+      setShowDuplicateModal(true);
+    } else {
+      // No duplicates, save directly
+      proceedWithCSVImport(transactionsToSave);
+    }
+  };
+
+  const proceedWithCSVImport = (transactionsToSave) => {
     // Save transactions using hook
     saveNewTransactions(transactionsToSave);
 
@@ -399,6 +438,45 @@ export const TransactionImport = ({ onNavigate }) => {
     setTimeout(() => {
       onNavigate('dashboard');
     }, 0);
+  };
+
+  // Handle duplicate modal actions
+  const handleSkipDuplicates = () => {
+    // Remove duplicates from pending transactions
+    const nonDuplicates = removeDuplicates(pendingTransactions, duplicates);
+
+    // Check if we're in CSV or manual import flow
+    if (activeView === 'manual') {
+      proceedWithManualImport(nonDuplicates);
+    } else {
+      proceedWithCSVImport(nonDuplicates);
+    }
+
+    // Close modal
+    setShowDuplicateModal(false);
+    setDuplicates([]);
+    setPendingTransactions([]);
+  };
+
+  const handleImportAnyway = () => {
+    // Import all pending transactions including duplicates
+    if (activeView === 'manual') {
+      proceedWithManualImport(pendingTransactions);
+    } else {
+      proceedWithCSVImport(pendingTransactions);
+    }
+
+    // Close modal
+    setShowDuplicateModal(false);
+    setDuplicates([]);
+    setPendingTransactions([]);
+  };
+
+  const handleCancelDuplicateModal = () => {
+    // Just close the modal, don't import anything
+    setShowDuplicateModal(false);
+    setDuplicates([]);
+    setPendingTransactions([]);
   };
 
   return (
@@ -657,6 +735,15 @@ export const TransactionImport = ({ onNavigate }) => {
         )}
 
       </div>
+
+      {/* Duplicate Warning Modal */}
+      <DuplicateWarningModal
+        isOpen={showDuplicateModal}
+        duplicates={duplicates}
+        onSkipDuplicates={handleSkipDuplicates}
+        onImportAnyway={handleImportAnyway}
+        onCancel={handleCancelDuplicateModal}
+      />
     </div>
   );
 };
