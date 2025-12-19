@@ -3,27 +3,24 @@ import { useState, useEffect } from 'react';
 
 import { apiService } from 'utils/apiService';
 
-import { WelcomeStep } from './WelcomeStep';
 import { IncomeStep } from './IncomeStep';
 import { SavingsAllocationStep } from './SavingsAllocationStep';
 import { ExpensesStep } from './ExpensesStep';
 
 const STEPS = {
-  WELCOME: 'welcome',
   INCOME: 'income',
   SAVINGS: 'savings',
   EXPENSES: 'expenses'
 };
 
 const STEP_ORDER = [
-  STEPS.WELCOME,
   STEPS.INCOME,
   STEPS.SAVINGS,
   STEPS.EXPENSES
 ];
 
 export const OnboardingFlow = ({ onComplete }) => {
-  const [currentStep, setCurrentStep] = useState(STEPS.WELCOME);
+  const [currentStep, setCurrentStep] = useState(STEPS.INCOME);
   const [onboardingData, setOnboardingData] = useState({
     household: null,
     period: null,
@@ -45,9 +42,8 @@ export const OnboardingFlow = ({ onComplete }) => {
             setCurrentStep(STEPS.EXPENSES);
           } else if (userData.savingsAllocation) {
             setCurrentStep(STEPS.SAVINGS);
-          } else if (userData.income) {
-            setCurrentStep(STEPS.INCOME);
-          } else if (userData.household && userData.period) {
+          } else {
+            // Default to income step (household and period data already set during registration)
             setCurrentStep(STEPS.INCOME);
           }
         }
@@ -65,26 +61,9 @@ export const OnboardingFlow = ({ onComplete }) => {
   };
 
   const handleStepNext = async (stepData) => {
-
     // Determine which section this step data belongs to
     let sectionKey;
     switch (currentStep) {
-      case STEPS.WELCOME:
-        // Welcome step returns { household, period }
-        const updatedWelcomeData = {
-          ...onboardingData,
-          household: stepData.household,
-          period: stepData.period
-        };
-        setOnboardingData(updatedWelcomeData);
-        try {
-          await apiService.saveUserData(updatedWelcomeData);
-        } catch (error) {
-          console.error('Failed to save welcome data:', error);
-          // Continue anyway - will retry on next save
-        }
-        break;
-
       case STEPS.INCOME:
         sectionKey = 'income';
         break;
@@ -98,7 +77,7 @@ export const OnboardingFlow = ({ onComplete }) => {
         break;
     }
 
-    // For non-welcome steps, update the specific section
+    // Update the specific section
     if (sectionKey) {
       const updatedData = {
         ...onboardingData,
@@ -120,10 +99,7 @@ export const OnboardingFlow = ({ onComplete }) => {
       setCurrentStep(nextStep);
     } else {
       // Complete onboarding
-      await handleOnboardingComplete(currentStep === STEPS.WELCOME ?
-        { ...onboardingData, household: stepData.household, period: stepData.period } :
-        { ...onboardingData, [sectionKey]: stepData }
-      );
+      await handleOnboardingComplete({ ...onboardingData, [sectionKey]: stepData });
     }
   };
 
@@ -164,20 +140,17 @@ export const OnboardingFlow = ({ onComplete }) => {
     };
 
     switch (currentStep) {
-      case STEPS.WELCOME:
-        return <WelcomeStep {...commonProps} />;
-        
       case STEPS.INCOME:
         return <IncomeStep {...commonProps} />;
-        
+
       case STEPS.SAVINGS:
         return (
-          <SavingsAllocationStep 
+          <SavingsAllocationStep
             {...commonProps}
             incomeData={onboardingData.income}
           />
         );
-        
+
       case STEPS.EXPENSES:
         return (
           <ExpensesStep
@@ -190,7 +163,7 @@ export const OnboardingFlow = ({ onComplete }) => {
 
       default:
         console.error('❌ Unknown step:', currentStep);
-        return <WelcomeStep {...commonProps} />;
+        return <IncomeStep {...commonProps} />;
     }
   };
 

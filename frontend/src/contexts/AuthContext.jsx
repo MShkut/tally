@@ -48,10 +48,21 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const register = async (householdName, password) => {
+  const register = async (householdName, password, initialData = null) => {
     const user = await apiService.register(householdName, password);
     setUser(user);
     setIsRegistered(true);
+
+    // If initialData provided, save it immediately after registration
+    if (initialData) {
+      try {
+        await apiService.saveUserData(initialData);
+        console.log('[AUTH] Initial data saved successfully');
+      } catch (error) {
+        console.error('[AUTH] Failed to save initial data:', error);
+        // Don't fail registration if data save fails - user can retry
+      }
+    }
 
     // Prefetch dashboard data in background
     prefetchDashboardData();

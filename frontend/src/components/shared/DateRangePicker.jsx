@@ -219,9 +219,9 @@ export const DateRangePicker = ({
             
             {/* Start Calendar Popup */}
             {showStartCalendar && (
-              <div className={`absolute bottom-full left-0 mb-2 p-4 border rounded-lg z-50 ${
-                isDarkMode 
-                  ? 'bg-black border-gray-800 shadow-2xl shadow-black/50' 
+              <div className={`absolute top-full left-0 mt-2 p-4 border rounded-lg z-50 ${
+                isDarkMode
+                  ? 'bg-black border-gray-800 shadow-2xl shadow-black/50'
                   : 'bg-white border-gray-200 shadow-xl shadow-gray-500/25'
               }`}>
                 {/* Month Navigation */}
@@ -282,9 +282,9 @@ export const DateRangePicker = ({
             
             {/* End Calendar Popup */}
             {showEndCalendar && (
-              <div className={`absolute bottom-full left-0 mb-2 p-4 border rounded-lg z-50 ${
-                isDarkMode 
-                  ? 'bg-black border-gray-800 shadow-2xl shadow-black/50' 
+              <div className={`absolute top-full left-0 mt-2 p-4 border rounded-lg z-50 ${
+                isDarkMode
+                  ? 'bg-black border-gray-800 shadow-2xl shadow-black/50'
                   : 'bg-white border-gray-200 shadow-xl shadow-gray-500/25'
               }`}>
                 {/* Month Navigation */}
