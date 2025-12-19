@@ -18,35 +18,40 @@ export function AuthProvider({ children }) {
     try {
       console.log('[AUTH] Checking authentication status...');
 
-      // Security: Check if session flag exists (clears on browser close)
+      // Check if any user is registered in the database
+      const registered = await apiService.checkRegistrationStatus();
+      console.log('[AUTH] Registration status:', registered);
+      setIsRegistered(registered);
+
+      // If no user exists, show registration screen
+      if (!registered) {
+        console.log('[AUTH] No user registered, showing registration screen');
+        setUser(null);
+        sessionStorage.removeItem('tally_session_active');
+        setLoading(false);
+        return;
+      }
+
+      // User exists - check if they have an active session
       const sessionActive = sessionStorage.getItem('tally_session_active');
       if (!sessionActive) {
-        console.log('[AUTH] No active session (browser was closed or session expired)');
-        setIsRegistered(true); // Still registered, just need to re-authenticate
+        console.log('[AUTH] User registered but no active session - showing login screen');
         setUser(null);
         setLoading(false);
         return;
       }
 
-      // Check if any user is registered
-      const registered = await apiService.checkRegistrationStatus();
-      console.log('[AUTH] Registration status:', registered);
-      setIsRegistered(registered);
-
-      if (registered) {
-        // Try to get current user (will fail if not logged in)
-        try {
-          console.log('[AUTH] Attempting to get current user...');
-          const currentUser = await apiService.getCurrentUser();
-          console.log('[AUTH] Current user:', currentUser);
-          setUser(currentUser);
-        } catch (error) {
-          // Not logged in, that's okay
-          console.log('[AUTH] Not logged in (expected):', error.message);
-          setUser(null);
-          // Clear session flag if auth failed
-          sessionStorage.removeItem('tally_session_active');
-        }
+      // Session exists - try to get current user
+      try {
+        console.log('[AUTH] Attempting to get current user...');
+        const currentUser = await apiService.getCurrentUser();
+        console.log('[AUTH] Current user:', currentUser);
+        setUser(currentUser);
+      } catch (error) {
+        // Session invalid or expired
+        console.log('[AUTH] Session invalid:', error.message);
+        setUser(null);
+        sessionStorage.removeItem('tally_session_active');
       }
     } catch (error) {
       console.error('[AUTH] Auth check failed:', error);
