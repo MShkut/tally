@@ -34,8 +34,15 @@ export const OnboardingFlow = ({ onComplete }) => {
     const loadExistingData = async () => {
       try {
         const userData = await apiService.loadUserData();
+        console.log('[ONBOARDING FLOW] Loaded user data:', userData);
+
         if (userData && !userData.onboardingComplete) {
           setOnboardingData(userData);
+
+          // Verify household data is present
+          if (!userData.household) {
+            console.error('[ONBOARDING FLOW] Missing household data in loaded userData');
+          }
 
           // Determine which step to start on based on completed data
           if (userData.expenses) {
@@ -83,6 +90,7 @@ export const OnboardingFlow = ({ onComplete }) => {
         ...onboardingData,
         [sectionKey]: stepData
       };
+      console.log(`[ONBOARDING FLOW] Saving ${sectionKey} data:`, updatedData);
       setOnboardingData(updatedData);
       try {
         await apiService.saveUserData(updatedData);
@@ -99,6 +107,9 @@ export const OnboardingFlow = ({ onComplete }) => {
       setCurrentStep(nextStep);
     } else {
       // Complete onboarding
+      console.log('[ONBOARDING FLOW] Final step complete, calling handleOnboardingComplete');
+      console.log('[ONBOARDING FLOW] Current onboardingData:', onboardingData);
+      console.log('[ONBOARDING FLOW] Final stepData:', stepData);
       await handleOnboardingComplete({ ...onboardingData, [sectionKey]: stepData });
     }
   };
@@ -112,6 +123,17 @@ export const OnboardingFlow = ({ onComplete }) => {
   };
 
   const handleOnboardingComplete = async (finalData) => {
+    console.log('[ONBOARDING FLOW] Completing onboarding with data:', finalData);
+
+    // Verify household data is present before completing
+    if (!finalData.household || !finalData.household.id) {
+      console.error('[ONBOARDING FLOW] ERROR: Missing household data at completion!', finalData);
+      console.error('[ONBOARDING FLOW] Current onboardingData state:', onboardingData);
+      // TODO: Show error to user instead of silently failing
+      alert('Error: Missing household data. Please refresh and try again.');
+      return;
+    }
+
     const completedData = {
       ...finalData,
       onboardingComplete: true,
@@ -122,12 +144,14 @@ export const OnboardingFlow = ({ onComplete }) => {
     try {
       await apiService.saveUserData(completedData);
 
+      console.log('[ONBOARDING FLOW] Calling onComplete callback with:', completedData);
       if (onComplete) {
         onComplete(completedData);
       }
     } catch (error) {
       console.error('Failed to complete onboarding:', error);
       // TODO: Show error to user
+      alert('Error saving onboarding data. Please try again.');
     }
   };
 

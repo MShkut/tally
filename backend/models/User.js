@@ -158,6 +158,21 @@ class User {
     const result = queryOne('SELECT COUNT(*) as count FROM users');
     return result.count > 0;
   }
+
+  /**
+   * Delete a user account
+   *
+   * Permanently removes a user from the system. This is used during
+   * "reset all data" operation to completely remove the account.
+   *
+   * @param {number} userId - User ID to delete
+   * @returns {boolean} Always returns true on success
+   * @throws {Error} If database delete fails
+   */
+  static delete(userId) {
+    execute('DELETE FROM users WHERE id = ?', [userId]);
+    return true;
+  }
 }
 
 module.exports = User;

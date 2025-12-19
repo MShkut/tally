@@ -25,6 +25,8 @@ export const useTransactions = () => {
   const loadTransactions = useCallback(async () => {
     try {
       const data = await apiService.loadTransactions();
+      console.log('[useTransactions] Loaded transactions:', data);
+      console.log('[useTransactions] Transaction count:', data?.length || 0);
       setTransactions(data);
       return data;
     } catch (err) {
