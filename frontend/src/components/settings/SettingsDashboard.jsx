@@ -7,21 +7,19 @@ import { ThemeToggle } from 'components/shared/ThemeToggle';
 import { BurgerMenu } from 'components/shared/BurgerMenu';
 import { handleMenuAction } from 'utils/navigationHandler';
 
-import { PreferencesTab } from './PreferencesTab';
 import { DataManagementTab } from './DataManagementTab';
 import { AccountTab } from './AccountTab';
 
 const TABS = {
-  PREFERENCES: 'preferences',
-  DATA: 'data',
-  ACCOUNT: 'account'
+  ACCOUNT: 'account',
+  DATA: 'data'
 };
 
 export const SettingsDashboard = ({ onNavigate, onLogout }) => {
   const { isDarkMode } = useTheme();
   const { household } = useParams();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState(TABS.PREFERENCES);
+  const [activeTab, setActiveTab] = useState(TABS.ACCOUNT);
 
   // Handle menu state changes to prevent layout shift
   useEffect(() => {
@@ -98,9 +96,9 @@ export const SettingsDashboard = ({ onNavigate, onLogout }) => {
             isDarkMode ? 'border-gray-800' : 'border-gray-200'
           }`}>
             <button
-              onClick={() => setActiveTab(TABS.PREFERENCES)}
+              onClick={() => setActiveTab(TABS.ACCOUNT)}
               className={`pb-4 px-2 font-light transition-colors duration-200 relative ${
-                activeTab === TABS.PREFERENCES
+                activeTab === TABS.ACCOUNT
                   ? isDarkMode
                     ? 'text-white'
                     : 'text-black'
@@ -109,8 +107,8 @@ export const SettingsDashboard = ({ onNavigate, onLogout }) => {
                     : 'text-gray-400 hover:text-gray-600'
               }`}
             >
-              Preferences
-              {activeTab === TABS.PREFERENCES && (
+              Account
+              {activeTab === TABS.ACCOUNT && (
                 <div className={`absolute bottom-0 left-0 right-0 h-0.5 ${
                   isDarkMode ? 'bg-white' : 'bg-black'
                 }`} />
@@ -136,33 +134,12 @@ export const SettingsDashboard = ({ onNavigate, onLogout }) => {
                 }`} />
               )}
             </button>
-
-            <button
-              onClick={() => setActiveTab(TABS.ACCOUNT)}
-              className={`pb-4 px-2 font-light transition-colors duration-200 relative ${
-                activeTab === TABS.ACCOUNT
-                  ? isDarkMode
-                    ? 'text-white'
-                    : 'text-black'
-                  : isDarkMode
-                    ? 'text-gray-500 hover:text-gray-300'
-                    : 'text-gray-400 hover:text-gray-600'
-              }`}
-            >
-              Account
-              {activeTab === TABS.ACCOUNT && (
-                <div className={`absolute bottom-0 left-0 right-0 h-0.5 ${
-                  isDarkMode ? 'bg-white' : 'bg-black'
-                }`} />
-              )}
-            </button>
           </div>
 
           {/* Tab Content */}
           <div>
-            {activeTab === TABS.PREFERENCES && <PreferencesTab />}
-            {activeTab === TABS.DATA && <DataManagementTab onNavigate={onNavigate} />}
             {activeTab === TABS.ACCOUNT && <AccountTab />}
+            {activeTab === TABS.DATA && <DataManagementTab onNavigate={onNavigate} />}
           </div>
         </div>
       </div>

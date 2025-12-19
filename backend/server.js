@@ -930,21 +930,22 @@ app.post('/api/data/import', authenticateToken, async (req, res) => {
 
 /**
  * POST /api/data/reset
- * Reset all user data (DESTRUCTIVE OPERATION)
+ * Reset all user data AND delete account (DESTRUCTIVE OPERATION)
  *
- * Permanently deletes ALL user data:
+ * Permanently deletes ALL user data AND user account:
  * - Household configuration
  * - All transactions
  * - All settings
  * - All category mappings
+ * - User account itself
  *
  * This operation cannot be undone. Users should export data before reset.
- * The user account itself is NOT deleted, only the associated data.
+ * After reset, user must re-register to use the application.
  *
  * @route POST /api/data/reset
  * @access Private (requires authentication)
  *
- * @returns {Object} success: true, data: { message: string }
+ * @returns {Object} success: true, data: { message: string, accountDeleted: true }
  *
  * @throws {500} If data deletion fails
  */
@@ -958,8 +959,21 @@ app.post('/api/data/reset', authenticateToken, async (req, res) => {
     CategoryMapping.deleteAll(req.userId);
     GiftData.delete(req.userId);
 
-    console.log('[RESET] ✅ All data reset for user', req.userId);
-    res.json({ success: true, data: { message: 'All data reset successfully' } });
+    // Delete the user account itself
+    User.delete(req.userId);
+
+    console.log('[RESET] ✅ All data AND user account deleted for user', req.userId);
+
+    // Clear authentication cookie
+    res.clearCookie('token');
+
+    res.json({
+      success: true,
+      data: {
+        message: 'All data and account deleted successfully',
+        accountDeleted: true
+      }
+    });
   } catch (error) {
     console.error('[RESET] Error:', error);
     res.status(500).json({ success: false, error: error.message });

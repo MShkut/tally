@@ -139,11 +139,24 @@ export const DataManagementTab = ({ onNavigate }) => {
 
   const handleReset = async () => {
     try {
-      await apiService.resetAllData();
-      setStatusMessage('✓ All data reset successfully');
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
+      const result = await apiService.resetAllData();
+
+      // Check if account was deleted (new behavior)
+      if (result?.data?.accountDeleted) {
+        setStatusMessage('✓ All data and account deleted');
+        // Clear session storage to ensure logout
+        sessionStorage.removeItem('tally_session_active');
+        setTimeout(() => {
+          // Redirect to root - will show RegisterScreen
+          window.location.href = '/';
+        }, 1000);
+      } else {
+        // Old behavior: just reload
+        setStatusMessage('✓ All data reset successfully');
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      }
     } catch (error) {
       console.error('❌ Failed to reset data:', error);
       setStatusMessage('Failed to reset data. Please try again.');
