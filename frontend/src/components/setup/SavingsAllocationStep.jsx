@@ -128,7 +128,7 @@ export const SavingsRateSection = ({ savingsRate, monthlySavings, onSavingsRateC
 };
 
 
-export const SavingsAllocationStep = ({ onNext, onBack, incomeData, savedData = null }) => {
+export const SavingsAllocationStep = ({ onNext, onBack, incomeData, savedData = null, nextLabel = 'Continue', backLabel = 'Back' }) => {
   const { isDarkMode } = useTheme();
   const [savingsSuggestions, setSavingsSuggestions] = useState([]);
 
@@ -294,8 +294,8 @@ export const SavingsAllocationStep = ({ onNext, onBack, incomeData, savedData = 
         subtitle="How much of your income do you want to save? Then allocate those savings to specific goals like emergency fund, vacation, down payment, etc."
         onNext={handleNext}
         onBack={onBack}
-        nextLabel="Continue"
-        backLabel="Back"
+        nextLabel={nextLabel}
+        backLabel={backLabel}
         isValid={monthlySavingsAmount > 0}
       >
         {/* Savings Rate Section */}

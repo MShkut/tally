@@ -84,7 +84,7 @@ export const IncomeSource = ({ source, onUpdate, onDelete, incomeSuggestions }) 
   );
 };
 
-export const IncomeStep = ({ onNext, onBack, savedData }) => {
+export const IncomeStep = ({ onNext, onBack, savedData, nextLabel = 'Continue', backLabel = 'Back' }) => {
   // Use professional item manager for income sources
     // Load income suggestions
 const [incomeSuggestions, setIncomeSuggestions] = useState([]);
@@ -163,7 +163,8 @@ useEffect(() => {
         onBack={onBack}
         onNext={handleNext}
         canGoNext={canContinue}
-        nextLabel="Continue"
+        nextLabel={nextLabel}
+        backLabel={backLabel}
         showBack={true}
       >
         

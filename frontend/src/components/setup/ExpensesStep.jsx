@@ -110,7 +110,7 @@ export const ExpenseCategory = ({ category, onUpdate, onDelete, availableBudget,
   );
 };
 
-export const ExpensesStep = ({ onNext, onBack, incomeData, savingsData, savedData = null }) => {
+export const ExpensesStep = ({ onNext, onBack, incomeData, savingsData, savedData = null, nextLabel = 'Continue', backLabel = 'Back' }) => {
   const { isDarkMode } = useTheme();
   const { 
     items: expenseCategories, 
@@ -195,6 +195,8 @@ export const ExpensesStep = ({ onNext, onBack, incomeData, savingsData, savedDat
         onBack={onBack}
         onNext={handleNext}
         canGoNext={canContinue}
+        nextLabel={nextLabel}
+        backLabel={backLabel}
         showBack={true}
       >
         {/* Expense Categories Section */}
