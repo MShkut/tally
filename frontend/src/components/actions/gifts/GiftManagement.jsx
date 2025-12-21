@@ -34,6 +34,7 @@ export const GiftManagement = ({ onNavigate }) => {
   const [selectedGift, setSelectedGift] = useState(null);
   const [onboardingData, setOnboardingData] = useState(null);
   const [viewingPersonDetails, setViewingPersonDetails] = useState(null);
+  const [giftAssignments, setGiftAssignments] = useState({});
 
   // Use gifts hook for data management
   const {
@@ -241,7 +242,6 @@ export const GiftManagement = ({ onNavigate }) => {
 
   if (view === 'assign-gifts') {
     const unassignedGifts = getUnassignedGifts();
-    const [giftAssignments, setGiftAssignments] = useState({});
 
     const handlePersonChange = (giftId, personId) => {
       setGiftAssignments(prev => ({
@@ -277,6 +277,7 @@ export const GiftManagement = ({ onNavigate }) => {
         });
 
       await Promise.all(assignmentPromises);
+      setGiftAssignments({}); // Clear assignments after save
       setView('overview');
       setActiveTab('gift-assignment');
     };
@@ -289,7 +290,10 @@ export const GiftManagement = ({ onNavigate }) => {
         <StandardFormLayout
           title="Assign Gifts"
           subtitle="Assign purchased gifts to people and occasions"
-          onBack={() => setView('overview')}
+          onBack={() => {
+            setGiftAssignments({}); // Clear assignments on back
+            setView('overview');
+          }}
           backLabel="Back to Overview"
         >
           {unassignedGifts.length === 0 ? (
