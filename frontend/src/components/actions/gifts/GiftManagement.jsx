@@ -1,5 +1,5 @@
 // frontend/src/components/gifts/GiftManagement.jsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 import { useTheme } from 'contexts/ThemeContext';
 import { useGifts } from 'hooks/useGifts';
@@ -51,6 +51,53 @@ export const GiftManagement = ({ onNavigate }) => {
     addGiftFromExpense
   } = useGifts();
 
+  const handleMenuActionWrapper = (actionId) => {
+    handleMenuAction(actionId, onNavigate, () => setMenuOpen(false));
+  };
+
+  // Auto-sync gift transactions (silent background process)
+  const syncGiftTransactions = useCallback(async () => {
+    try {
+      // Load expenses categorized as "Gifts" using the transactions API
+      const response = await apiService.loadTransactions({
+        category: 'Gifts',
+        limit: 10000 // Get all gift transactions
+      });
+
+      const giftExpenses = response || [];
+
+      if (giftExpenses.length === 0) {
+        return; // Silently return if no gift transactions
+      }
+
+      console.log(`[GiftManagement] Syncing ${giftExpenses.length} gift transactions...`);
+
+      // Track import results
+      let imported = 0;
+
+      // Add unassigned gifts from expenses
+      for (const expense of giftExpenses) {
+        const result = await addGiftFromExpense({
+          expenseId: expense.id,
+          description: expense.description || 'Gift Purchase',
+          cost: Math.abs(expense.amount), // Use absolute value for gifts
+          purchasedAt: expense.date
+        });
+
+        if (result.success) {
+          imported++;
+        }
+      }
+
+      if (imported > 0) {
+        console.log(`[GiftManagement] Auto-imported ${imported} new gift${imported > 1 ? 's' : ''}`);
+      }
+    } catch (error) {
+      console.error('[GiftManagement] Error syncing gift transactions:', error);
+      // Silent failure - user can manually refresh if needed
+    }
+  }, [addGiftFromExpense]);
+
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -64,89 +111,16 @@ export const GiftManagement = ({ onNavigate }) => {
           cat => cat.name.toLowerCase() === 'gifts'
         );
         setGiftBudget(parseFloat(giftCategory?.amount) || 0);
+
+        // Auto-sync gift transactions on page load
+        await syncGiftTransactions();
       } catch (error) {
         console.error('[GiftManagement] Error loading data:', error);
       }
     };
 
     loadData();
-  }, []);
-
-  const handleMenuActionWrapper = (actionId) => {
-    handleMenuAction(actionId, onNavigate, () => setMenuOpen(false));
-  };
-
-
-  const handleImportGiftsFromExpenses = async () => {
-    try {
-      // Load expenses categorized as "Gifts" using the transactions API
-      const response = await apiService.loadTransactions({
-        category: 'Gifts',
-        limit: 10000 // Get all gift transactions
-      });
-
-      // Debug logging
-      console.log('[GiftManagement] API response:', response);
-
-      // Response is already the transactions array (apiService returns data.data)
-      const giftExpenses = response || [];
-
-      console.log('[GiftManagement] Found gift expenses:', giftExpenses);
-
-      if (giftExpenses.length === 0) {
-        alert('No expenses found with "Gifts" category. Please categorize some expenses as gifts first.');
-        return;
-      }
-
-      // Track import results
-      let imported = 0;
-      let skipped = 0;
-      let failed = 0;
-
-      // Add unassigned gifts from expenses
-      for (const expense of giftExpenses) {
-        const result = await addGiftFromExpense({
-          expenseId: expense.id,
-          description: expense.description || 'Gift Purchase',
-          cost: expense.amount,
-          purchasedAt: expense.date
-        });
-
-        if (result.success) {
-          imported++;
-        } else if (result.skipped) {
-          skipped++;
-        } else {
-          failed++;
-        }
-      }
-
-      // Show feedback
-      let message = '';
-      if (imported > 0) {
-        message += `✓ Imported ${imported} new gift${imported > 1 ? 's' : ''}`;
-      }
-      if (skipped > 0) {
-        message += `${message ? '\n' : ''}⊘ Skipped ${skipped} duplicate${skipped > 1 ? 's' : ''}`;
-      }
-      if (failed > 0) {
-        message += `${message ? '\n' : ''}✗ Failed to import ${failed} gift${failed > 1 ? 's' : ''}`;
-      }
-
-      if (message) {
-        alert(message);
-      }
-
-      // Only go to assign view if there are unassigned gifts
-      if (imported > 0 || getUnassignedGifts().length > 0) {
-        setView('assign-gifts');
-        setActiveTab('gift-assignment'); // Switch to gift assignment tab
-      }
-    } catch (error) {
-      console.error('[GiftManagement] Error importing gifts from expenses:', error);
-      alert('Failed to import gifts. Please try again.');
-    }
-  };
+  }, [syncGiftTransactions]);
 
   const handleAssignGift = (gift) => {
     setSelectedGift(gift);
@@ -508,7 +482,7 @@ export const GiftManagement = ({ onNavigate }) => {
                   description="Add people to your gift list before assigning gifts"
                 />
               </FormSection>
-            ) : (
+            ) : getUnassignedGifts().length > 0 ? (
               <FormSection title="Gift Assignments">
                 <div className={`
                   text-center py-12 border-2 border-dashed
@@ -517,42 +491,50 @@ export const GiftManagement = ({ onNavigate }) => {
                   <h3 className={`text-xl font-light mb-4 ${
                     isDarkMode ? 'text-white' : 'text-black'
                   }`}>
-                    Assign Gifts to People
+                    {getUnassignedGifts().length} Gift{getUnassignedGifts().length !== 1 ? 's' : ''} Ready to Assign
                   </h3>
                   <p className={`text-base font-light mb-8 ${
                     isDarkMode ? 'text-gray-400' : 'text-gray-600'
                   }`}>
-                    Import your gift expenses and assign them to recipients and occasions
+                    Assign your gift purchases to recipients and occasions
                   </p>
-                  <div className="flex gap-4 justify-center">
-                    <button
-                      onClick={handleImportGiftsFromExpenses}
-                      className={`
-                        text-lg font-light border-b-2 pb-2 transition-all
-                        ${isDarkMode
-                          ? 'text-white border-white hover:border-gray-400'
-                          : 'text-black border-black hover:border-gray-600'
-                        }
-                      `}
-                    >
-                      Import Gifts from Expenses
-                    </button>
-                    {getUnassignedGifts().length > 0 && (
-                      <button
-                        onClick={() => setView('assign-gifts')}
-                        className={`
-                          text-lg font-light border-b border-transparent hover:border-current pb-1
-                          ${isDarkMode
-                            ? 'text-gray-400 hover:text-white'
-                            : 'text-gray-600 hover:text-black'
-                          }
-                        `}
-                      >
-                        View Unassigned Gifts ({getUnassignedGifts().length})
-                      </button>
-                    )}
-                  </div>
+                  <button
+                    onClick={() => setView('assign-gifts')}
+                    className={`
+                      px-8 py-3 border-2 font-light transition-all
+                      ${isDarkMode
+                        ? 'border-white text-white hover:bg-white hover:text-black'
+                        : 'border-black text-black hover:bg-black hover:text-white'
+                      }
+                    `}
+                  >
+                    Assign Gifts
+                  </button>
                 </div>
+              </FormSection>
+            ) : gifts.length > 0 ? (
+              <FormSection>
+                <div className={`
+                  text-center py-12
+                `}>
+                  <h3 className={`text-xl font-light mb-4 ${
+                    isDarkMode ? 'text-white' : 'text-black'
+                  }`}>
+                    All Gifts Assigned
+                  </h3>
+                  <p className={`text-base font-light ${
+                    isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                  }`}>
+                    All your gift purchases have been assigned to recipients
+                  </p>
+                </div>
+              </FormSection>
+            ) : (
+              <FormSection>
+                <EmptyState
+                  title="No Gift Transactions Yet"
+                  description="Categorize some transactions as 'Gifts' to start tracking gift purchases"
+                />
               </FormSection>
             )}
           </>
@@ -590,62 +572,121 @@ export const GiftManagement = ({ onNavigate }) => {
                 {/* List of existing contacts */}
                 {people.length > 0 && (
                   <FormSection title={`${people.length} Contact${people.length !== 1 ? 's' : ''}`}>
-                    <div className="space-y-4">
-                      {people.map(person => (
-                        <div
-                          key={person.id}
-                          className={`
-                            p-6 border transition-all
-                            ${isDarkMode
-                              ? 'border-gray-800 hover:border-gray-600'
-                              : 'border-gray-200 hover:border-gray-400'
-                            }
-                          `}
-                        >
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <div className={`text-lg font-light ${isDarkMode ? 'text-white' : 'text-black'}`}>
-                                {person.name}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {people.map(person => {
+                        const totalBudget = Object.values(person.budgets || {}).reduce(
+                          (sum, amount) => sum + (parseFloat(amount) || 0), 0
+                        );
+                        const spent = calculateSpentForPerson(person.id);
+                        const remaining = totalBudget - spent;
+                        const occasionCount = (person.applicableHolidays || []).length;
+
+                        return (
+                          <div
+                            key={person.id}
+                            className={`
+                              p-6 border transition-all group
+                              ${isDarkMode
+                                ? 'border-gray-800 hover:border-gray-600'
+                                : 'border-gray-200 hover:border-gray-400'
+                              }
+                            `}
+                          >
+                            {/* Header with actions */}
+                            <div className="flex justify-between items-start mb-4">
+                              <div className="flex-1">
+                                <h3 className={`text-xl font-light ${isDarkMode ? 'text-white' : 'text-black'}`}>
+                                  {person.name}
+                                </h3>
+                                {person.relationship && (
+                                  <p className={`text-sm font-light mt-1 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                                    {person.relationship}
+                                  </p>
+                                )}
                               </div>
-                              {person.relationship && (
-                                <div className={`text-sm font-light mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                                  {person.relationship}
+                              <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button
+                                  onClick={() => handleEditPerson(person)}
+                                  className={`
+                                    p-2 rounded transition-colors
+                                    ${isDarkMode
+                                      ? 'hover:bg-gray-800 text-gray-400 hover:text-white'
+                                      : 'hover:bg-gray-100 text-gray-600 hover:text-black'
+                                    }
+                                  `}
+                                  title="Edit contact"
+                                >
+                                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                  </svg>
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    if (window.confirm(`Remove ${person.name} from your gift list?`)) {
+                                      handleDeletePerson(person.id);
+                                    }
+                                  }}
+                                  className={`
+                                    p-2 rounded transition-colors
+                                    ${isDarkMode
+                                      ? 'hover:bg-red-900/20 text-gray-400 hover:text-red-400'
+                                      : 'hover:bg-red-50 text-gray-600 hover:text-red-600'
+                                    }
+                                  `}
+                                  title="Remove contact"
+                                >
+                                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Budget Summary */}
+                            {totalBudget > 0 && (
+                              <div className={`py-3 border-t ${isDarkMode ? 'border-gray-800' : 'border-gray-200'}`}>
+                                <div className="grid grid-cols-3 gap-4">
+                                  <div>
+                                    <div className={`text-xs font-light mb-1 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                                      Budget
+                                    </div>
+                                    <div className={`text-base font-light ${isDarkMode ? 'text-white' : 'text-black'}`}>
+                                      {Currency.format(totalBudget, { showCents: false })}
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <div className={`text-xs font-light mb-1 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                                      Spent
+                                    </div>
+                                    <div className={`text-base font-light ${isDarkMode ? 'text-white' : 'text-black'}`}>
+                                      {Currency.format(spent, { showCents: false })}
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <div className={`text-xs font-light mb-1 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                                      Remaining
+                                    </div>
+                                    <div className={`text-base font-light ${
+                                      remaining < 0
+                                        ? isDarkMode ? 'text-red-400' : 'text-red-600'
+                                        : isDarkMode ? 'text-green-400' : 'text-green-600'
+                                    }`}>
+                                      {Currency.format(Math.abs(remaining), { showCents: false })}
+                                    </div>
+                                  </div>
                                 </div>
-                              )}
-                            </div>
-                            <div className="flex gap-3">
-                              <button
-                                onClick={() => handleEditPerson(person)}
-                                className={`
-                                  text-sm font-light transition-colors
-                                  ${isDarkMode
-                                    ? 'text-gray-500 hover:text-gray-300'
-                                    : 'text-gray-400 hover:text-gray-600'
-                                  }
-                                `}
-                              >
-                                Edit
-                              </button>
-                              <button
-                                onClick={() => {
-                                  if (window.confirm(`Remove ${person.name} from your gift list?`)) {
-                                    handleDeletePerson(person.id);
-                                  }
-                                }}
-                                className={`
-                                  text-sm font-light transition-colors
-                                  ${isDarkMode
-                                    ? 'text-gray-500 hover:text-red-400'
-                                    : 'text-gray-400 hover:text-red-600'
-                                  }
-                                `}
-                              >
-                                Remove
-                              </button>
-                            </div>
+                              </div>
+                            )}
+
+                            {/* Occasions Count */}
+                            {occasionCount > 0 && (
+                              <div className={`mt-3 text-sm font-light ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                                {occasionCount} gift occasion{occasionCount !== 1 ? 's' : ''}
+                              </div>
+                            )}
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </FormSection>
                 )}
