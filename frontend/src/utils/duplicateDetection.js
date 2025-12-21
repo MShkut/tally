@@ -78,6 +78,53 @@ export const findDuplicates = (newTransactions, existingTransactions, dayRange =
 };
 
 /**
+ * Find duplicate transactions within the same batch (internal duplicates)
+ *
+ * Checks for duplicates among transactions being imported together.
+ * Useful for catching when the same transaction is added multiple times
+ * in a single import operation.
+ *
+ * @param {Array} transactions - Transactions to check for internal duplicates
+ * @param {number} dayRange - Number of days (±) to check for date match (default: 3)
+ * @returns {Array} Array of duplicate matches with details
+ */
+export const findDuplicatesInBatch = (transactions, dayRange = 3) => {
+  const duplicates = [];
+  const seen = new Set();
+
+  for (let i = 0; i < transactions.length; i++) {
+    for (let j = i + 1; j < transactions.length; j++) {
+      const txn1 = transactions[i];
+      const txn2 = transactions[j];
+
+      // Skip if we've already marked this pair
+      const pairKey = `${i}-${j}`;
+      if (seen.has(pairKey)) continue;
+
+      // Check all three criteria
+      const dateMatches = datesWithinRange(txn1.date, txn2.date, dayRange);
+      const amountMatches = amountsMatch(txn1.amount, txn2.amount);
+      const subcatMatches = subcategoriesMatch(txn1.sub_category, txn2.sub_category);
+
+      if (dateMatches && amountMatches && subcatMatches) {
+        duplicates.push({
+          newTransaction: txn2, // Mark the second one as the duplicate
+          existingTransaction: txn1, // First one is considered "existing"
+          matchReasons: {
+            date: true,
+            amount: true,
+            subcategory: true
+          }
+        });
+        seen.add(pairKey);
+      }
+    }
+  }
+
+  return duplicates;
+};
+
+/**
  * Remove duplicate transactions from a list
  * @param {Array} newTransactions - Transactions to be imported
  * @param {Array} duplicates - Array of duplicate matches from findDuplicates()

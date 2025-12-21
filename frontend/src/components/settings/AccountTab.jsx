@@ -10,6 +10,8 @@ export const AccountTab = () => {
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
   const [householdName, setHouseholdName] = useState('');
+  const [isEditingHousehold, setIsEditingHousehold] = useState(false);
+  const [editedHouseholdName, setEditedHouseholdName] = useState('');
 
   // Load household name
   useEffect(() => {
@@ -31,6 +33,45 @@ export const AccountTab = () => {
     setTimeout(() => setStatusMessage(''), 3000);
   };
 
+  const handleEditHousehold = () => {
+    setEditedHouseholdName(householdName);
+    setIsEditingHousehold(true);
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditingHousehold(false);
+    setEditedHouseholdName('');
+  };
+
+  const handleSaveHousehold = async () => {
+    try {
+      // Load current user data
+      const userData = await apiService.loadUserData();
+
+      // Update household name
+      const updatedData = {
+        ...userData,
+        household: {
+          ...userData.household,
+          name: editedHouseholdName
+        }
+      };
+
+      // Save to backend
+      await apiService.saveUserData(updatedData);
+
+      // Update local state
+      setHouseholdName(editedHouseholdName);
+      setIsEditingHousehold(false);
+      setStatusMessage('✓ Household name updated successfully');
+      setTimeout(() => setStatusMessage(''), 3000);
+    } catch (error) {
+      console.error('[AccountTab] Failed to update household name:', error);
+      setStatusMessage('✗ Failed to update household name');
+      setTimeout(() => setStatusMessage(''), 3000);
+    }
+  };
+
   return (
     <>
       <div className="space-y-12 max-w-2xl">
@@ -44,9 +85,61 @@ export const AccountTab = () => {
               Your household name
             </p>
           </div>
-          <div className={`text-xl font-medium ${isDarkMode ? 'text-white' : 'text-black'}`}>
-            {householdName || 'Loading...'}
-          </div>
+
+          {!isEditingHousehold ? (
+            <>
+              <div className={`text-xl font-medium ${isDarkMode ? 'text-white' : 'text-black'}`}>
+                {householdName || 'Loading...'}
+              </div>
+              <button
+                onClick={handleEditHousehold}
+                className={`px-6 py-3 border-2 font-light transition-all ${
+                  isDarkMode
+                    ? 'border-white text-white hover:bg-white hover:text-black'
+                    : 'border-black text-black hover:bg-black hover:text-white'
+                }`}
+              >
+                Change Household Name
+              </button>
+            </>
+          ) : (
+            <div className="space-y-4">
+              <input
+                type="text"
+                value={editedHouseholdName}
+                onChange={(e) => setEditedHouseholdName(e.target.value)}
+                className={`w-full px-4 py-3 border-2 font-light transition-colors ${
+                  isDarkMode
+                    ? 'bg-black border-gray-700 text-white focus:border-white'
+                    : 'bg-white border-gray-300 text-black focus:border-black'
+                } outline-none`}
+                placeholder="Enter household name"
+              />
+              <div className="flex gap-4">
+                <button
+                  onClick={handleSaveHousehold}
+                  disabled={!editedHouseholdName.trim()}
+                  className={`px-6 py-3 border-2 font-light transition-all ${
+                    isDarkMode
+                      ? 'border-white text-white hover:bg-white hover:text-black disabled:border-gray-700 disabled:text-gray-700 disabled:hover:bg-transparent'
+                      : 'border-black text-black hover:bg-black hover:text-white disabled:border-gray-300 disabled:text-gray-300 disabled:hover:bg-transparent'
+                  }`}
+                >
+                  Save
+                </button>
+                <button
+                  onClick={handleCancelEdit}
+                  className={`px-6 py-3 border-2 font-light transition-all ${
+                    isDarkMode
+                      ? 'border-gray-700 text-gray-400 hover:bg-gray-900'
+                      : 'border-gray-300 text-gray-600 hover:bg-gray-100'
+                  }`}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Change Password */}

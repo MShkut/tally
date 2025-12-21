@@ -23,7 +23,7 @@ import { handleMenuAction } from 'utils/navigationHandler';
 
 import { ReviewTransactions } from './ReviewTransactions';
 import { EnhancedCSVUpload } from './EnhancedCSVUpload';
-import { findDuplicates, removeDuplicates } from 'utils/duplicateDetection';
+import { findDuplicates, findDuplicatesInBatch, removeDuplicates } from 'utils/duplicateDetection';
 import { DuplicateWarningModal } from 'components/shared/DuplicateWarningModal';
 
 const ManualTransactionForm = ({ categories, formData, onUpdate, onAdd, showAddButton = true }) => {
@@ -204,7 +204,7 @@ export const TransactionImport = ({ onNavigate }) => {
   }]);
 
   // Success feedback for manual entries
-  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  const [importResult, setImportResult] = useState({ imported: 0, skipped: 0, show: false });
 
   // Duplicate detection state
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
@@ -360,11 +360,19 @@ export const TransactionImport = ({ onNavigate }) => {
     if (validTransactions.length > 0) {
       // Check for duplicates before saving
       const existingTransactions = getAllTransactions();
-      const foundDuplicates = findDuplicates(validTransactions, existingTransactions);
 
-      if (foundDuplicates.length > 0) {
+      // Check against existing transactions in database
+      const duplicatesVsExisting = findDuplicates(validTransactions, existingTransactions);
+
+      // Check for duplicates within the new batch itself
+      const duplicatesInBatch = findDuplicatesInBatch(validTransactions);
+
+      // Combine both sets of duplicates
+      const allDuplicates = [...duplicatesVsExisting, ...duplicatesInBatch];
+
+      if (allDuplicates.length > 0) {
         // Show duplicate modal
-        setDuplicates(foundDuplicates);
+        setDuplicates(allDuplicates);
         setPendingTransactions(validTransactions);
         setShowDuplicateModal(true);
       } else {
@@ -374,14 +382,19 @@ export const TransactionImport = ({ onNavigate }) => {
     }
   };
 
-  const proceedWithManualImport = (transactionsToSave) => {
+  const proceedWithManualImport = (transactionsToSave, skippedCount = 0) => {
     // Save transactions using hook
     saveNewTransactions(transactionsToSave);
 
-    // Show success notification and return to upload page
-    setShowSuccessMessage(true);
+    // Show success notification with counts
+    setImportResult({
+      imported: transactionsToSave.length,
+      skipped: skippedCount,
+      show: true
+    });
+
     setTimeout(() => {
-      setShowSuccessMessage(false);
+      setImportResult({ imported: 0, skipped: 0, show: false });
       setActiveView('upload');
       // Reset manual transactions
       setManualTransactions([{
@@ -392,7 +405,7 @@ export const TransactionImport = ({ onNavigate }) => {
         type: '',
         categoryId: ''
       }]);
-    }, 2000);
+    }, 3000);
   };
 
   const handleTransactionsSave = (finalTransactions) => {
@@ -410,11 +423,19 @@ export const TransactionImport = ({ onNavigate }) => {
 
     // Check for duplicates before saving
     const existingTransactions = getAllTransactions();
-    const foundDuplicates = findDuplicates(transactionsToSave, existingTransactions);
 
-    if (foundDuplicates.length > 0) {
+    // Check against existing transactions in database
+    const duplicatesVsExisting = findDuplicates(transactionsToSave, existingTransactions);
+
+    // Check for duplicates within the new batch itself
+    const duplicatesInBatch = findDuplicatesInBatch(transactionsToSave);
+
+    // Combine both sets of duplicates
+    const allDuplicates = [...duplicatesVsExisting, ...duplicatesInBatch];
+
+    if (allDuplicates.length > 0) {
       // Show duplicate modal
-      setDuplicates(foundDuplicates);
+      setDuplicates(allDuplicates);
       setPendingTransactions(transactionsToSave);
       setShowDuplicateModal(true);
     } else {
@@ -423,33 +444,42 @@ export const TransactionImport = ({ onNavigate }) => {
     }
   };
 
-  const proceedWithCSVImport = (transactionsToSave) => {
+  const proceedWithCSVImport = (transactionsToSave, skippedCount = 0) => {
     // Save transactions using hook
     saveNewTransactions(transactionsToSave);
 
+    // Show success notification with counts
+    setImportResult({
+      imported: transactionsToSave.length,
+      skipped: skippedCount,
+      show: true
+    });
+
     // Reset all import state to clean slate
     setTransactions([]);
-    setActiveView('upload');
     setUploadStep('upload');
     setMappingData(null);
     setIsProcessing(false);
 
-    // Use setTimeout to ensure state updates before navigation
+    // Navigate after showing message briefly
     setTimeout(() => {
+      setImportResult({ imported: 0, skipped: 0, show: false });
+      setActiveView('upload');
       onNavigate('dashboard');
-    }, 0);
+    }, 3000);
   };
 
   // Handle duplicate modal actions
   const handleSkipDuplicates = () => {
     // Remove duplicates from pending transactions
     const nonDuplicates = removeDuplicates(pendingTransactions, duplicates);
+    const skippedCount = duplicates.length;
 
     // Check if we're in CSV or manual import flow
     if (activeView === 'manual') {
-      proceedWithManualImport(nonDuplicates);
+      proceedWithManualImport(nonDuplicates, skippedCount);
     } else {
-      proceedWithCSVImport(nonDuplicates);
+      proceedWithCSVImport(nonDuplicates, skippedCount);
     }
 
     // Close modal
@@ -605,27 +635,7 @@ export const TransactionImport = ({ onNavigate }) => {
                 </div>
               ))}
             </div>
-            
-            {/* Success message - floating notification style */}
-            {showSuccessMessage && (
-              <div className="fixed top-8 right-8 z-50">
-                <div className={`p-4 rounded-lg border-2 shadow-lg ${
-                  isDarkMode 
-                    ? 'bg-green-900 border-green-700 text-green-300' 
-                    : 'bg-green-50 border-green-200 text-green-700'
-                }`}>
-                  <div className="flex items-center">
-                    <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    <span className="font-light">
-                      {manualTransactions.filter(t => t.description && t.amount).length} transaction{manualTransactions.filter(t => t.description && t.amount).length !== 1 ? 's' : ''} imported successfully!
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
-            
+
             {/* Navigation buttons for manual entry */}
             <div className="flex justify-between items-center mt-16">
               <button
@@ -744,6 +754,47 @@ export const TransactionImport = ({ onNavigate }) => {
         onImportAnyway={handleImportAnyway}
         onCancel={handleCancelDuplicateModal}
       />
+
+      {/* Import result messages - floating notification style */}
+      {importResult.show && (
+        <div className="fixed top-8 right-8 z-50 space-y-2">
+          {/* Imported count - green */}
+          {importResult.imported > 0 && (
+            <div className={`p-4 rounded-lg border-2 shadow-lg ${
+              isDarkMode
+                ? 'bg-green-900 border-green-700 text-green-300'
+                : 'bg-green-50 border-green-200 text-green-700'
+            }`}>
+              <div className="flex items-center">
+                <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                <span className="font-light">
+                  {importResult.imported} transaction{importResult.imported !== 1 ? 's' : ''} imported successfully
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Skipped count - yellow */}
+          {importResult.skipped > 0 && (
+            <div className={`p-4 rounded-lg border-2 shadow-lg ${
+              isDarkMode
+                ? 'bg-yellow-900 border-yellow-700 text-yellow-300'
+                : 'bg-yellow-50 border-yellow-200 text-yellow-700'
+            }`}>
+              <div className="flex items-center">
+                <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+                <span className="font-light">
+                  {importResult.skipped} duplicate{importResult.skipped !== 1 ? 's' : ''} skipped
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };

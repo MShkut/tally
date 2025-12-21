@@ -46,16 +46,13 @@ export const ChangePasswordModal = ({ isOpen, onClose, onSuccess }) => {
     setChanging(true);
 
     try {
-      const result = await apiService.changePassword(currentPassword, newPassword);
-      if (result.success) {
-        alert('✓ Password changed successfully! You will need to login again.');
-        onSuccess?.();
-        onClose();
-        // Logout after password change
-        window.location.reload();
-      } else {
-        setError(result.error || 'Failed to change password');
-      }
+      await apiService.changePassword(currentPassword, newPassword);
+      // If we get here without error, password change succeeded
+      alert('✓ Password changed successfully! You will need to login again.');
+      onSuccess?.();
+      onClose();
+      // Logout after password change
+      window.location.reload();
     } catch (err) {
       console.error('[PASSWORD] Change password error:', err);
       setError(err.message || 'Failed to change password. Please try again.');
