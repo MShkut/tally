@@ -117,15 +117,9 @@ const PerformanceCategory = ({ title, data, type }) => {
         <div className={`w-full h-1 relative mb-2 ${
           isDarkMode ? 'bg-gray-800' : 'bg-gray-200'
         }`}>
-          <div 
+          <div
             className={`absolute top-0 left-0 h-full transition-all duration-300 ${
-              percentage >= 100 
-                ? type === 'expenses' 
-                  ? 'bg-red-500'    // Over budget on expenses = bad
-                  : 'bg-green-500'  // Over target on income/savings = good
-                : percentage >= 90 
-                  ? isDarkMode ? 'bg-gray-400' : 'bg-gray-600'
-                  : 'bg-yellow-500'
+              isDarkMode ? 'bg-gray-400' : 'bg-gray-600'
             }`}
             style={{ width: `${Math.min(percentage, 100)}%` }}
           />

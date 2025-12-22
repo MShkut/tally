@@ -599,10 +599,11 @@ const TransactionRow = React.memo(({
     // Backend expects main_category and sub_category
     const selectedCategory = categories.find(c => c.name === editData.categoryName);
     onSave({
+      ...transaction,  // Preserve all original transaction fields (id, originalData, etc.)
       date: editData.date,
       description: editData.description,
       amount: parseFloat(editData.amount),
-      main_category: selectedCategory?.type?.toLowerCase() || 'expense',
+      main_category: selectedCategory?.type?.toLowerCase() || transaction.main_category,
       sub_category: editData.categoryName
     });
   };
@@ -670,12 +671,13 @@ const TransactionRow = React.memo(({
                 : 'bg-white border-gray-300 text-black'
             }`}
           >
-            <option value="">Select category</option>
-            {categories.map(cat => (
-              <option key={cat.id} value={cat.name}>
-                {cat.name} ({cat.type})
-              </option>
-            ))}
+            {categories
+              .filter(cat => cat.type?.toLowerCase() === transaction.main_category?.toLowerCase())
+              .map(cat => (
+                <option key={cat.id} value={cat.name}>
+                  {cat.name}
+                </option>
+              ))}
           </select>
         </div>
         <div className="col-span-1 flex gap-2">
