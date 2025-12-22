@@ -218,7 +218,18 @@ export const useGifts = () => {
    */
   const addGiftFromExpense = useCallback(async (gift) => {
     try {
-      const gifts = giftData?.gifts || [];
+      // CRITICAL: Ensure giftData is loaded before adding gifts
+      // This prevents accidentally deleting people when spreading null giftData
+      if (!giftData) {
+        console.warn('[useGifts] addGiftFromExpense called before data loaded, skipping');
+        return {
+          success: false,
+          skipped: true,
+          message: 'Gift data not loaded yet'
+        };
+      }
+
+      const gifts = giftData.gifts || [];
 
       // Check if gift already exists by expenseId
       const existingGift = gifts.find(g => g.expenseId === gift.expenseId);
@@ -254,7 +265,7 @@ export const useGifts = () => {
         message: 'Gift imported successfully'
       };
     } catch (err) {
-      console.error('Error adding gift:', err);
+      console.error('[useGifts] Error adding gift:', err);
       setError(`Failed to add gift: ${err.message}`);
       return {
         success: false,

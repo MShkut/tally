@@ -113,16 +113,22 @@ export const GiftManagement = ({ onNavigate }) => {
           cat => cat.name.toLowerCase() === 'gifts'
         );
         setGiftBudget(parseFloat(giftCategory?.amount) || 0);
-
-        // Auto-sync gift transactions on page load
-        await syncGiftTransactions();
       } catch (error) {
         console.error('[GiftManagement] Error loading data:', error);
       }
     };
 
     loadData();
-  }, [syncGiftTransactions]);
+  }, []);
+
+  // Sync gift transactions AFTER gift data has loaded
+  useEffect(() => {
+    // Only run sync once gift data is loaded (not loading anymore)
+    if (!isLoading) {
+      console.log('[GiftManagement] Gift data loaded, running sync...');
+      syncGiftTransactions();
+    }
+  }, [isLoading, syncGiftTransactions]);
 
   const handleAssignGift = (gift) => {
     setSelectedGift(gift);
