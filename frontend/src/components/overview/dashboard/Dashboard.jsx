@@ -548,10 +548,14 @@ function processBudgetCategories(filteredTransactions, viewMode, categories, bud
       const matchingTransactions = filteredTransactions.filter(t => budgetMath.matchesCategory(t, [category]));
       console.log(`[processBudgetCategories] Category "${category.name}" matches ${matchingTransactions.length} transactions`, matchingTransactions);
 
-      const negativeTransactions = matchingTransactions.filter(t => Currency.compare(t.amount, 0) < 0);
-      console.log(`[processBudgetCategories] Category "${category.name}" has ${negativeTransactions.length} negative (expense) transactions`, negativeTransactions);
+      // Filter for expense transactions (main_category === 'expense')
+      const expenseTransactions = matchingTransactions.filter(t =>
+        t.main_category && t.main_category.toLowerCase() === 'expense'
+      );
+      console.log(`[processBudgetCategories] Category "${category.name}" has ${expenseTransactions.length} expense transactions`, expenseTransactions);
 
-      const spent = negativeTransactions
+      // Sum up absolute values (handle both positive and negative amounts)
+      const spent = expenseTransactions
         .reduce((sum, t) => Currency.add(sum, Currency.abs(t.amount)), 0);
 
       console.log(`[processBudgetCategories] Category "${category.name}" spent: $${spent}, budget: $${category.amount}`);

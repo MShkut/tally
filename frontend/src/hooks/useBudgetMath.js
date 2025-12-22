@@ -154,7 +154,8 @@ export const useBudgetMath = () => {
 
   /**
    * Calculate actual expenses from transactions
-   * Only counts negative amounts matched to expense categories
+   * Counts all transactions with main_category='expense' matched to expense categories
+   * Handles both positive and negative amounts (takes absolute value)
    * @param {Array} transactions - Array of transaction objects
    * @param {Array} categories - Array of category objects with type='expense'
    * @returns {number} Total actual expenses from transactions
@@ -163,7 +164,7 @@ export const useBudgetMath = () => {
     const expenseCategories = categories.filter(c => c.type === 'expense');
 
     return transactions
-      .filter(t => Currency.compare(t.amount, 0) < 0)
+      .filter(t => t.main_category && t.main_category.toLowerCase() === 'expense')
       .filter(t => matchesCategory(t, expenseCategories))
       .reduce((sum, t) => Currency.add(sum, Currency.abs(t.amount)), 0);
   };
