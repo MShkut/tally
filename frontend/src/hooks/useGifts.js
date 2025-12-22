@@ -310,6 +310,46 @@ export const useGifts = () => {
   }, [giftData]);
 
   /**
+   * Unassign gift from a specific person
+   * Removes all assignments for the given person from the gift
+   * If this was the last person assigned, the gift becomes unassigned
+   * @param {string} giftId - Gift ID
+   * @param {string} personId - Person ID to remove assignments for
+   * @returns {boolean} Success status
+   */
+  const unassignGiftFromPerson = useCallback(async (giftId, personId) => {
+    try {
+      const gifts = giftData?.gifts || [];
+      const updatedGifts = gifts.map(gift => {
+        if (gift.id === giftId) {
+          // Remove all assignments for this person
+          const updatedAssignments = (gift.assignedTo || []).filter(
+            assignment => assignment.personId !== personId
+          );
+          return {
+            ...gift,
+            assignedTo: updatedAssignments
+          };
+        }
+        return gift;
+      });
+
+      const updatedData = {
+        ...giftData,
+        gifts: updatedGifts
+      };
+
+      await apiService.saveGiftData(updatedData);
+      setGiftData(updatedData);
+      return true;
+    } catch (err) {
+      console.error('[useGifts] Error unassigning gift:', err);
+      setError(`Failed to unassign gift: ${err.message}`);
+      return false;
+    }
+  }, [giftData]);
+
+  /**
    * Delete a gift
    * @param {string} giftId - Gift ID
    * @returns {boolean} Success status
@@ -443,6 +483,7 @@ export const useGifts = () => {
     // Gift CRUD (new flow)
     addGiftFromExpense,
     assignGift,
+    unassignGiftFromPerson,
     deleteGift,
     getGiftsForPerson,
     getUnassignedGifts,

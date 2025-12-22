@@ -47,6 +47,7 @@ export const GiftManagement = ({ onNavigate }) => {
     deletePerson,
     getBudgetSummary,
     assignGift,
+    unassignGiftFromPerson,
     getUnassignedGifts,
     getGiftsForPerson,
     calculateSpentForPerson,
@@ -218,6 +219,7 @@ export const GiftManagement = ({ onNavigate }) => {
           setView('overview');
           setSelectedPerson(null);
         }}
+        onUnassignGift={unassignGiftFromPerson}
       />
     );
   }

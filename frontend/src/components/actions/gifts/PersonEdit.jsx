@@ -15,7 +15,7 @@ import { apiService } from 'utils/apiService';
 import { Currency } from 'utils/currency';
 import { HOLIDAYS } from 'constants/holidays';
 
-export const PersonEdit = ({ person, people, onSave, onBack, assignedGifts = [] }) => {
+export const PersonEdit = ({ person, people, onSave, onBack, assignedGifts = [], onUnassignGift }) => {
   const { isDarkMode } = useTheme();
   const [editedPerson, setEditedPerson] = useState({
     ...person,
@@ -155,6 +155,21 @@ export const PersonEdit = ({ person, people, onSave, onBack, assignedGifts = [] 
     return Object.values(editedPerson.budgets).reduce(
       (sum, amount) => sum + (parseFloat(amount) || 0), 0
     );
+  };
+
+  const handleUnassignGift = async (gift) => {
+    const confirmMessage = `Remove "${gift.description}" from ${person.name}?\n\nThis gift will become unassigned and can be reassigned to anyone.`;
+    if (!window.confirm(confirmMessage)) {
+      return;
+    }
+
+    try {
+      await onUnassignGift(gift.id, person.id);
+      // Gift will be removed from assignedGifts automatically via the hook's state update
+    } catch (error) {
+      console.error('[PersonEdit] Error unassigning gift:', error);
+      alert('Failed to remove gift. Please try again.');
+    }
   };
 
   return (
@@ -371,24 +386,43 @@ export const PersonEdit = ({ person, people, onSave, onBack, assignedGifts = [] 
 
                   return (
                     <div key={gift.id} className={`
-                      p-4 border
+                      p-4 border group relative
                       ${isDarkMode ? 'border-gray-800' : 'border-gray-200'}
                     `}>
-                      <div className={`font-light ${isDarkMode ? 'text-white' : 'text-black'}`}>
-                        {gift.description}
-                      </div>
-                      <div className={`text-sm font-light mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                        {personAssignments.map(a => {
-                          const occasion = HOLIDAYS.find(h => h.id === a.occasionId);
-                          return (
-                            <div key={a.occasionId}>
-                              {occasion?.name}: {Currency.format(a.amount)}
-                            </div>
-                          );
-                        })}
-                      </div>
-                      <div className={`text-xs font-light mt-1 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-                        {new Date(gift.purchasedAt).toLocaleDateString()}
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <div className={`font-light ${isDarkMode ? 'text-white' : 'text-black'}`}>
+                            {gift.description}
+                          </div>
+                          <div className={`text-sm font-light mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                            {personAssignments.map(a => {
+                              const occasion = HOLIDAYS.find(h => h.id === a.occasionId);
+                              return (
+                                <div key={a.occasionId}>
+                                  {occasion?.name}: {Currency.format(a.amount)}
+                                </div>
+                              );
+                            })}
+                          </div>
+                          <div className={`text-xs font-light mt-1 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                            {new Date(gift.purchasedAt).toLocaleDateString()}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleUnassignGift(gift)}
+                          className={`
+                            ml-4 p-2 rounded transition-all opacity-0 group-hover:opacity-100
+                            ${isDarkMode
+                              ? 'hover:bg-red-900/20 text-gray-400 hover:text-red-400'
+                              : 'hover:bg-red-50 text-gray-600 hover:text-red-600'
+                            }
+                          `}
+                          title={`Remove ${gift.description}`}
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
                       </div>
                     </div>
                   );
