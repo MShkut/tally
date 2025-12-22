@@ -184,8 +184,9 @@ class Transaction {
     }
 
     // Main category filter (type parameter for backwards compatibility)
+    // Compare case-insensitively since frontend sends 'Expense' but DB stores 'expense'
     if (type) {
-      conditions.push('main_category = ?');
+      conditions.push('LOWER(main_category) = LOWER(?)');
       params.push(type);
     }
 
