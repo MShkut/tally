@@ -4,7 +4,7 @@ import { useTheme } from 'contexts/ThemeContext';
 import { Currency } from 'utils/currency';
 import { HOLIDAYS } from 'constants/holidays';
 
-export const PersonCard = ({ person, onViewDetails, spent = 0 }) => {
+export const PersonCard = ({ person, onViewDetails, spent = 0, assignedGifts = [] }) => {
   const { isDarkMode } = useTheme();
 
   // Calculate total budget for this person
@@ -27,6 +27,17 @@ export const PersonCard = ({ person, onViewDetails, spent = 0 }) => {
     if (customOccasion) return customOccasion.name;
 
     return id;
+  };
+
+  // Calculate spent per occasion
+  const getOccasionSpent = (occasionId) => {
+    const occasionGifts = assignedGifts.filter(gift =>
+      gift.assignedTo?.some(a => a.occasionId === occasionId && a.personId === person.id)
+    );
+    return occasionGifts.reduce((sum, gift) => {
+      const assignment = gift.assignedTo.find(a => a.occasionId === occasionId && a.personId === person.id);
+      return sum + (assignment?.amount || 0);
+    }, 0);
   };
 
   return (
@@ -76,39 +87,52 @@ export const PersonCard = ({ person, onViewDetails, spent = 0 }) => {
           <div className={`text-xs font-light mb-1 ${
             isDarkMode ? 'text-gray-500' : 'text-gray-400'
           }`}>
-            Actual Spent
+            Remaining
           </div>
           <div className={`text-xl font-light ${
-            isDarkMode ? 'text-white' : 'text-black'
+            remaining < 0
+              ? isDarkMode ? 'text-red-400' : 'text-red-600'
+              : isDarkMode ? 'text-green-400' : 'text-green-600'
           }`}>
-            {Currency.format(spent)}
+            {remaining < 0 ? '-' : ''}
+            {Currency.format(Math.abs(remaining), { showCents: false })}
           </div>
         </div>
       </div>
 
       {/* Gift Occasions */}
       {holidays.length > 0 && (
-        <div className="mb-6">
-          <div className={`text-sm font-light mb-2 ${
+        <div>
+          <div className={`text-sm font-light mb-3 ${
             isDarkMode ? 'text-gray-500' : 'text-gray-400'
           }`}>
             Gift Occasions
           </div>
-          <div className="flex flex-wrap gap-2">
-            {holidays.map(holiday => (
-              <span
-                key={holiday}
-                className={`
-                  text-xs font-light px-2 py-1 border
-                  ${isDarkMode
-                    ? 'border-gray-700 text-gray-400'
-                    : 'border-gray-300 text-gray-600'
-                  }
-                `}
-              >
-                {getOccasionName(holiday)}
-              </span>
-            ))}
+          <div className="space-y-2">
+            {holidays.map(holiday => {
+              const budget = person.budgets?.[holiday] || 0;
+              const occasionSpent = getOccasionSpent(holiday);
+              const occasionRemaining = budget - occasionSpent;
+
+              return (
+                <div
+                  key={holiday}
+                  className={`flex justify-between items-center text-sm font-light ${
+                    isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                  }`}
+                >
+                  <span>{getOccasionName(holiday)}</span>
+                  <span className={`${
+                    occasionRemaining < 0
+                      ? isDarkMode ? 'text-red-400' : 'text-red-600'
+                      : isDarkMode ? 'text-green-400' : 'text-green-600'
+                  }`}>
+                    {occasionRemaining < 0 ? '-' : ''}
+                    {Currency.format(Math.abs(occasionRemaining), { showCents: false })}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

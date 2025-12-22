@@ -415,11 +415,13 @@ export const GiftManagement = ({ onNavigate }) => {
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
                     {people.map(person => {
                       const spent = calculateSpentForPerson(person.id);
+                      const assignedGifts = getGiftsForPerson(person.id);
                       return (
                         <PersonCard
                           key={person.id}
                           person={person}
                           spent={spent}
+                          assignedGifts={assignedGifts}
                           onViewDetails={(person) => setViewingPersonDetails(person)}
                         />
                       );
@@ -664,7 +666,7 @@ export const GiftManagement = ({ onNavigate }) => {
                 {/* List of existing contacts */}
                 {people.length > 0 && (
                   <FormSection title={`${people.length} Contact${people.length !== 1 ? 's' : ''}`}>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                       {people.map(person => {
                         const totalBudget = Object.values(person.budgets || {}).reduce(
                           (sum, amount) => sum + (parseFloat(amount) || 0), 0
@@ -677,7 +679,7 @@ export const GiftManagement = ({ onNavigate }) => {
                           <div
                             key={person.id}
                             className={`
-                              p-6 border transition-all group
+                              p-8 border transition-all group
                               ${isDarkMode
                                 ? 'border-gray-800 hover:border-gray-600'
                                 : 'border-gray-200 hover:border-gray-400'
@@ -685,13 +687,13 @@ export const GiftManagement = ({ onNavigate }) => {
                             `}
                           >
                             {/* Header with actions */}
-                            <div className="flex justify-between items-start mb-4">
+                            <div className="flex justify-between items-start mb-6">
                               <div className="flex-1">
-                                <h3 className={`text-xl font-light ${isDarkMode ? 'text-white' : 'text-black'}`}>
+                                <h3 className={`text-2xl font-light mb-2 ${isDarkMode ? 'text-white' : 'text-black'}`}>
                                   {person.name}
                                 </h3>
                                 {person.relationship && (
-                                  <p className={`text-sm font-light mt-1 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                                  <p className={`text-sm font-light ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
                                     {person.relationship}
                                   </p>
                                 )}
@@ -734,45 +736,9 @@ export const GiftManagement = ({ onNavigate }) => {
                               </div>
                             </div>
 
-                            {/* Budget Summary */}
-                            {totalBudget > 0 && (
-                              <div className={`py-3 border-t ${isDarkMode ? 'border-gray-800' : 'border-gray-200'}`}>
-                                <div className="grid grid-cols-3 gap-4">
-                                  <div>
-                                    <div className={`text-xs font-light mb-1 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-                                      Budget
-                                    </div>
-                                    <div className={`text-base font-light ${isDarkMode ? 'text-white' : 'text-black'}`}>
-                                      {Currency.format(totalBudget, { showCents: false })}
-                                    </div>
-                                  </div>
-                                  <div>
-                                    <div className={`text-xs font-light mb-1 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-                                      Spent
-                                    </div>
-                                    <div className={`text-base font-light ${isDarkMode ? 'text-white' : 'text-black'}`}>
-                                      {Currency.format(spent, { showCents: false })}
-                                    </div>
-                                  </div>
-                                  <div>
-                                    <div className={`text-xs font-light mb-1 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-                                      Remaining
-                                    </div>
-                                    <div className={`text-base font-light ${
-                                      remaining < 0
-                                        ? isDarkMode ? 'text-red-400' : 'text-red-600'
-                                        : isDarkMode ? 'text-green-400' : 'text-green-600'
-                                    }`}>
-                                      {Currency.format(Math.abs(remaining), { showCents: false })}
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-
                             {/* Occasions Count */}
                             {occasionCount > 0 && (
-                              <div className={`mt-3 text-sm font-light ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                              <div className={`text-sm font-light ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                                 {occasionCount} gift occasion{occasionCount !== 1 ? 's' : ''}
                               </div>
                             )}
