@@ -196,16 +196,6 @@ const DefaultRedirect = () => {
   useEffect(() => {
     const redirect = async () => {
       try {
-        // Check if there's a return path from data import
-        const returnPath = sessionStorage.getItem('tally_returnPath');
-        if (returnPath) {
-          console.log('[ROUTER] Returning to saved path after import:', returnPath);
-          sessionStorage.removeItem('tally_returnPath');
-          navigate(returnPath);
-          setLoading(false);
-          return;
-        }
-
         const userData = await apiService.loadUserData();
         if (userData && userData.onboardingComplete) {
           const householdId = getHouseholdId(userData);

@@ -20,8 +20,7 @@ const OLD_STORAGE_KEYS = [
 
 // Keys that should be KEPT (don't remove these)
 const KEEP_KEYS = [
-  'theme-mode',                    // User theme preference
-  'tally_returnPath'               // Navigation state
+  'theme-mode'                     // User theme preference
 ];
 
 /**
