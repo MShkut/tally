@@ -516,6 +516,13 @@ function processIncomeBreakdown(onboardingData, filteredTransactions, viewMode, 
 function processBudgetCategories(filteredTransactions, viewMode, categories, budgetMath, onboardingData, selectedMonth) {
   let categoriesToDisplay = categories.filter(category => category.type === 'expense');
   console.log('[processBudgetCategories] Expense categories to display:', categoriesToDisplay);
+  console.log('[processBudgetCategories] Filtered transactions:', filteredTransactions.map(t => ({
+    date: t.date,
+    description: t.description,
+    amount: t.amount,
+    main_category: t.main_category,
+    sub_category: t.sub_category
+  })));
 
   // For month view: Only show One-time/Yearly if there's a transaction for it
   // For period view: Show all categories
@@ -539,11 +546,15 @@ function processBudgetCategories(filteredTransactions, viewMode, categories, bud
     .map(category => {
       // Calculate spent amount using budgetMath
       const matchingTransactions = filteredTransactions.filter(t => budgetMath.matchesCategory(t, [category]));
-      console.log(`[processBudgetCategories] Category "${category.name}" matches ${matchingTransactions.length} transactions`);
+      console.log(`[processBudgetCategories] Category "${category.name}" matches ${matchingTransactions.length} transactions`, matchingTransactions);
 
-      const spent = matchingTransactions
-        .filter(t => Currency.compare(t.amount, 0) < 0)
+      const negativeTransactions = matchingTransactions.filter(t => Currency.compare(t.amount, 0) < 0);
+      console.log(`[processBudgetCategories] Category "${category.name}" has ${negativeTransactions.length} negative (expense) transactions`, negativeTransactions);
+
+      const spent = negativeTransactions
         .reduce((sum, t) => Currency.add(sum, Currency.abs(t.amount)), 0);
+
+      console.log(`[processBudgetCategories] Category "${category.name}" spent: $${spent}, budget: $${category.amount}`);
 
       // Adjust budget based on view mode and frequency
       let budget = category.amount || 0;
