@@ -22,18 +22,22 @@ export const useGifts = () => {
   // ============================================
 
   const loadGiftData = useCallback(async () => {
+    console.log('[useGifts] loadGiftData called');
     try {
+      console.log('[useGifts] Calling apiService.loadGiftData()...');
       const data = await apiService.loadGiftData();
+      console.log('[useGifts] Loaded gift data:', data);
       setGiftData(data);
       return data;
     } catch (err) {
-      console.error('Error loading gift data:', err);
+      console.error('[useGifts] Error loading gift data:', err);
       setError(`Failed to load gift data: ${err.message}`);
       return null;
     }
   }, []);
 
   useEffect(() => {
+    console.log('[useGifts] Mount effect running');
     const loadData = async () => {
       setIsLoading(true);
       try {

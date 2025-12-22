@@ -8,10 +8,6 @@ frontend/backups
 # Docker artifacts
 docker/node_modules/
 
-# Start9 build artifacts
-startos/docker-images/
-startos/*.s9pk
-
 # IDE/Editor files
 .vscode/
 .idea/
@@ -37,8 +33,6 @@ yarn-debug.log*
 CLAUDE.md
 CURRENT-TASK.md
 
-# AI coding assistant artifacts
-.goose/
 
 # Examples directory (not pushed to main repo)
 examples/
