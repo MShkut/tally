@@ -233,10 +233,12 @@ export const ViewTransactions = ({ transactions, categories }) => {
                 </tr>
               ) : (
                 filteredTransactions.map((transaction, index) => {
-                  const categoryType = getCategoryType(transaction.categoryId);
-                  const typeColor = categoryType === 'Income'
+                  // Use main_category for type display (capitalize first letter)
+                  const mainCat = transaction.main_category || 'unknown';
+                  const displayType = mainCat.charAt(0).toUpperCase() + mainCat.slice(1).toLowerCase();
+                  const typeColor = mainCat.toLowerCase() === 'income'
                     ? (isDarkMode ? 'text-green-400' : 'text-green-600')
-                    : categoryType === 'Expense'
+                    : mainCat.toLowerCase() === 'expense'
                     ? (isDarkMode ? 'text-red-400' : 'text-red-600')
                     : (isDarkMode ? 'text-blue-400' : 'text-blue-600');
 
@@ -254,10 +256,10 @@ export const ViewTransactions = ({ transactions, categories }) => {
                         {transaction.description}
                       </td>
                       <td className={`px-6 py-4 text-sm font-light ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                        {getCategoryName(transaction.categoryId)}
+                        {transaction.sub_category || 'Uncategorized'}
                       </td>
                       <td className={`px-6 py-4 text-sm font-light ${typeColor}`}>
-                        {categoryType}
+                        {displayType}
                       </td>
                       <td className={`px-6 py-4 text-right text-sm font-light ${typeColor}`}>
                         {Currency.format(transaction.amount)}

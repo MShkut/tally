@@ -77,8 +77,6 @@ export const Dashboard = ({ onNavigate, onLogout }) => {
 
         // Build categories from user data
         if (userData?.expenses?.expenseCategories) {
-          console.log('[Dashboard] Raw expense categories from userData:', userData.expenses.expenseCategories);
-
           const expenseCategories = userData.expenses.expenseCategories.map(cat => {
             // Convert amount from original frequency to monthly
             const yearlyAmount = Currency.toYearly(cat.amount, cat.frequency);
@@ -106,11 +104,7 @@ export const Dashboard = ({ onNavigate, onLogout }) => {
             ...expenseCategories
           ];
 
-          console.log('[Dashboard] Built expense categories:', expenseCategories);
-          console.log('[Dashboard] All categories:', allCategories);
           setCategories(allCategories);
-        } else {
-          console.warn('[Dashboard] No expense categories found in userData');
         }
 
         if (!userData || !userData.onboardingComplete) {
@@ -515,14 +509,6 @@ function processIncomeBreakdown(onboardingData, filteredTransactions, viewMode, 
 
 function processBudgetCategories(filteredTransactions, viewMode, categories, budgetMath, onboardingData, selectedMonth) {
   let categoriesToDisplay = categories.filter(category => category.type === 'expense');
-  console.log('[processBudgetCategories] Expense categories to display:', categoriesToDisplay);
-  console.log('[processBudgetCategories] Filtered transactions:', filteredTransactions.map(t => ({
-    date: t.date,
-    description: t.description,
-    amount: t.amount,
-    main_category: t.main_category,
-    sub_category: t.sub_category
-  })));
 
   // For month view: Only show One-time/Yearly if there's a transaction for it
   // For period view: Show all categories
@@ -544,21 +530,17 @@ function processBudgetCategories(filteredTransactions, viewMode, categories, bud
 
   return categoriesToDisplay
     .map(category => {
-      // Calculate spent amount using budgetMath
+      // Match transactions by sub_category name
       const matchingTransactions = filteredTransactions.filter(t => budgetMath.matchesCategory(t, [category]));
-      console.log(`[processBudgetCategories] Category "${category.name}" matches ${matchingTransactions.length} transactions`, matchingTransactions);
 
       // Filter for expense transactions (main_category === 'expense')
       const expenseTransactions = matchingTransactions.filter(t =>
         t.main_category && t.main_category.toLowerCase() === 'expense'
       );
-      console.log(`[processBudgetCategories] Category "${category.name}" has ${expenseTransactions.length} expense transactions`, expenseTransactions);
 
       // Sum up absolute values (handle both positive and negative amounts)
       const spent = expenseTransactions
         .reduce((sum, t) => Currency.add(sum, Currency.abs(t.amount)), 0);
-
-      console.log(`[processBudgetCategories] Category "${category.name}" spent: $${spent}, budget: $${category.amount}`);
 
       // Adjust budget based on view mode and frequency
       let budget = category.amount || 0;
