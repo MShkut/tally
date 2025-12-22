@@ -77,6 +77,8 @@ export const Dashboard = ({ onNavigate, onLogout }) => {
 
         // Build categories from user data
         if (userData?.expenses?.expenseCategories) {
+          console.log('[Dashboard] Raw expense categories from userData:', userData.expenses.expenseCategories);
+
           const expenseCategories = userData.expenses.expenseCategories.map(cat => {
             // Convert amount from original frequency to monthly
             const yearlyAmount = Currency.toYearly(cat.amount, cat.frequency);
@@ -104,7 +106,11 @@ export const Dashboard = ({ onNavigate, onLogout }) => {
             ...expenseCategories
           ];
 
+          console.log('[Dashboard] Built expense categories:', expenseCategories);
+          console.log('[Dashboard] All categories:', allCategories);
           setCategories(allCategories);
+        } else {
+          console.warn('[Dashboard] No expense categories found in userData');
         }
 
         if (!userData || !userData.onboardingComplete) {
@@ -509,6 +515,7 @@ function processIncomeBreakdown(onboardingData, filteredTransactions, viewMode, 
 
 function processBudgetCategories(filteredTransactions, viewMode, categories, budgetMath, onboardingData, selectedMonth) {
   let categoriesToDisplay = categories.filter(category => category.type === 'expense');
+  console.log('[processBudgetCategories] Expense categories to display:', categoriesToDisplay);
 
   // For month view: Only show One-time/Yearly if there's a transaction for it
   // For period view: Show all categories
@@ -531,8 +538,10 @@ function processBudgetCategories(filteredTransactions, viewMode, categories, bud
   return categoriesToDisplay
     .map(category => {
       // Calculate spent amount using budgetMath
-      const spent = filteredTransactions
-        .filter(t => budgetMath.matchesCategory(t, [category]))
+      const matchingTransactions = filteredTransactions.filter(t => budgetMath.matchesCategory(t, [category]));
+      console.log(`[processBudgetCategories] Category "${category.name}" matches ${matchingTransactions.length} transactions`);
+
+      const spent = matchingTransactions
         .filter(t => Currency.compare(t.amount, 0) < 0)
         .reduce((sum, t) => Currency.add(sum, Currency.abs(t.amount)), 0);
 

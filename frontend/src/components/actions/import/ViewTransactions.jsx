@@ -77,7 +77,7 @@ export const ViewTransactions = ({ transactions, categories }) => {
   const availableCategories = useMemo(() => {
     return categories.filter(c => {
       if (filterType === 'all') return true;
-      return c.type === filterType;
+      return c.type.toLowerCase() === filterType.toLowerCase();
     });
   }, [categories, filterType]);
 
@@ -176,7 +176,7 @@ export const ViewTransactions = ({ transactions, categories }) => {
         >
           <option value="all">All Categories</option>
           {availableCategories.map(cat => (
-            <option key={cat.id} value={cat.id}>{cat.name}</option>
+            <option key={cat.id} value={cat.name}>{cat.name}</option>
           ))}
         </select>
 
