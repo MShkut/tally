@@ -263,16 +263,27 @@ export const GiftManagement = ({ onNavigate }) => {
         <BurgerIcon />
       </button>
 
-      <StandardFormLayout
-        title="Gift Management"
-        subtitle={giftBudget > 0
-          ? "Plan and track gifts for your loved ones throughout the year"
-          : "Set up a gift budget in your expenses to start planning"
-        }
-        onBack={() => onNavigate('dashboard')}
-        backLabel="Dashboard"
-        className="ml-16"
-      >
+      <div className={`min-h-screen transition-colors duration-300 ml-16 ${
+        isDarkMode ? 'bg-black text-white' : 'bg-gray-50 text-gray-900'
+      }`}>
+        <div className="max-w-6xl mx-auto px-6 py-12">
+
+          {/* Header */}
+          <div className="mb-24">
+            <h1 className={`text-5xl font-light leading-tight mb-4 ${
+              isDarkMode ? 'text-white' : 'text-black'
+            }`}>
+              Gift Management
+            </h1>
+            <p className={`text-xl font-light ${
+              isDarkMode ? 'text-gray-400' : 'text-gray-600'
+            }`}>
+              {giftBudget > 0
+                ? "Plan and track gifts for your loved ones throughout the year"
+                : "Set up a gift budget in your expenses to start planning"
+              }
+            </p>
+          </div>
 
         {/* Tab Navigation */}
         <div className={`mb-12 border-b ${isDarkMode ? 'border-gray-800' : 'border-gray-200'}`}>
@@ -768,7 +779,8 @@ export const GiftManagement = ({ onNavigate }) => {
           </>
         )}
 
-      </StandardFormLayout>
+        </div>
+      </div>
 
       {/* Contact Detail Modal */}
       {viewingPersonDetails && (

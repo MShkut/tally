@@ -579,6 +579,23 @@ app.post('/api/transactions/bulk-delete', authenticateToken, (req, res) => {
     }
 
     const deletedCount = Transaction.deleteMany(req.userId, transactionIds);
+
+    // Clean up associated gifts if exist
+    try {
+      const GiftData = require('./models/GiftData');
+      const giftData = GiftData.load(req.userId);
+      if (giftData && giftData.gifts) {
+        const updatedGifts = giftData.gifts.filter(g => !transactionIds.includes(g.expenseId));
+        if (updatedGifts.length !== giftData.gifts.length) {
+          // Gifts were removed, save updated data
+          GiftData.save(req.userId, { ...giftData, gifts: updatedGifts });
+        }
+      }
+    } catch (giftError) {
+      // Log error but don't fail transaction deletion
+      console.error('[GIFTS] Error cleaning up gifts on bulk delete:', giftError);
+    }
+
     res.json({ success: true, data: { count: deletedCount } });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -605,6 +622,23 @@ app.delete('/api/transactions/:id', authenticateToken, (req, res) => {
     if (!deleted) {
       return res.status(404).json({ success: false, error: 'Transaction not found' });
     }
+
+    // Clean up associated gift if exists
+    try {
+      const GiftData = require('./models/GiftData');
+      const giftData = GiftData.load(req.userId);
+      if (giftData && giftData.gifts) {
+        const updatedGifts = giftData.gifts.filter(g => g.expenseId !== req.params.id);
+        if (updatedGifts.length !== giftData.gifts.length) {
+          // Gift was removed, save updated data
+          GiftData.save(req.userId, { ...giftData, gifts: updatedGifts });
+        }
+      }
+    } catch (giftError) {
+      // Log error but don't fail transaction deletion
+      console.error('[GIFTS] Error cleaning up gift on transaction delete:', giftError);
+    }
+
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
