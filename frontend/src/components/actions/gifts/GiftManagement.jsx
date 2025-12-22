@@ -240,187 +240,6 @@ export const GiftManagement = ({ onNavigate }) => {
     );
   }
 
-  if (view === 'assign-gifts') {
-    const unassignedGifts = getUnassignedGifts();
-
-    const handlePersonChange = (giftId, personId) => {
-      setGiftAssignments(prev => ({
-        ...prev,
-        [giftId]: {
-          personId,
-          occasionId: null // Reset occasion when person changes
-        }
-      }));
-    };
-
-    const handleOccasionChange = (giftId, occasionId) => {
-      setGiftAssignments(prev => ({
-        ...prev,
-        [giftId]: {
-          ...prev[giftId],
-          occasionId
-        }
-      }));
-    };
-
-    const handleSaveAll = async () => {
-      // Save all assignments
-      const assignmentPromises = Object.entries(giftAssignments)
-        .filter(([_, assignment]) => assignment.personId && assignment.occasionId)
-        .map(([giftId, assignment]) => {
-          const gift = unassignedGifts.find(g => g.id === giftId);
-          return assignGift(giftId, [{
-            personId: assignment.personId,
-            occasionId: assignment.occasionId,
-            amount: gift.cost
-          }]);
-        });
-
-      await Promise.all(assignmentPromises);
-      setGiftAssignments({}); // Clear assignments after save
-      setView('overview');
-      setActiveTab('gift-assignment');
-    };
-
-    const canSave = Object.values(giftAssignments).some(a => a.personId && a.occasionId);
-
-    return (
-      <>
-        <ThemeToggle />
-        <StandardFormLayout
-          title="Assign Gifts"
-          subtitle="Assign purchased gifts to people and occasions"
-          onBack={() => {
-            setGiftAssignments({}); // Clear assignments on back
-            setView('overview');
-          }}
-          backLabel="Back to Overview"
-        >
-          {unassignedGifts.length === 0 ? (
-            <EmptyState
-              title="All gifts assigned!"
-              description="All your gift expenses have been assigned to people and occasions"
-            />
-          ) : (
-            <FormSection title={`${unassignedGifts.length} Unassigned Gift${unassignedGifts.length > 1 ? 's' : ''}`}>
-              <div className="space-y-4">
-                {unassignedGifts.map(gift => {
-                  const assignment = giftAssignments[gift.id] || {};
-                  const selectedPerson = people.find(p => p.id === assignment.personId);
-                  const availableOccasions = selectedPerson?.applicableHolidays || [];
-
-                  return (
-                    <div
-                      key={gift.id}
-                      className={`
-                        p-6 border
-                        ${isDarkMode ? 'border-gray-800' : 'border-gray-200'}
-                      `}
-                    >
-                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
-                        {/* Gift Info */}
-                        <div className="md:col-span-1">
-                          <div className={`font-light mb-1 ${isDarkMode ? 'text-white' : 'text-black'}`}>
-                            {gift.description}
-                          </div>
-                          <div className={`text-sm font-light ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                            {Currency.format(gift.cost)}
-                          </div>
-                        </div>
-
-                        {/* Person Dropdown */}
-                        <div className="md:col-span-1">
-                          <select
-                            value={assignment.personId || ''}
-                            onChange={(e) => handlePersonChange(gift.id, e.target.value)}
-                            className={`
-                              w-full px-4 py-3 border-2 font-light transition-colors
-                              ${isDarkMode
-                                ? 'bg-black border-gray-700 text-white focus:border-white'
-                                : 'bg-white border-gray-300 text-black focus:border-black'
-                              } outline-none
-                            `}
-                          >
-                            <option value="">Select person...</option>
-                            {people.map(person => (
-                              <option key={person.id} value={person.id}>
-                                {person.name}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-
-                        {/* Occasion Dropdown */}
-                        <div className="md:col-span-2">
-                          <select
-                            value={assignment.occasionId || ''}
-                            onChange={(e) => handleOccasionChange(gift.id, e.target.value)}
-                            disabled={!assignment.personId}
-                            className={`
-                              w-full px-4 py-3 border-2 font-light transition-colors
-                              ${isDarkMode
-                                ? 'bg-black border-gray-700 text-white focus:border-white disabled:opacity-50'
-                                : 'bg-white border-gray-300 text-black focus:border-black disabled:opacity-50'
-                              } outline-none
-                            `}
-                          >
-                            <option value="">
-                              {assignment.personId ? 'Select occasion...' : 'Select person first'}
-                            </option>
-                            {availableOccasions.map(occasionId => {
-                              // Get occasion name
-                              const standardHoliday = HOLIDAYS.find(h => h.id === occasionId);
-                              if (standardHoliday) {
-                                return (
-                                  <option key={occasionId} value={occasionId}>
-                                    {standardHoliday.name}
-                                  </option>
-                                );
-                              }
-
-                              const customOccasion = selectedPerson?.customOccasions?.find(co => co.id === occasionId);
-                              if (customOccasion) {
-                                return (
-                                  <option key={occasionId} value={occasionId}>
-                                    {customOccasion.name}
-                                  </option>
-                                );
-                              }
-
-                              return null;
-                            })}
-                          </select>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Save Button */}
-              {canSave && (
-                <div className="mt-8">
-                  <button
-                    onClick={handleSaveAll}
-                    className={`
-                      w-full px-8 py-4 border-2 font-light text-lg transition-all
-                      ${isDarkMode
-                        ? 'border-white text-white hover:bg-white hover:text-black'
-                        : 'border-black text-black hover:bg-black hover:text-white'
-                      }
-                    `}
-                  >
-                    Save Assignments
-                  </button>
-                </div>
-              )}
-            </FormSection>
-          )}
-        </StandardFormLayout>
-      </>
-    );
-  }
-
   // Main overview
   return (
     <>
@@ -611,34 +430,160 @@ export const GiftManagement = ({ onNavigate }) => {
                 />
               </FormSection>
             ) : getUnassignedGifts().length > 0 ? (
-              <FormSection title="Gift Assignments">
-                <div className={`
-                  text-center py-12 border-2 border-dashed
-                  ${isDarkMode ? 'border-gray-700' : 'border-gray-300'}
-                `}>
-                  <h3 className={`text-xl font-light mb-4 ${
-                    isDarkMode ? 'text-white' : 'text-black'
-                  }`}>
-                    {getUnassignedGifts().length} Gift{getUnassignedGifts().length !== 1 ? 's' : ''} Ready to Assign
-                  </h3>
-                  <p className={`text-base font-light mb-8 ${
-                    isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                  }`}>
-                    Assign your gift purchases to recipients and occasions
-                  </p>
-                  <button
-                    onClick={() => setView('assign-gifts')}
-                    className={`
-                      px-8 py-3 border-2 font-light transition-all
-                      ${isDarkMode
-                        ? 'border-white text-white hover:bg-white hover:text-black'
-                        : 'border-black text-black hover:bg-black hover:text-white'
-                      }
-                    `}
-                  >
-                    Assign Gifts
-                  </button>
+              <FormSection title="Assign Gifts to Recipients">
+                {/* Gift Assignment Table */}
+                <div className="space-y-6">
+                  {getUnassignedGifts().map(gift => {
+                    const assignment = giftAssignments[gift.id] || {};
+                    const selectedPerson = people.find(p => p.id === assignment.personId);
+                    const availableOccasions = selectedPerson?.applicableHolidays || [];
+
+                    return (
+                      <div
+                        key={gift.id}
+                        className={`
+                          border-2 transition-all
+                          ${isDarkMode ? 'border-gray-700' : 'border-gray-300'}
+                        `}
+                      >
+                        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 p-6">
+                          {/* Gift Info */}
+                          <div className="md:col-span-5">
+                            <div className={`font-light mb-1 ${
+                              isDarkMode ? 'text-white' : 'text-black'
+                            }`}>
+                              {gift.description}
+                            </div>
+                            <div className={`text-sm font-light ${
+                              isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                            }`}>
+                              {Currency.format(gift.cost)}
+                              {gift.purchasedAt && (
+                                <span className="ml-2">
+                                  • {new Date(gift.purchasedAt).toLocaleDateString()}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Person Dropdown */}
+                          <div className="md:col-span-3">
+                            <select
+                              value={assignment.personId || ''}
+                              onChange={(e) => {
+                                setGiftAssignments(prev => ({
+                                  ...prev,
+                                  [gift.id]: {
+                                    personId: e.target.value,
+                                    occasionId: null // Reset occasion when person changes
+                                  }
+                                }));
+                              }}
+                              className={`
+                                w-full px-4 py-3 border-2 font-light transition-colors
+                                ${isDarkMode
+                                  ? 'bg-black border-gray-700 text-white focus:border-white'
+                                  : 'bg-white border-gray-300 text-black focus:border-black'
+                                } outline-none
+                              `}
+                            >
+                              <option value="">Select person...</option>
+                              {people.map(person => (
+                                <option key={person.id} value={person.id}>
+                                  {person.name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          {/* Occasion Dropdown */}
+                          <div className="md:col-span-4">
+                            <select
+                              value={assignment.occasionId || ''}
+                              onChange={(e) => {
+                                setGiftAssignments(prev => ({
+                                  ...prev,
+                                  [gift.id]: {
+                                    ...prev[gift.id],
+                                    occasionId: e.target.value
+                                  }
+                                }));
+                              }}
+                              disabled={!assignment.personId}
+                              className={`
+                                w-full px-4 py-3 border-2 font-light transition-colors
+                                ${isDarkMode
+                                  ? 'bg-black border-gray-700 text-white focus:border-white disabled:opacity-50'
+                                  : 'bg-white border-gray-300 text-black focus:border-black disabled:opacity-50'
+                                } outline-none
+                              `}
+                            >
+                              <option value="">
+                                {assignment.personId ? 'Select occasion...' : 'Select person first'}
+                              </option>
+                              {availableOccasions.map(occasionId => {
+                                // Get occasion name
+                                const standardHoliday = HOLIDAYS.find(h => h.id === occasionId);
+                                if (standardHoliday) {
+                                  return (
+                                    <option key={occasionId} value={occasionId}>
+                                      {standardHoliday.name}
+                                    </option>
+                                  );
+                                }
+
+                                const customOccasion = selectedPerson?.customOccasions?.find(co => co.id === occasionId);
+                                if (customOccasion) {
+                                  return (
+                                    <option key={occasionId} value={occasionId}>
+                                      {customOccasion.name}
+                                    </option>
+                                  );
+                                }
+
+                                return null;
+                              })}
+                            </select>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
+
+                {/* Save Button */}
+                {Object.values(giftAssignments).some(a => a.personId && a.occasionId) && (
+                  <div className="mt-8">
+                    <button
+                      onClick={async () => {
+                        // Save all assignments
+                        const unassignedGifts = getUnassignedGifts();
+                        const assignmentPromises = Object.entries(giftAssignments)
+                          .filter(([_, assignment]) => assignment.personId && assignment.occasionId)
+                          .map(([giftId, assignment]) => {
+                            const gift = unassignedGifts.find(g => g.id === giftId);
+                            return assignGift(giftId, [{
+                              personId: assignment.personId,
+                              occasionId: assignment.occasionId,
+                              amount: gift.cost
+                            }]);
+                          });
+
+                        await Promise.all(assignmentPromises);
+                        setGiftAssignments({}); // Clear assignments after save
+                      }}
+                      className={`
+                        w-full px-8 py-4 border-2 font-light text-lg transition-all
+                        ${isDarkMode
+                          ? 'border-white text-white hover:bg-white hover:text-black'
+                          : 'border-black text-black hover:bg-black hover:text-white'
+                        }
+                      `}
+                    >
+                      Save Assignments
+                    </button>
+                  </div>
+                )}
               </FormSection>
             ) : gifts.length > 0 ? (
               <FormSection>
