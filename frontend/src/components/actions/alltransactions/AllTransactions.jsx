@@ -140,13 +140,6 @@ export const AllTransactions = ({ onNavigate }) => {
 
   const handleSave = useCallback(async (transactionId, updatedTransaction) => {
     try {
-      console.log('[AllTransactions] handleSave called:', {
-        transactionId,
-        updatedTransaction,
-        main_category: updatedTransaction.main_category,
-        sub_category: updatedTransaction.sub_category
-      });
-
       // Update in local state
       const updatedTransactions = transactions.map(t =>
         t.id === transactionId ? { ...t, ...updatedTransaction } : t
@@ -154,9 +147,7 @@ export const AllTransactions = ({ onNavigate }) => {
       setTransactions(updatedTransactions);
 
       // Update single transaction in backend
-      const result = await apiService.updateTransaction(transactionId, updatedTransaction);
-      console.log('[AllTransactions] Backend update result:', result);
-
+      await apiService.updateTransaction(transactionId, updatedTransaction);
       setEditingId(null);
     } catch (error) {
       console.error('[AllTransactions] Error saving transaction:', error);
@@ -607,21 +598,14 @@ const TransactionRow = React.memo(({
   const handleSave = () => {
     // Backend expects main_category and sub_category
     const selectedCategory = categories.find(c => c.name === editData.categoryName);
-    const updatedData = {
+    onSave({
       ...transaction,  // Preserve all original transaction fields (id, originalData, etc.)
       date: editData.date,
       description: editData.description,
       amount: parseFloat(editData.amount),
       main_category: selectedCategory?.type?.toLowerCase() || transaction.main_category,
       sub_category: editData.categoryName
-    };
-    console.log('[TransactionRow] Saving transaction:', {
-      transactionId: transaction.id,
-      selectedCategory,
-      editData,
-      updatedData
     });
-    onSave(updatedData);
   };
 
   const getAmountColor = (amount) => {

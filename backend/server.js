@@ -531,15 +531,14 @@ app.post('/api/transactions', authenticateToken, (req, res) => {
  */
 app.put('/api/transactions/:id', authenticateToken, (req, res) => {
   try {
-    const { date, merchant, category, amount, type, description } = req.body;
+    const { date, description, amount, main_category, sub_category } = req.body;
 
     const updated = Transaction.update(req.userId, req.params.id, {
       date,
-      merchant,
-      category,
+      description,
       amount,
-      type,
-      description
+      main_category,
+      sub_category
     });
 
     if (!updated) {
