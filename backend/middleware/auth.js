@@ -1,10 +1,27 @@
 // Authentication middleware - JWT verification
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
+const fs = require('fs');
 const User = require('../models/User');
 
-// JWT secret - in production, use environment variable
-const JWT_SECRET = process.env.JWT_SECRET || 'tally-budget-secret-change-in-production';
 const JWT_EXPIRES_IN = '30d'; // 30 days
+
+const SECRET_PATH = process.env.JWT_SECRET_PATH || '/data/.jwt_secret';
+
+function getOrCreateSecret() {
+  if (process.env.JWT_SECRET) return process.env.JWT_SECRET;
+
+  try {
+    return fs.readFileSync(SECRET_PATH, 'utf8').trim();
+  } catch {
+    const secret = crypto.randomBytes(64).toString('hex');
+    fs.writeFileSync(SECRET_PATH, secret, { mode: 0o600 });
+    console.log('[AUTH] Generated new JWT secret');
+    return secret;
+  }
+}
+
+const JWT_SECRET = getOrCreateSecret();
 
 /**
  * Generate JWT token for user
@@ -17,7 +34,6 @@ function generateToken(userId) {
  * Verify JWT token and attach user to request
  */
 function authenticateToken(req, res, next) {
-  // Get token from cookie or Authorization header
   const token = req.cookies?.token || req.headers.authorization?.replace('Bearer ', '');
 
   if (!token) {
@@ -71,6 +87,5 @@ function optionalAuth(req, res, next) {
 module.exports = {
   generateToken,
   authenticateToken,
-  optionalAuth,
-  JWT_SECRET
+  optionalAuth
 };

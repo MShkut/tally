@@ -35,7 +35,7 @@ const Transaction = require('./models/Transaction');
 const CategoryMapping = require('./models/CategoryMapping');
 
 // Import middleware
-const { generateToken, authenticateToken, optionalAuth } = require('./middleware/auth');
+const { generateToken, authenticateToken } = require('./middleware/auth');
 
 const app = express();
 app.set('trust proxy', 1);
@@ -153,14 +153,10 @@ const loginLimiter = rateLimit({
       success: false, 
       error: 'Too many login attempts, try again in 15 minutes' 
     });
-  },
-  onLimitReached: (req) => {
-    console.log('[RATE LIMIT] Limit reached for IP:', req.ip);
   }
 });
 
 app.post('/api/auth/login', loginLimiter, async (req, res) => {
-  console.log('[LOGIN] Attempt from IP:', req.ip);
   try {
     const { password } = req.body;
 
