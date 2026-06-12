@@ -5,7 +5,7 @@ version: '3.8'
 
 services:
   tally:
-    image: ghcr.io/carb-frog/tally:dev
+    image: ghcr.io/mshkut/tally:dev
     container_name: tally-budget-dev
 
     ports:

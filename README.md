@@ -49,7 +49,7 @@ docker login ghcr.io
 
 2. **Clone repository:**
 ```bash
-git clone https://github.com/carb-frog/tally.git
+git clone https://github.com/mshkut/tally.git
 cd tally
 ```
 
@@ -104,7 +104,7 @@ make status       # Show container status
 make build
 
 # Test local build
-docker run -p 8085:8080 -v tally-test:/data ghcr.io/carb-frog/tally:local
+docker run -p 8085:8080 -v tally-test:/data ghcr.io/mshkut/tally:local
 ```
 
 ## Design Philosophy
@@ -207,8 +207,8 @@ Trying to make budget tracking feel less like a chore and more like reading some
 ## CI/CD & Updates
 
 Images are automatically built and pushed to GitHub Container Registry when you push to:
-- `main` branch → `ghcr.io/carb-frog/tally:latest`
-- `dev` branch → `ghcr.io/carb-frog/tally:dev`
+- `main` branch → `ghcr.io/mshkut/tally:latest`
+- `dev` branch → `ghcr.io/mshkut/tally:dev`
 
 Update your deployment with `make prod-restart` or `make dev-restart`.
 

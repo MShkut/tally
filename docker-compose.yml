@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   tally:
-    image: ghcr.io/carb-frog/tally:latest
+    image: ghcr.io/mshkut/tally:latest
     container_name: tally-budget
     restart: unless-stopped
 
