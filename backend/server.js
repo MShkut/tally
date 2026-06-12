@@ -16,9 +16,11 @@
  */
 
 const express = require('express');
+const rateLimit = require('express-rate-limit');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const compression = require('compression');
+
 
 // Initialize database connection and schema
 // This must happen before any model operations
@@ -40,7 +42,10 @@ const PORT = process.env.PORT || 3001;
 
 // Middleware configuration
 app.use(compression()); // Compress all HTTP responses for better performance
-app.use(cors({ credentials: true, origin: true })); // Allow cross-origin requests from frontend
+app.use(cors({ 
+  credentials: true, 
+  origin: process.env.CORS_ORIGIN || 'http://localhost:8087'
+})); // Allow cross-origin requests from frontend
 app.use(express.json({ limit: '50mb' })); // Parse JSON bodies (large limit for bulk transaction imports)
 app.use(cookieParser()); // Parse cookies for JWT token extraction
 
@@ -77,7 +82,14 @@ app.get('/api/health', (req, res) => {
  * @throws {400} If a user already exists (single-user mode)
  * @throws {500} If database or hashing operation fails
  */
-app.post('/api/auth/register', async (req, res) => {
+
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // 10 attempts per window
+  message: { success: false, error: 'Too many login attempts, try again in 15 minutes' }
+});
+
+app.post('/api/auth/login', loginLimiter, async (req, res) => {
   try {
     const { householdName, password } = req.body;
 
@@ -101,12 +113,13 @@ app.post('/api/auth/register', async (req, res) => {
     res.cookie('token', token, {
       httpOnly: true, // Cannot be accessed by client-side JavaScript
       secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+      sameSite: 'strict',
       maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days expiration
     });
 
     res.json({
       success: true,
-      data: { user, token }
+      data: { user }
     });
   } catch (error) {
     console.error('Registration error:', error);
@@ -164,12 +177,13 @@ app.post('/api/auth/login', async (req, res) => {
     res.cookie('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
       maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
     });
 
     res.json({
       success: true,
-      data: { user, token }
+      data: { user }
     });
   } catch (error) {
     console.error('Login error:', error);
@@ -455,7 +469,7 @@ app.get('/api/transactions', authenticateToken, (req, res) => {
       sortOrder
     };
 
-    const transactions = Transaction.findByUser(req.userId, options);
+    const transactions = Transaction.findByUser(req.userId, { limit: 10000 });
     const total = Transaction.countByUser(req.userId, options);
 
     res.json({ success: true, data: transactions, total });
