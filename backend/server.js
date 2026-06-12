@@ -38,6 +38,7 @@ const CategoryMapping = require('./models/CategoryMapping');
 const { generateToken, authenticateToken, optionalAuth } = require('./middleware/auth');
 
 const app = express();
+app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3001;
 
 // Middleware configuration
@@ -83,13 +84,7 @@ app.get('/api/health', (req, res) => {
  * @throws {500} If database or hashing operation fails
  */
 
-const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10, // 10 attempts per window
-  message: { success: false, error: 'Too many login attempts, try again in 15 minutes' }
-});
-
-app.post('/api/auth/login', loginLimiter, async (req, res) => {
+app.post('/api/auth/register', async (req, res) => {
   try {
     const { householdName, password } = req.body;
 
@@ -148,7 +143,24 @@ app.post('/api/auth/login', loginLimiter, async (req, res) => {
  * @throws {401} If password is incorrect
  * @throws {500} If verification fails
  */
-app.post('/api/auth/login', async (req, res) => {
+
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  handler: (req, res) => {
+    console.log('[RATE LIMIT] Login rate limit triggered for IP:', req.ip);
+    res.status(429).json({ 
+      success: false, 
+      error: 'Too many login attempts, try again in 15 minutes' 
+    });
+  },
+  onLimitReached: (req) => {
+    console.log('[RATE LIMIT] Limit reached for IP:', req.ip);
+  }
+});
+
+app.post('/api/auth/login', loginLimiter, async (req, res) => {
+  console.log('[LOGIN] Attempt from IP:', req.ip);
   try {
     const { password } = req.body;
 
@@ -469,7 +481,7 @@ app.get('/api/transactions', authenticateToken, (req, res) => {
       sortOrder
     };
 
-    const transactions = Transaction.findByUser(req.userId, { limit: 10000 });
+    const transactions = Transaction.findByUser(req.userId, options);
     const total = Transaction.countByUser(req.userId, options);
 
     res.json({ success: true, data: transactions, total });
@@ -856,7 +868,7 @@ app.get('/api/data/export', authenticateToken, async (req, res) => {
     const GiftData = require('./models/GiftData');
     const userData = UserData.load(req.userId);
     const settings = Settings.load(req.userId);
-    const transactions = Transaction.findByUser(req.userId, 10000, 0); // Get all transactions (high limit)
+    const transactions = Transaction.findByUser(req.userId, { limit: 10000 });// Get all transactions (high limit)
     const giftData = GiftData.load(req.userId);
 
     // Build export object with version metadata
