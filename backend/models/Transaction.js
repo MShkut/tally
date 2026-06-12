@@ -41,7 +41,7 @@ class Transaction {
   static bulkCreate(userId, transactions) {
     const db = require('../database/db').getDatabase();
     const stmt = db.prepare(
-      'INSERT INTO transactions (user_id, date, description, amount, main_category, sub_category) VALUES (?, ?, ?, ?, ?, ?)'
+      'INSERT OR IGNORE INTO transactions (user_id, date, description, amount, main_category, sub_category) VALUES (?, ?, ?, ?, ?, ?)'
     );
 
     /**

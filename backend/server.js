@@ -1006,6 +1006,17 @@ app.post('/api/data/import', authenticateToken, async (req, res) => {
  */
 app.post('/api/data/reset', authenticateToken, async (req, res) => {
   try {
+    const { password } = req.body;
+
+    if (!password) {
+      return res.status(400).json({ success: false, error: 'Password required to reset data' });
+    }
+
+    const valid = await User.verifyPassword(req.userId, password);
+    if (!valid) {
+      return res.status(401).json({ success: false, error: 'Incorrect password' });
+    }
+
     const GiftData = require('./models/GiftData');
     // Delete all user data (irreversible)
     UserData.delete(req.userId);
@@ -1033,6 +1044,14 @@ app.post('/api/data/reset', authenticateToken, async (req, res) => {
     console.error('[RESET] Error:', error);
     res.status(500).json({ success: false, error: error.message });
   }
+});
+
+app.use((err, req, res, next) => {
+  console.error('[ERROR]', err);
+  const message = process.env.NODE_ENV === 'production'
+    ? 'Internal server error'
+    : err.message;
+  res.status(500).json({ success: false, error: message });
 });
 
 // ==================== SERVER INITIALIZATION ====================
