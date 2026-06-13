@@ -99,14 +99,10 @@ make status       # Show container status
 - nginx reverse proxy in front of API
 - Different filesystem paths and permissions
 
-**Always test in Docker container:**
-```bash
-# Build locally
-make build
-
-# Test local build
-docker run -p 8085:8080 -v tally-test:/data ghcr.io/mshkut/tally:local
-```
+**Always test in a Docker container.** Push to `dev`, let CI build
+`ghcr.io/mshkut/tally:dev`, then test on the dev deployment (`make dev-restart`
+/ `make dev-up` on the server, port 8086) — that's the only environment that
+matches production (SQLite, nginx proxy, real filesystem paths).
 
 ## Design Philosophy
 
