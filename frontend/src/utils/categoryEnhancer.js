@@ -1,7 +1,7 @@
 // frontend/src/utils/categoryEnhancer.js
 // Utility for enhancing categories with keywords and merchant mappings for smart categorization
 
-import { isCreditCardPayment } from './transactionHelpers';
+import { isCreditCardPayment, containsWord } from './transactionHelpers';
 
 // Predefined keyword mappings for common category patterns
 const CATEGORY_KEYWORD_PATTERNS = {
@@ -56,9 +56,9 @@ export const generateCategoryKeywords = (category) => {
   // Add the category name itself as a keyword
   keywords.add(categoryName);
   
-  // Check for pattern matches
+  // Check for pattern matches (whole-word, not substring)
   for (const [pattern, patternKeywords] of Object.entries(CATEGORY_KEYWORD_PATTERNS)) {
-    if (categoryName.includes(pattern) || pattern.includes(categoryName)) {
+    if (containsWord(categoryName, pattern) || containsWord(pattern, categoryName)) {
       patternKeywords.forEach(keyword => keywords.add(keyword));
     }
   }

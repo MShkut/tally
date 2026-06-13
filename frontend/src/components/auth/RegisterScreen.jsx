@@ -6,7 +6,6 @@ import { useTheme } from 'contexts/ThemeContext';
 import { ThemeToggle } from 'components/shared/ThemeToggle';
 import { DateRangePicker } from 'components/shared/DateRangePicker';
 import { ImportDataModal } from 'components/shared/ImportDataModal';
-import { apiService } from 'utils/apiService';
 
 export const RegisterScreen = () => {
   const { isDarkMode } = useTheme();
@@ -21,38 +20,6 @@ export const RegisterScreen = () => {
 
   const handleDateRangeChange = (dateRange) => {
     setPeriodData(dateRange);
-  };
-
-  const handleImportSuccess = async () => {
-    try {
-      console.log('[RegisterScreen] Import success, loading user data for redirect...');
-      const userData = await apiService.loadUserData();
-      console.log('[RegisterScreen] User data loaded:', userData);
-
-      if (!userData || !userData.household) {
-        console.error('[RegisterScreen] No household data found after import');
-        window.location.reload();
-        return;
-      }
-
-      // Use same logic as AppRouter getHouseholdId()
-      let householdId = userData.household.id;
-      if (!householdId && userData.household.name) {
-        householdId = `household-${userData.household.name.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
-        console.log('[RegisterScreen] Generated householdId from name:', householdId);
-      }
-
-      if (householdId) {
-        console.log('[RegisterScreen] Redirecting to:', `/${householdId}/dashboard`);
-        window.location.href = `/${householdId}/dashboard`;
-      } else {
-        console.error('[RegisterScreen] Could not determine householdId, reloading');
-        window.location.reload();
-      }
-    } catch (error) {
-      console.error('[RegisterScreen] Failed to load user data after import:', error);
-      window.location.reload();
-    }
   };
 
   const handleSubmit = async (e) => {
@@ -236,7 +203,8 @@ export const RegisterScreen = () => {
           {/* Import Existing Data Option */}
           <div className="mt-12 text-center">
             <p className={`text-sm mb-3 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-              Already have Tally data?
+              Already have Tally data? Restore from a backup file — the form
+              above isn't needed for this.
             </p>
             <button
               onClick={() => setShowImportModal(true)}
@@ -256,7 +224,7 @@ export const RegisterScreen = () => {
       <ImportDataModal
         isOpen={showImportModal}
         onClose={() => setShowImportModal(false)}
-        onSuccess={handleImportSuccess}
+        requiresAccountSetup={true}
       />
     </>
   );

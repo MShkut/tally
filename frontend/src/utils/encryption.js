@@ -1,19 +1,53 @@
 /**
  * Encryption Utility for Backup Files
- * Uses AES-256-GCM with PBKDF2 key derivation
+ * Uses AES-256-GCM with Argon2id key derivation (same algorithm family as the
+ * server's login password hashing). Legacy backups encrypted with PBKDF2 can
+ * still be decrypted.
  */
 
+import { argon2id } from 'hash-wasm';
+
+// Argon2id parameters for new backups. memorySize is in KiB (65536 = 64 MiB),
+// matching the server's @node-rs/argon2 settings for login password hashing.
+const ARGON2_ITERATIONS = 3;
+const ARGON2_MEMORY_KIB = 65536;
+const ARGON2_PARALLELISM = 1;
+const ARGON2_HASH_LENGTH = 32; // bytes, for AES-256
+
 /**
- * Derives a cryptographic key from a password using PBKDF2
+ * Derives an AES-GCM key from a password using Argon2id
  * @param {string} password - The password to derive the key from
- * @param {Uint8Array} salt - Random salt for key derivation
+ * @param {Uint8Array} salt - Salt for key derivation
+ * @param {number} iterations - Argon2id time cost
+ * @param {number} memorySize - Argon2id memory cost in KiB
+ * @param {number} parallelism - Argon2id parallelism
  * @returns {Promise<CryptoKey>} - The derived AES-GCM key
  */
-async function deriveKey(password, salt) {
+async function deriveKeyArgon2id(password, salt, iterations, memorySize, parallelism) {
+  const keyBytes = await argon2id({
+    password,
+    salt,
+    iterations,
+    memorySize,
+    parallelism,
+    hashLength: ARGON2_HASH_LENGTH,
+    outputType: 'binary'
+  });
+
+  return crypto.subtle.importKey('raw', keyBytes, 'AES-GCM', false, ['encrypt', 'decrypt']);
+}
+
+/**
+ * Derives an AES-GCM key from a password using PBKDF2 (legacy backups only)
+ * @param {string} password - The password to derive the key from
+ * @param {Uint8Array} salt - Salt for key derivation
+ * @param {number} iterations - PBKDF2 iteration count
+ * @returns {Promise<CryptoKey>} - The derived AES-GCM key
+ */
+async function deriveKeyPBKDF2(password, salt, iterations) {
   const encoder = new TextEncoder();
   const passwordBuffer = encoder.encode(password);
 
-  // Import password as key material
   const keyMaterial = await crypto.subtle.importKey(
     'raw',
     passwordBuffer,
@@ -22,12 +56,11 @@ async function deriveKey(password, salt) {
     ['deriveBits', 'deriveKey']
   );
 
-  // Derive AES-GCM key using PBKDF2
   return crypto.subtle.deriveKey(
     {
       name: 'PBKDF2',
-      salt: salt,
-      iterations: 100000, // 100k iterations for security
+      salt,
+      iterations,
       hash: 'SHA-256'
     },
     keyMaterial,
@@ -38,7 +71,7 @@ async function deriveKey(password, salt) {
 }
 
 /**
- * Encrypts data with password using AES-256-GCM
+ * Encrypts data with password using AES-256-GCM + Argon2id
  * @param {Object} data - The data object to encrypt
  * @param {string} password - The password to encrypt with
  * @returns {Promise<Object>} - Encrypted data structure with metadata
@@ -52,41 +85,39 @@ export async function encryptData(data, password) {
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const iv = crypto.getRandomValues(new Uint8Array(12)); // 12 bytes for GCM
 
-  // Derive encryption key from password
-  const key = await deriveKey(password, salt);
+  const key = await deriveKeyArgon2id(password, salt, ARGON2_ITERATIONS, ARGON2_MEMORY_KIB, ARGON2_PARALLELISM);
 
   // Convert data to JSON string and encode
   const encoder = new TextEncoder();
-  const dataStr = JSON.stringify(data);
-  const dataBuffer = encoder.encode(dataStr);
+  const dataBuffer = encoder.encode(JSON.stringify(data));
 
   // Encrypt the data
   const encryptedBuffer = await crypto.subtle.encrypt(
     {
       name: 'AES-GCM',
-      iv: iv
+      iv
     },
     key,
     dataBuffer
   );
 
-  // Convert buffers to base64 for JSON serialization
-  const encryptedArray = new Uint8Array(encryptedBuffer);
-
   return {
     encrypted: true,
-    version: '1.0',
+    version: '2.0',
     algorithm: 'AES-256-GCM',
-    kdf: 'PBKDF2',
-    iterations: 100000,
+    kdf: 'Argon2id',
+    iterations: ARGON2_ITERATIONS,
+    memorySize: ARGON2_MEMORY_KIB,
+    parallelism: ARGON2_PARALLELISM,
     salt: arrayBufferToBase64(salt),
     iv: arrayBufferToBase64(iv),
-    data: arrayBufferToBase64(encryptedArray)
+    data: arrayBufferToBase64(new Uint8Array(encryptedBuffer))
   };
 }
 
 /**
- * Decrypts encrypted backup data
+ * Decrypts encrypted backup data. Supports both current (Argon2id) and
+ * legacy (PBKDF2) backups based on the `kdf` field.
  * @param {Object} encryptedData - The encrypted data structure
  * @param {string} password - The password to decrypt with
  * @returns {Promise<Object>} - The decrypted data object
@@ -110,15 +141,17 @@ export async function decryptData(encryptedData, password) {
   const iv = base64ToArrayBuffer(encryptedData.iv);
   const encryptedBuffer = base64ToArrayBuffer(encryptedData.data);
 
-  // Derive decryption key from password
-  const key = await deriveKey(password, salt);
+  // Derive decryption key from password, matching whichever KDF this backup used
+  const key = encryptedData.kdf === 'Argon2id'
+    ? await deriveKeyArgon2id(password, salt, encryptedData.iterations, encryptedData.memorySize, encryptedData.parallelism)
+    : await deriveKeyPBKDF2(password, salt, encryptedData.iterations || 100000);
 
   try {
     // Decrypt the data
     const decryptedBuffer = await crypto.subtle.decrypt(
       {
         name: 'AES-GCM',
-        iv: iv
+        iv
       },
       key,
       encryptedBuffer

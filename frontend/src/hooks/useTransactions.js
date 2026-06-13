@@ -115,13 +115,14 @@ export const useTransactions = () => {
     // Optimistic update
     const previousTransactions = [...transactions];
     const oldTransaction = transactions.find(txn => txn.id === id);
+    const updatedTransaction = { ...oldTransaction, ...updates };
     const updatedTransactions = transactions.map(txn =>
-      txn.id === id ? { ...txn, ...updates } : txn
+      txn.id === id ? updatedTransaction : txn
     );
     setTransactions(updatedTransactions);
 
     try {
-      await apiService.saveTransactions(updatedTransactions);
+      await apiService.updateTransaction(id, updatedTransaction);
 
       return true;
     } catch (err) {
@@ -171,7 +172,7 @@ export const useTransactions = () => {
     setTransactions(updatedTransactions);
 
     try {
-      await apiService.saveTransactions(updatedTransactions);
+      await apiService.bulkDeleteTransactions(ids);
       return true;
     } catch (err) {
       console.error('Error deleting transactions:', err);
@@ -211,7 +212,7 @@ export const useTransactions = () => {
    */
   const filterByCategory = useCallback((category) => {
     return transactions.filter(txn =>
-      txn.category?.toLowerCase() === category.toLowerCase()
+      txn.sub_category?.toLowerCase() === category.toLowerCase()
     );
   }, [transactions]);
 
@@ -263,7 +264,7 @@ export const useTransactions = () => {
 
     if (filters.category) {
       filtered = filtered.filter(txn =>
-        txn.category?.toLowerCase() === filters.category.toLowerCase()
+        txn.sub_category?.toLowerCase() === filters.category.toLowerCase()
       );
     }
 
@@ -372,7 +373,7 @@ export const useTransactions = () => {
     const grouped = {};
 
     txns.forEach(txn => {
-      const category = txn.category || 'Uncategorized';
+      const category = txn.sub_category || 'Uncategorized';
       if (!grouped[category]) {
         grouped[category] = [];
       }

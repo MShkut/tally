@@ -558,7 +558,8 @@ export const ConfirmationModal = ({
   cancelText = 'Cancel',
   onConfirm,
   onCancel,
-  confirmDanger = false
+  confirmDanger = false,
+  children
 }) => {
   const { isDarkMode } = useTheme();
   
@@ -600,7 +601,13 @@ export const ConfirmationModal = ({
               {warningText}
             </p>
           )}
-          
+
+          {children && (
+            <div className="mb-8">
+              {children}
+            </div>
+          )}
+
           <div className="flex justify-between items-center">
             <button
               onClick={onCancel}

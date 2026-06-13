@@ -150,7 +150,7 @@ export const generateAvailableMonths = (onboardingData, transactions) => {
   }
 
   const periodStart = new Date(onboardingData.period.start_date);
-  const periodDuration = onboardingData.period.duration_months || 6;
+  const periodDuration = onboardingData.period.duration_months || 12;
   const now = new Date();
   
   // Generate months from period start to now (or period end, whichever is earlier)

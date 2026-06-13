@@ -45,28 +45,20 @@ export const PlanNextPeriod = ({ onComplete, onCancel }) => {
         const newPeriodData = {
           ...currentData,
           period: {
-            ...periodData,
+            duration_months: periodData.durationMonths,
+            start_date: periodData.startDate,
+            end_date: periodData.endDate,
             period_number: (currentData?.period?.period_number || 0) + 1,
             previous_period: currentData?.period
           },
-          // Reset transaction-related data for new period
           onboardingComplete: true,
           completedAt: new Date().toISOString()
         };
 
-        // Save the new period data
+        // Save the new period data. Transactions are not cleared or archived —
+        // they remain in full history; the Dashboard's "period" view filters
+        // them down to this period's date range.
         await apiService.saveUserData(newPeriodData);
-
-        // Archive current period transactions
-        const currentTransactions = await apiService.loadTransactions();
-        if (currentTransactions.length > 0) {
-          localStorage.setItem(
-            `financeTracker_transactions_period_${currentData?.period?.period_number || 1}`,
-            JSON.stringify(currentTransactions)
-          );
-          // Clear current transactions for new period
-          await apiService.saveTransactions([]);
-        }
 
         onComplete();
       } catch (error) {

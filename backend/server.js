@@ -109,6 +109,7 @@ app.post('/api/auth/register', async (req, res) => {
       httpOnly: true, // Cannot be accessed by client-side JavaScript
       secure: process.env.NODE_ENV === 'production', // HTTPS only in production
       sameSite: 'strict',
+      path: '/', // Send on all API routes, not just /api/auth (the default path for this response)
       maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days expiration
     });
 
@@ -186,6 +187,7 @@ app.post('/api/auth/login', loginLimiter, async (req, res) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
+      path: '/', // Send on all API routes, not just /api/auth (the default path for this response)
       maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
     });
 
@@ -273,6 +275,37 @@ app.post('/api/auth/change-password', authenticateToken, async (req, res) => {
       success: false,
       error: error.message || 'Failed to change password'
     });
+  }
+});
+
+/**
+ * POST /api/auth/verify-password
+ * Verify the authenticated user's account password without changing anything.
+ *
+ * Used by the export-data flow so a backup can be encrypted with the user's
+ * account password (single password for login + backup encryption) after
+ * confirming they typed it correctly.
+ *
+ * @route POST /api/auth/verify-password
+ * @access Private (requires authentication)
+ *
+ * @body {string} password - Password to verify against the account
+ * @returns {Object} success: true, data: { valid: boolean }
+ */
+app.post('/api/auth/verify-password', authenticateToken, async (req, res) => {
+  try {
+    const { password } = req.body;
+
+    if (!password) {
+      return res.status(400).json({ success: false, error: 'Password required' });
+    }
+
+    const valid = await User.verifyPassword(req.userId, password);
+
+    res.json({ success: true, data: { valid } });
+  } catch (error) {
+    console.error('[AUTH] Verify password error:', error);
+    res.status(500).json({ success: false, error: error.message || 'Failed to verify password' });
   }
 });
 

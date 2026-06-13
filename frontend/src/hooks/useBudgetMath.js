@@ -316,9 +316,13 @@ export const useBudgetMath = () => {
       const periodStart = parseDate(periodStartDate);
       if (!periodStart) return transactions;
 
+      const periodEnd = parseDate(onboardingData?.period?.end_date);
+
       return transactions.filter(t => {
         const transactionDate = parseDate(t.date);
-        return transactionDate && transactionDate >= periodStart;
+        if (!transactionDate || transactionDate < periodStart) return false;
+        if (periodEnd && transactionDate > periodEnd) return false;
+        return true;
       });
     } else {
       let targetMonth, targetYear;

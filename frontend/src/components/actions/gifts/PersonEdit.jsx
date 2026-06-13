@@ -11,11 +11,10 @@ import {
   StandardFormLayout,
   useItemManager
 } from 'components/shared/FormComponents';
-import { apiService } from 'utils/apiService';
 import { Currency } from 'utils/currency';
 import { HOLIDAYS } from 'constants/holidays';
 
-export const PersonEdit = ({ person, people, onSave, onBack, assignedGifts = [], onUnassignGift }) => {
+export const PersonEdit = ({ person, onSave, onBack, assignedGifts = [], onUnassignGift }) => {
   const { isDarkMode } = useTheme();
   const [editedPerson, setEditedPerson] = useState({
     ...person,
@@ -132,18 +131,8 @@ export const PersonEdit = ({ person, people, onSave, onBack, assignedGifts = [],
         return;
       }
 
-      // Update person in the people array
-      const updatedPeople = people.map(p =>
-        p.id === person.id ? editedPerson : p
-      );
-
-      // Save to API
-      await apiService.saveGiftData({
-        people: updatedPeople,
-        gifts: [], // Will be populated from gift assignments
-        lastUpdated: new Date().toISOString()
-      });
-
+      // Persist via the gift data hook (onSave -> updatePerson), which merges
+      // this change into the existing giftData without touching `gifts`.
       onSave(editedPerson);
     } catch (error) {
       console.error('[PersonEdit] Error saving person:', error);

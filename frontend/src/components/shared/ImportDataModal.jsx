@@ -1,11 +1,16 @@
 import { useState, useRef } from 'react';
 
 import { useTheme } from 'contexts/ThemeContext';
+import { useAuth } from 'contexts/AuthContext';
 import { apiService } from 'utils/apiService';
 import { decryptData, isEncrypted } from 'utils/encryption';
 
-export const ImportDataModal = ({ isOpen, onClose, onSuccess }) => {
+// When true, no account exists yet (registration screen) — the backup's
+// encryption password is reused to create the new account before importing.
+// Unencrypted (legacy) backups instead prompt for a new account password.
+export const ImportDataModal = ({ isOpen, onClose, onSuccess, requiresAccountSetup = false }) => {
   const { isDarkMode } = useTheme();
+  const { completeRegistration } = useAuth();
   const [selectedFile, setSelectedFile] = useState(null);
   const [fileData, setFileData] = useState(null);
   const [error, setError] = useState(null);
@@ -13,6 +18,8 @@ export const ImportDataModal = ({ isOpen, onClose, onSuccess }) => {
   const [needsPassword, setNeedsPassword] = useState(false);
   const [password, setPassword] = useState('');
   const [rawEncryptedData, setRawEncryptedData] = useState(null);
+  const [accountPassword, setAccountPassword] = useState('');
+  const [accountPasswordConfirm, setAccountPasswordConfirm] = useState('');
   const fileInputRef = useRef(null);
 
   const handleFileSelect = (event) => {
@@ -87,7 +94,8 @@ export const ImportDataModal = ({ isOpen, onClose, onSuccess }) => {
 
       setFileData(decrypted);
       setNeedsPassword(false);
-      setPassword('');
+      // Keep `password` — reused as the new account's password when
+      // requiresAccountSetup (see handleImport).
       console.log('[IMPORT] File decrypted and validated successfully');
     } catch (err) {
       console.error('[IMPORT] Decryption error:', err);
@@ -98,32 +106,71 @@ export const ImportDataModal = ({ isOpen, onClose, onSuccess }) => {
   const handleImport = async () => {
     if (!fileData) return;
 
-    setImporting(true);
     setError(null);
+
+    // No account exists yet (registration screen) — create one first so
+    // /api/data/import has a session to write into. We don't flip the app's
+    // auth state (completeRegistration) until *after* the import succeeds:
+    // doing it earlier would make AppRouter render before user_data exists,
+    // and its DefaultRedirect would bounce to onboarding with an empty account.
+    let registeredUser = null;
+
+    if (requiresAccountSetup) {
+      const wasEncrypted = !!rawEncryptedData;
+      let newAccountPassword;
+
+      if (wasEncrypted) {
+        // Reuse the backup's encryption password as the new account's password.
+        newAccountPassword = password;
+      } else {
+        if (accountPassword.length < 6) {
+          setError('Password must be at least 6 characters');
+          return;
+        }
+        if (accountPassword !== accountPasswordConfirm) {
+          setError('Passwords do not match');
+          return;
+        }
+        newAccountPassword = accountPassword;
+      }
+
+      const householdName = fileData?.userData?.household?.name || 'My Household';
+
+      try {
+        registeredUser = await apiService.register(householdName, newAccountPassword);
+      } catch (err) {
+        console.error('[IMPORT] Failed to create account:', err);
+        setError(`Could not create account: ${err.message}`);
+        return;
+      }
+    }
+
+    setImporting(true);
 
     try {
       console.log('[IMPORT] Starting data import...');
+      await apiService.importData(fileData);
+      console.log('[IMPORT] ✓ All data imported successfully');
 
-      // Use the bulk import endpoint for better performance
-      // This handles all data types in a single backend transaction
-      try {
-        await apiService.importData(fileData);
-
-        console.log('[IMPORT] ✓ All data imported successfully');
-
-        // Close modal and trigger success callback
-        // Let the parent component (WelcomeStep, Settings, etc.) handle navigation
+      if (registeredUser) {
+        // user_data/transactions/settings now reflect the import — switch
+        // to the authenticated view, where AppRouter loads the fresh data
+        // and routes straight to the dashboard.
+        completeRegistration(registeredUser);
+        onClose();
+      } else {
         onClose();
         if (onSuccess) {
           onSuccess();
         }
-      } catch (saveError) {
-        console.error('[IMPORT] Failed to save imported data:', saveError);
-        setError(`Import failed: ${saveError.message}`);
       }
     } catch (err) {
       console.error('[IMPORT] Import error:', err);
-      setError(`Import failed: ${err.message}`);
+      if (registeredUser) {
+        setError(`Account created, but import failed: ${err.message}. Reload this page, log in with the password you just set, and retry the import from Settings.`);
+      } else {
+        setError(`Import failed: ${err.message}`);
+      }
     } finally {
       setImporting(false);
     }
@@ -282,6 +329,54 @@ export const ImportDataModal = ({ isOpen, onClose, onSuccess }) => {
             </div>
           )}
 
+          {/* Account Setup (registration screen import) */}
+          {requiresAccountSetup && fileData && (
+            <div className={`mb-6 p-4 rounded border ${
+              isDarkMode
+                ? 'bg-gray-900 border-gray-700'
+                : 'bg-gray-50 border-gray-200'
+            }`}>
+              {rawEncryptedData ? (
+                <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  This file's encryption password will also be used as your login
+                  password for this installation.
+                </p>
+              ) : (
+                <>
+                  <p className={`text-sm font-medium mb-3 ${
+                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                  }`}>
+                    Create a password for this installation
+                  </p>
+                  <div className="space-y-3">
+                    <input
+                      type="password"
+                      placeholder="Password (min. 6 characters)"
+                      value={accountPassword}
+                      onChange={(e) => setAccountPassword(e.target.value)}
+                      className={`w-full px-4 py-2 border-2 font-light bg-transparent ${
+                        isDarkMode
+                          ? 'border-gray-700 text-white placeholder-gray-500'
+                          : 'border-gray-300 text-black placeholder-gray-400'
+                      }`}
+                    />
+                    <input
+                      type="password"
+                      placeholder="Confirm password"
+                      value={accountPasswordConfirm}
+                      onChange={(e) => setAccountPasswordConfirm(e.target.value)}
+                      className={`w-full px-4 py-2 border-2 font-light bg-transparent ${
+                        isDarkMode
+                          ? 'border-gray-700 text-white placeholder-gray-500'
+                          : 'border-gray-300 text-black placeholder-gray-400'
+                      }`}
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
           {/* Error Message */}
           {error && (
             <div className={`mb-6 p-4 rounded border ${
@@ -308,7 +403,7 @@ export const ImportDataModal = ({ isOpen, onClose, onSuccess }) => {
             </button>
             <button
               onClick={handleImport}
-              disabled={!fileData || importing}
+              disabled={!fileData || importing || (requiresAccountSetup && !rawEncryptedData && (accountPassword.length < 6 || accountPassword !== accountPasswordConfirm))}
               className={`px-6 py-2 text-sm font-medium rounded transition-colors ${
                 isDarkMode
                   ? 'bg-white text-black hover:bg-gray-100'

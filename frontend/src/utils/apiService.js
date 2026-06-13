@@ -335,6 +335,19 @@ class APIService {
   }
 
   /**
+   * Verify the authenticated user's account password (no state change).
+   * Used by the export flow to confirm the password before using it to
+   * encrypt the backup.
+   */
+  async verifyPassword(password) {
+    const data = await this.request('/auth/verify-password', {
+      method: 'POST',
+      body: JSON.stringify({ password })
+    });
+    return data.valid;
+  }
+
+  /**
    * Get current user
    */
   async getCurrentUser() {
@@ -535,11 +548,12 @@ class APIService {
   }
 
   /**
-   * Reset all data (destructive operation)
+   * Reset all data (destructive operation, requires password confirmation)
    */
-  async resetAllData() {
+  async resetAllData(password) {
     return await this.request('/data/reset', {
-      method: 'POST'
+      method: 'POST',
+      body: JSON.stringify({ password })
     });
   }
 

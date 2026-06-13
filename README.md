@@ -19,11 +19,12 @@ Simple: track your household budget without sending your financial data to some 
 - Onboarding flow for household setup
 - Dark/light themes
 - Gift budget management
+- Encrypted data export/import (Argon2id + AES-256-GCM, single account password)
+- Period rollover ("Plan Next Period")
 
 **What's broken/incomplete:**
 - **Budget math is wrong** - calculations need serious work
-- **Period rollover doesn't work** - monthly transitions are broken
-- **Transaction categorization** - auto-categorization is hit or miss
+- **Transaction categorization** - auto-categorization is improved but still has known issues
 - **Mobile UI** - works but needs responsive fixes
 - **Error handling** - exists but isn't great
 - **Tests** - yeah, I know...
@@ -168,20 +169,21 @@ Trying to make budget tracking feel less like a chore and more like reading some
 **What Actually Works:**
 - Complete onboarding flow
 - CSV transaction import
-- Transaction categorization (needs improvement)
+- Transaction categorization (improved, still has known issues)
 - Gift budget management
 - Theme switching (dark/light)
 - Password authentication
+- Encrypted data export/import for backup and restore
+- Period rollover ("Plan Next Period")
 - Data persistence across restarts
 - Multi-user shared household budget
 - All navigation working correctly (no logout bugs)
 
 **What's Broken (High Priority):**
 1. **Budget calculations** - The math is wrong, needs complete review
-2. **Period transitions** - Monthly/period rollovers don't work properly
-3. **Transaction totals** - Categorization math doesn't add up correctly
-4. **Auto-categorization** - Suggestion logic needs improvement
-5. **UI consistency** - Needs polish across the board
+2. **Transaction totals** - Categorization math doesn't add up correctly
+3. **Auto-categorization** - Suggestion logic needs further improvement
+4. **UI consistency** - Needs polish across the board
 
 **What's Missing (Medium Priority):**
 - Proper error messages

@@ -12,32 +12,33 @@ export const DataManagementTab = ({ onNavigate }) => {
   const [showImportModal, setShowImportModal] = useState(false);
   const [importFile, setImportFile] = useState(null);
   const [statusMessage, setStatusMessage] = useState('');
-  const [showPasswordInput, setShowPasswordInput] = useState(false);
   const [exportPassword, setExportPassword] = useState('');
   const [importPassword, setImportPassword] = useState('');
   const [needsPassword, setNeedsPassword] = useState(false);
+  const [resetPassword, setResetPassword] = useState('');
+  const [resetError, setResetError] = useState('');
 
   const handleExport = async () => {
-    try {
-      const exportData = await apiService.exportData();
-      let dataStr;
-      let fileName;
-      let fileType = 'application/json';
+    if (!exportPassword || exportPassword.trim() === '') {
+      setStatusMessage('Enter your account password to encrypt your backup.');
+      setTimeout(() => setStatusMessage(''), 5000);
+      return;
+    }
 
-      // If password is provided, encrypt the data
-      if (exportPassword && exportPassword.trim() !== '') {
-        const encrypted = await encryptData(exportData, exportPassword);
-        dataStr = JSON.stringify(encrypted, null, 2);
-        fileName = `tally-export-${new Date().toISOString().split('T')[0]}.tally`;
-        fileType = 'application/json';
-        setStatusMessage('✓ Data exported successfully (encrypted)');
-      } else {
-        // Plain export without encryption
-        dataStr = JSON.stringify(exportData, null, 2);
-        fileName = `tally-export-${new Date().toISOString().split('T')[0]}.json`;
-        fileType = 'application/json';
-        setStatusMessage('✓ Data exported successfully');
+    try {
+      const passwordValid = await apiService.verifyPassword(exportPassword);
+      if (!passwordValid) {
+        setStatusMessage('Incorrect password.');
+        setTimeout(() => setStatusMessage(''), 5000);
+        return;
       }
+
+      const exportData = await apiService.exportData();
+      const encrypted = await encryptData(exportData, exportPassword);
+      const dataStr = JSON.stringify(encrypted, null, 2);
+      const fileName = `tally-export-${new Date().toISOString().split('T')[0]}.tally`;
+      const fileType = 'application/json';
+      setStatusMessage('✓ Data exported successfully (encrypted)');
 
       // Create downloadable file
       const dataBlob = new Blob([dataStr], { type: fileType });
@@ -138,8 +139,16 @@ export const DataManagementTab = ({ onNavigate }) => {
   };
 
   const handleReset = async () => {
+    if (!resetPassword) {
+      setResetError('Password is required');
+      return;
+    }
+
     try {
-      const result = await apiService.resetAllData();
+      const result = await apiService.resetAllData(resetPassword);
+      setShowResetConfirm(false);
+      setResetPassword('');
+      setResetError('');
 
       // Check if account was deleted (new behavior)
       if (result?.data?.accountDeleted) {
@@ -159,8 +168,7 @@ export const DataManagementTab = ({ onNavigate }) => {
       }
     } catch (error) {
       console.error('❌ Failed to reset data:', error);
-      setStatusMessage('Failed to reset data. Please try again.');
-      setTimeout(() => setStatusMessage(''), 5000);
+      setResetError(error.message || 'Failed to reset data. Please try again.');
     }
   };
 
@@ -173,53 +181,35 @@ export const DataManagementTab = ({ onNavigate }) => {
             Export Data
           </h3>
           <p className={`text-sm font-light ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-            Download all your data as a JSON file for backup. Optionally protect with a password.
+            Download all your data as an encrypted backup file.
           </p>
         </div>
 
         <div className="space-y-3">
-          <label className="flex items-center space-x-2 cursor-pointer">
+          <div className="space-y-2">
             <input
-              type="checkbox"
-              checked={showPasswordInput}
-              onChange={(e) => {
-                setShowPasswordInput(e.target.checked);
-                if (!e.target.checked) {
-                  setExportPassword('');
-                }
-              }}
-              className="w-4 h-4 cursor-pointer"
+              type="password"
+              placeholder="Enter your account password"
+              value={exportPassword}
+              onChange={(e) => setExportPassword(e.target.value)}
+              className={`w-full px-4 py-2 border-2 font-light bg-transparent ${
+                isDarkMode
+                  ? 'border-gray-700 text-white placeholder-gray-500'
+                  : 'border-gray-300 text-black placeholder-gray-400'
+              }`}
             />
-            <span className={`text-sm font-light ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-              Encrypt backup with password (recommended)
-            </span>
-          </label>
-
-          {showPasswordInput && (
-            <div className="space-y-2">
-              <input
-                type="password"
-                placeholder="Enter encryption password"
-                value={exportPassword}
-                onChange={(e) => setExportPassword(e.target.value)}
-                className={`w-full px-4 py-2 border-2 font-light bg-transparent ${
-                  isDarkMode
-                    ? 'border-gray-700 text-white placeholder-gray-500'
-                    : 'border-gray-300 text-black placeholder-gray-400'
-                }`}
-              />
-              <div className={`text-xs font-light space-y-1 ${isDarkMode ? 'text-yellow-400' : 'text-yellow-600'}`}>
-                <p className="font-medium">⚠️ Important: This is NOT your login password</p>
-                <p className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>
-                  Choose any password to encrypt this backup. You must remember this password to restore the backup later.
-                  If you lose this password, your backup cannot be recovered.
-                </p>
-                <p className={isDarkMode ? 'text-gray-500' : 'text-gray-500'}>
-                  Uses AES-256-GCM encryption with PBKDF2 key derivation (100,000 iterations)
-                </p>
-              </div>
+            <div className={`text-xs font-light space-y-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+              <p>
+                Your backup is encrypted with the same password you log in with — nothing
+                extra to remember. If you restore it on a fresh install (via "Import Existing
+                Data" on the registration screen), this password becomes your login password
+                there too.
+              </p>
+              <p className={isDarkMode ? 'text-gray-500' : 'text-gray-500'}>
+                Uses AES-256-GCM encryption with Argon2id key derivation
+              </p>
             </div>
-          )}
+          </div>
         </div>
 
         <button
@@ -342,13 +332,38 @@ export const DataManagementTab = ({ onNavigate }) => {
       <ConfirmationModal
         isOpen={showResetConfirm}
         title="Reset All Data?"
-        description="This will permanently delete all your data including transactions, budgets, and settings. This action cannot be undone."
+        description="This will permanently delete all your data, including transactions, budgets, and settings, and delete your account. You'll need to register again to use Tally. This action cannot be undone."
         confirmText="Reset Everything"
         cancelText="Cancel"
         onConfirm={handleReset}
-        onCancel={() => setShowResetConfirm(false)}
+        onCancel={() => {
+          setShowResetConfirm(false);
+          setResetPassword('');
+          setResetError('');
+        }}
         confirmDanger={true}
-      />
+      >
+        <div className="space-y-2">
+          <input
+            type="password"
+            placeholder="Enter your password to confirm"
+            value={resetPassword}
+            onChange={(e) => {
+              setResetPassword(e.target.value);
+              setResetError('');
+            }}
+            className={`w-full px-4 py-2 border-2 font-light bg-transparent ${
+              isDarkMode
+                ? 'border-gray-700 text-white placeholder-gray-500'
+                : 'border-gray-300 text-black placeholder-gray-400'
+            }`}
+            autoFocus
+          />
+          {resetError && (
+            <p className="text-sm font-light text-red-500">{resetError}</p>
+          )}
+        </div>
+      </ConfirmationModal>
     </div>
   );
 };

@@ -92,6 +92,22 @@ export function AuthProvider({ children }) {
     return user;
   };
 
+  // Activates an already-registered, already-imported account: switches
+  // AppContent from RegisterScreen to AppRouter. Used by the registration
+  // screen's "Import Existing Data" flow, where the account is created and
+  // populated via apiService.register()/importData() *before* the app's
+  // auth state flips — otherwise AppRouter's DefaultRedirect would see an
+  // empty user_data row and bounce to onboarding before the import finishes.
+  const completeRegistration = (user) => {
+    setUser(user);
+    setIsRegistered(true);
+
+    sessionStorage.setItem('tally_session_active', 'true');
+    console.log('[AUTH] Session flag set');
+
+    prefetchDashboardData();
+  };
+
   const login = async (password) => {
     const user = await apiService.login(password);
     setUser(user);
@@ -133,6 +149,7 @@ export function AuthProvider({ children }) {
     loading,
     isRegistered,
     register,
+    completeRegistration,
     login,
     logout,
     isAuthenticated: !!user

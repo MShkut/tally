@@ -3,6 +3,17 @@
 
 import { Currency } from 'utils/currency';
 
+// Check whether `needle` appears in `haystack` as a whole word/phrase
+// (word-boundary match), not just as a raw substring. Prevents short generic
+// keywords (e.g. "gas", "bank", "home") from matching inside unrelated words
+// (e.g. "Vegas", "Bankers", "HomeGoods").
+export const containsWord = (haystack, needle) => {
+  if (!haystack || !needle) return false;
+
+  const escaped = needle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`\\b${escaped}\\b`, 'i').test(haystack);
+};
+
 export const normalizeMerchantName = (description) => {
   return description
     .replace(/\s+\d{4,}.*$/, '')
@@ -52,10 +63,10 @@ export const calculateConfidence = (description, category) => {
     return 1.0;
   }
   
-  // Calculate confidence based on keyword matches
+  // Calculate confidence based on keyword matches (whole-word, not substring)
   const desc = description.toLowerCase();
-  const matches = category.keywords.filter(keyword => 
-    desc.includes(keyword.toLowerCase())
+  const matches = category.keywords.filter(keyword =>
+    containsWord(desc, keyword.toLowerCase())
   ).length;
   
   return Math.min(matches * 0.3, 0.9);
